@@ -13,11 +13,15 @@ import {
   Bars3Icon,
   BellIcon,
   CalendarIcon,
+  ChartBarIcon,
   ChartPieIcon,
+  ChatBubbleBottomCenterIcon,
   Cog6ToothIcon,
   DocumentDuplicateIcon,
   FolderIcon,
+  FolderOpenIcon,
   HomeIcon,
+  HomeModernIcon,
   UsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -27,7 +31,12 @@ import { Link } from '@inertiajs/react';
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
   { name: 'User Management', href: '/admin/user_management', icon: UsersIcon },
-  { name: 'Products', href: '/admin/products', icon: FolderIcon },
+  { name: 'Assets', href: '', icon: FolderIcon },
+  { name: 'Devices', href: '#', icon: FolderIcon },
+  { name: 'System Unit', href: '#', icon: FolderIcon },
+  { name: 'Peripherals', href: '#', icon: FolderIcon },
+  { name: 'Parts', href: '#', icon: FolderIcon },
+  { name: 'Accessories', href: '#', icon: FolderIcon },
   { name: 'Reports', href: '/admin/reports', icon: ChartPieIcon },
 ];
 
@@ -45,6 +54,8 @@ export default function AdminLayout({ children }) {
   const [navItems, setNavItems] = useState(navigation);
 
   const [user, setUser] = useState(null);
+
+  const [isAssetsOpen, setIsAssetsOpen] = useState(false);
 
   useEffect(() => {
     // Access the user data from the global window object
@@ -116,7 +127,7 @@ export default function AdminLayout({ children }) {
                         ))}
                       </ul>
                     </li>
-                    
+
                     <li className="mt-auto">
                       <a
                         href="#"
@@ -144,28 +155,98 @@ export default function AdminLayout({ children }) {
               />
             </div>
             <nav className="flex flex-1 flex-col">
-              <ul role="list" className="flex flex-1 flex-col gap-y-7">
+              <ul role="list" className="flex flex-1 flex-col">
                 <li>
-                  <ul role="list" className="-mx-2 space-y-1">
-                    {navItems.map((item) => (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={classNames(
-                            item.current
-                              ? 'bg-gray-800 text-white'
-                              : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                            'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6',
-                          )}
-                        >
-                          <item.icon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          {item.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+                  <a
+                    href="#"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  >
+                    <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    Dashboard
+                  </a>
                 </li>
-                
+
+                <li>
+                  <a
+                    href="/admin/user_management"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  >
+                    <ChatBubbleBottomCenterIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    User Management
+                  </a>
+                </li>
+
+                {/* Assets Dropdown */}
+                <li>
+                  <button
+                    onClick={() => setIsAssetsOpen(!isAssetsOpen)}
+                    className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  >
+                    <FolderOpenIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    Assets
+                    <ChevronDownIcon
+                      className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {isAssetsOpen && (
+                    <ul className="ml-8 mt-1 space-y-1">
+                      <li>
+                        <a
+                          href="#"
+                          className="block rounded-md p-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-white"
+                        >
+                          Devices
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="block rounded-md p-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-white"
+                        >
+                          System Units
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="block rounded-md p-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-white"
+                        >
+                          Peripherals
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="block rounded-md p-2 text-sm text-gray-400 hover:bg-gray-800 hover:text-white"
+                        >
+                          Parts and Accessories
+                        </a>
+                      </li>
+                    </ul>
+                  )}
+                </li>
+
+                <li>
+                  <a
+                    href="#"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  >
+                    <ChatBubbleBottomCenterIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    Reports
+                  </a>
+                </li>
+
+                <li>
+                  <a
+                    href="#"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  >
+                    <ChatBubbleBottomCenterIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    Stations
+                  </a>
+                </li>
+
                 <li className="mt-auto">
                   <a
                     href="#"
@@ -227,7 +308,7 @@ export default function AdminLayout({ children }) {
                     />
                     <span className="hidden lg:flex lg:items-center">
                       <span aria-hidden="true" className="ml-4 text-sm font-semibold leading-6 text-gray-900">
-                      {user ? (
+                        {user ? (
                           <span className="mb-0 text-sm font-weight-bold">{user.name}</span>
                         ) : (
                           <span className="mb-0 text-sm font-weight-bold">Loading...</span>
