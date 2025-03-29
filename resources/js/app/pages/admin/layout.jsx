@@ -10,18 +10,24 @@ import {
   TransitionChild,
 } from '@headlessui/react';
 import {
+  ArchiveBoxIcon,
   Bars3Icon,
   BellIcon,
+  BuildingOffice2Icon,
   CalendarIcon,
   ChartBarIcon,
   ChartPieIcon,
   ChatBubbleBottomCenterIcon,
   Cog6ToothIcon,
+  DocumentChartBarIcon,
   DocumentDuplicateIcon,
+  DocumentIcon,
   FolderIcon,
   FolderOpenIcon,
   HomeIcon,
   HomeModernIcon,
+  MapPinIcon,
+  UserGroupIcon,
   UsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -171,7 +177,7 @@ export default function AdminLayout({ children }) {
                     href="/admin/user_management"
                     className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
                   >
-                    <ChatBubbleBottomCenterIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     User Management
                   </a>
                 </li>
@@ -182,7 +188,7 @@ export default function AdminLayout({ children }) {
                     onClick={() => setIsAssetsOpen(!isAssetsOpen)}
                     className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
                   >
-                    <FolderOpenIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Assets
                     <ChevronDownIcon
                       className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen ? "rotate-180" : ""}`}
@@ -232,7 +238,7 @@ export default function AdminLayout({ children }) {
                     href="#"
                     className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
                   >
-                    <ChatBubbleBottomCenterIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Reports
                   </a>
                 </li>
@@ -242,8 +248,18 @@ export default function AdminLayout({ children }) {
                     href="#"
                     className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
                   >
-                    <ChatBubbleBottomCenterIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Stations
+                  </a>
+                </li>
+
+                <li>
+                  <a
+                    href="#"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                  >
+                    <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    Locations
                   </a>
                 </li>
 
