@@ -35,7 +35,9 @@ export default function UserManagementPage() {
 
         </div>
 
-        <UserManagementTableSection />
+        <div className=' shadow-md'>
+          <UserManagementTableSection />
+        </div>
 
       </div>
     </AdminLayout>

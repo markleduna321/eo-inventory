@@ -31,6 +31,7 @@ import {
   HomeIcon,
   HomeModernIcon,
   MapPinIcon,
+  UserCircleIcon,
   UserGroupIcon,
   UsersIcon,
   XMarkIcon,
@@ -107,35 +108,119 @@ export default function AdminLayout({ children }) {
                   </button>
                 </div>
               </TransitionChild>
-              <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4 ring-1 ring-white/10">
+              <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 ring-1 ring-white/10">
                 <div className="flex h-16 shrink-0 items-center">
                   <img
                     alt="Your Company"
-                    src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-                    className="h-8 w-auto"
+                    src="/img/logo.jpg"
+                    className="h-15 w-full pt-5"
                   />
                 </div>
                 <nav className="flex flex-1 flex-col">
-                  <ul role="list" className="flex flex-1 flex-col gap-y-7">
+                  <ul role="list" className="flex flex-1 flex-col">
                     <li>
-                      <ul role="list" className="-mx-2 space-y-1">
-                        {navItems.map((item) => (
-                          <li key={item.name}>
+                      <a
+                        href="#"
+                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        Dashboard
+                      </a>
+                    </li>
+
+                    <li>
+                      <a
+                        href="/admin/user_management"
+                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        User Management
+                      </a>
+                    </li>
+
+                    {/* Assets Dropdown */}
+                    <li>
+                      <button
+                        onClick={() => setIsAssetsOpen(!isAssetsOpen)}
+                        className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        Assets
+                        <ChevronDownIcon
+                          className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen ? "rotate-180" : ""}`}
+                          aria-hidden="true"
+                        />
+                      </button>
+                      {isAssetsOpen && (
+                        <ul className="ml-8 mt-1 space-y-1">
+                          <li>
                             <a
-                              href={item.href}
-                              className={classNames(
-                                item.current
-                                  ? 'bg-gray-800 text-white'
-                                  : 'text-gray-400 hover:bg-gray-800 hover:text-white',
-                                'group flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6',
-                              )}
+                              href="#"
+                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                             >
-                              <item.icon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                              {item.name}
+                              <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                              Devices
                             </a>
                           </li>
-                        ))}
-                      </ul>
+                          <li>
+                            <a
+                              href="#"
+                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                            >
+                              <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                              System Units
+                            </a>
+                          </li>
+                          <li>
+                            <a
+                              href="#"
+                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                            >
+                              <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                              Peripherals
+                            </a>
+                          </li>
+                          <li>
+                            <a
+                              href="#"
+                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                            >
+                              <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                              Parts and Accessories
+                            </a>
+                          </li>
+                        </ul>
+                      )}
+                    </li>
+
+                    <li>
+                      <a
+                        href="#"
+                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        Reports
+                      </a>
+                    </li>
+
+                    <li>
+                      <a
+                        href="#"
+                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        Stations
+                      </a>
+                    </li>
+
+                    <li>
+                      <a
+                        href="#"
+                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        Locations
+                      </a>
                     </li>
 
                     <li className="mt-auto">
@@ -156,12 +241,12 @@ export default function AdminLayout({ children }) {
 
         {/* Static sidebar for desktop */}
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-4">
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
             <div className="flex h-16 shrink-0 items-center">
               <img
                 alt="Your Company"
-                src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-                className="h-8 w-auto"
+                src="/img/logo.jpg"
+                className="h-15 w-full pt-5"
               />
             </div>
             <nav className="flex flex-1 flex-col">
@@ -169,7 +254,7 @@ export default function AdminLayout({ children }) {
                 <li>
                   <a
                     href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
                     <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Dashboard
@@ -179,7 +264,7 @@ export default function AdminLayout({ children }) {
                 <li>
                   <a
                     href="/admin/user_management"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
                     <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     User Management
@@ -190,7 +275,7 @@ export default function AdminLayout({ children }) {
                 <li>
                   <button
                     onClick={() => setIsAssetsOpen(!isAssetsOpen)}
-                    className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
                     <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Assets
@@ -204,7 +289,7 @@ export default function AdminLayout({ children }) {
                       <li>
                         <a
                           href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                         >
                           <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                           Devices
@@ -213,7 +298,7 @@ export default function AdminLayout({ children }) {
                       <li>
                         <a
                           href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                         >
                           <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                           System Units
@@ -222,7 +307,7 @@ export default function AdminLayout({ children }) {
                       <li>
                         <a
                           href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                         >
                           <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                           Peripherals
@@ -231,7 +316,7 @@ export default function AdminLayout({ children }) {
                       <li>
                         <a
                           href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                         >
                           <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                           Parts and Accessories
@@ -244,7 +329,7 @@ export default function AdminLayout({ children }) {
                 <li>
                   <a
                     href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
                     <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Reports
@@ -254,7 +339,7 @@ export default function AdminLayout({ children }) {
                 <li>
                   <a
                     href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
                     <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Stations
@@ -264,7 +349,7 @@ export default function AdminLayout({ children }) {
                 <li>
                   <a
                     href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
+                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
                     <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                     Locations
@@ -300,15 +385,11 @@ export default function AdminLayout({ children }) {
                 <label htmlFor="search-field" className="sr-only">
                   Search
                 </label>
-                <MagnifyingGlassIcon
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 left-0 h-full w-5 text-gray-400"
-                />
+                
                 <input
                   id="search-field"
                   name="search"
                   type="search"
-                  placeholder="Search..."
                   className="block h-full w-full border-0 py-0 pl-8 pr-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm"
                 />
               </form>
@@ -325,11 +406,7 @@ export default function AdminLayout({ children }) {
                 <Menu as="div" className="relative">
                   <MenuButton className="-m-1.5 flex items-center p-1.5">
                     <span className="sr-only">Open user menu</span>
-                    <img
-                      alt=""
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                      className="h-8 w-8 rounded-full bg-gray-50"
-                    />
+                    <UserCircleIcon className=' h-8'/>
                     <span className="hidden lg:flex lg:items-center">
                       <span aria-hidden="true" className="ml-4 text-sm font-semibold leading-6 text-gray-900">
                         {user ? (
