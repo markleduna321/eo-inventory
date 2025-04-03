@@ -65,7 +65,6 @@ export default function UserManagementTableSection() {
     setUserToDelete(null);
   };
   
-
   return (
     <div className="mt-8 flow-root bg-white p-5 rounded-lg">
       <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -99,7 +98,7 @@ export default function UserManagementTableSection() {
             <tbody className="divide-y divide-gray-200 bg-white">
               {userData.length > 0 ? (
                 userData.map((userM) => (
-                  <tr key={userM.id}>
+                  <tr key={userM?.id}>
                     <td className="whitespace-nowrap py-5 pl-4 pr-3 text-sm sm:pl-0">
                       <div className="flex items-center">
                         <div className="ml-4">
@@ -111,20 +110,22 @@ export default function UserManagementTableSection() {
                     <td className="whitespace-nowrap px-3 py-5 text-sm text-gray-500">
                       <div
                         className={`text-sm font-medium px-3 py-1 rounded-lg ${
-                          userM.role_id === 1
+                          userM?.role_id == 1
                             ? "text-blue-800"
-                            : userM.role_id === 2
+                            : userM?.role_id == 2
                             ? "text-green-800"
-                            : userM.role_id === 3
+                            : userM?.role_id == 3
                             ? "text-yellow-800"
                             : "text-gray-800"
+                            
+                            
                         }`}
                       >
-                        {userM.role_id === 1
+                        {userM?.role_id == 1
                           ? "Admin"
-                          : userM.role_id === 2
+                          : userM?.role_id == 2
                           ? "User"
-                          : userM.role_id === 3
+                          : userM?.role_id == 3
                           ? "Household"
                           : "Unknown"}
                       </div>
