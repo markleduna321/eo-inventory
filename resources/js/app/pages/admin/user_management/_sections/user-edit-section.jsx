@@ -49,7 +49,8 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
             setAlertMessage("User updated successfully!");
             setAlertType("success");
             setShowAlert(true);
-           
+
+            onClose();
         } catch (error) {
             setAlertMessage("Failed to update user. Please try again.");
             setAlertType("error");
@@ -61,10 +62,10 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
                 setShowAlert(false);  // Hide the alert
                 setAlertMessage("");  // Optional: Clear the message
                 setAlertType("");    // Optional: Clear the alert type
-            }, 5000); // 10000ms = 5 seconds
+            }, 10000); // 10000ms = 5 seconds
     
             // Close the modal after the action
-            onClose();
+            
         }
     };
     
