@@ -12,6 +12,7 @@ import {
 import {
   ArchiveBoxIcon,
   Bars3Icon,
+  BellAlertIcon,
   BellIcon,
   BuildingOffice2Icon,
   CalendarIcon,
@@ -67,6 +68,7 @@ export default function AdminLayout({ children }) {
   const [user, setUser] = useState(null);
 
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
+  const [isAssetsOpen1, setIsAssetsOpen1] = useState(false);
 
   useEffect(() => {
     // Access the user data from the global window object
@@ -135,6 +137,16 @@ export default function AdminLayout({ children }) {
                       >
                         <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                         User Management
+                      </a>
+                    </li>
+
+                    <li>
+                      <a
+                        href=""
+                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      >
+                        <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                        Request
                       </a>
                     </li>
 
@@ -274,6 +286,43 @@ export default function AdminLayout({ children }) {
                 {/* Assets Dropdown */}
                 <li>
                   <button
+                    onClick={() => setIsAssetsOpen1(!isAssetsOpen1)}
+                    className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                  >
+                    <BellAlertIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                    Request
+                    <ChevronDownIcon
+                      className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen1 ? "rotate-180" : ""}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                  {isAssetsOpen1 && (
+                    <ul className="ml-8 mt-1 space-y-1">
+                      <li>
+                        <a
+                          href="#"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                        >
+                          <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                          Purchase Request
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                        >
+                          <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                          Item Request
+                        </a>
+                      </li>
+                    </ul>
+                  )}
+                </li>
+
+                {/* Assets Dropdown */}
+                <li>
+                  <button
                     onClick={() => setIsAssetsOpen(!isAssetsOpen)}
                     className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                   >
@@ -385,7 +434,7 @@ export default function AdminLayout({ children }) {
                 <label htmlFor="search-field" className="sr-only">
                   Search
                 </label>
-                
+
                 <input
                   id="search-field"
                   name="search"
@@ -406,7 +455,7 @@ export default function AdminLayout({ children }) {
                 <Menu as="div" className="relative">
                   <MenuButton className="-m-1.5 flex items-center p-1.5">
                     <span className="sr-only">Open user menu</span>
-                    <UserCircleIcon className=' h-8'/>
+                    <UserCircleIcon className=' h-8' />
                     <span className="hidden lg:flex lg:items-center">
                       <span aria-hidden="true" className="ml-4 text-sm font-semibold leading-6 text-gray-900">
                         {user ? (
