@@ -358,6 +358,15 @@ export default function AdminLayout({ children }) {
                           href="#"
                           className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                         >
+                          <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
+                          Monitors
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href="#"
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                        >
                           <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
                           Peripherals
                         </a>
