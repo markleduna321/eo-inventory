@@ -337,7 +337,7 @@ export default function AdminLayout({ children }) {
                     <ul className="ml-8 mt-1 space-y-1">
                       <li>
                         <a
-                          href="#"
+                          href="/admin/devices"
                           className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                         >
                           <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />

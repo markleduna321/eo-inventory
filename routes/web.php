@@ -52,10 +52,15 @@ Route::middleware('auth:sanctum', 'role:1')->prefix('admin')->group(function () 
         
     });
 
+    Route::get('devices', function () {
+        return Inertia::render('admin/devices/page');
+    });
+
     
     Route::get('reports', function () {
         return Inertia::render('admin/reports/page');
     });
+
 
 });
 
