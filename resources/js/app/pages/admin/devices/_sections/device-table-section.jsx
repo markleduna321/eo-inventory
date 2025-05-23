@@ -2,11 +2,6 @@ import Button from '@/app/pages/components/button'
 import { ArrowDownCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import React from 'react'
 
-const people = [
-    { name: 'Lindsay Walton', title: 'Front-end Developer', email: 'lindsay.walton@example.com', role: 'Member' },
-    // More people...
-]
-
 export default function DeviceTableSection() {
     return (
         <div className="mt-8 flow-root bg-white p-5 rounded-lg">
@@ -39,7 +34,7 @@ export default function DeviceTableSection() {
                                     Model
                                 </th>
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Software
+                                    Operating System
                                 </th>
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                     Status
@@ -47,29 +42,79 @@ export default function DeviceTableSection() {
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                     Issued to
                                 </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    Received By
+                                </th>
                                 <th scope="col" className="relative py-3.5 pr-4 pl-3 sm:pr-6">
                                     <span className="sr-only">Edit</span>
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                            {people.map((person) => (
-                                <tr key={person.email}>
+                            
+                                <tr >
                                     <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                        {person.name}
+                                        Laptop
                                     </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{person.title}</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{person.email}</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{person.role}</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{person.role}</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">{person.role}</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">HP</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">HP Zenbook 10</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Windows 10</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">
+                                            Working
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Not Issued</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Quickly</td>
                                     <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
                                         <a href="#" className="text-indigo-600 hover:text-indigo-900">
-                                            Edit<span className="sr-only">, {person.name}</span>
+                                            Edit<span className="sr-only">, </span>
                                         </a>
                                     </td>
                                 </tr>
-                            ))}
+
+                                <tr >
+                                    <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
+                                        MAC
+                                    </td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Apple</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">MacbookAir</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">MAC OS</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-red-900 dark:text-red-300">
+                                            Defective
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Not Issued</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Quickly</td>
+                                    <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
+                                        <a href="#" className="text-indigo-600 hover:text-indigo-900">
+                                            Edit<span className="sr-only">, </span>
+                                        </a>
+                                    </td>
+                                </tr>
+
+                                <tr >
+                                    <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
+                                        Laptop
+                                    </td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">MSI</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Gaming Pro 3</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Windows 11</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">
+                                            Working
+                                        </span>
+                                    </td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Mark Harvey</td>
+                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Quickly</td>
+                                    <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
+                                        <a href="#" className="text-indigo-600 hover:text-indigo-900">
+                                            Edit<span className="sr-only">, </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            
                         </tbody>
                     </table>
                 </div>

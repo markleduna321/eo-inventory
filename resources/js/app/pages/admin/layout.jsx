@@ -64,6 +64,7 @@ function classNames(...classes) {
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navItems, setNavItems] = useState(navigation);
+  const [openItems, setOpenItems] = useState({});
 
   const [user, setUser] = useState(null);
 
@@ -88,6 +89,87 @@ export default function AdminLayout({ children }) {
     setNavItems(updatedNavItems);
   }, []);
 
+  const sidenav = [
+    {
+      label: "Dashboard",
+      icon: <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/dashboard"
+    },
+    {
+      label: "User Management",
+      icon: <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/user_management"
+    },
+    {
+      label: "Request",
+      icon: <BellAlertIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "",
+      children: [
+        {
+          label: "Purchase Request",
+          icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: ""
+        }, {
+          label: "Item Request",
+          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: ""
+        },
+      ]
+    },
+    {
+      label: "Assets",
+      icon: <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "",
+      children: [
+        {
+          label: "Devices",
+          icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/devices"
+        }, {
+          label: "System Units",
+          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: ""
+        }, {
+          label: "Monitors",
+          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: ""
+        }, {
+          label: "Perophererals",
+          icon: <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: ""
+        }, {
+          label: "parts and Accessories",
+          icon: <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: ""
+        },
+
+      ]
+    },
+    {
+      label: "Reports",
+      icon: <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: ""
+    },
+    {
+      label: "Stations",
+      icon: <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: ""
+    },
+    {
+      label: "Locations",
+      icon: <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: ""
+    },
+  ]
+
+
+  const toggleOpen = (index) => {
+    setOpenItems((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
   return (
     <>
       <div>
@@ -110,7 +192,7 @@ export default function AdminLayout({ children }) {
                   </button>
                 </div>
               </TransitionChild>
-              <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 ring-1 ring-white/10">
+              <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white pl-6 pr-2 pb-4 ring-1 ring-white/10">
                 <div className="flex h-16 shrink-0 items-center">
                   <img
                     alt="Your Company"
@@ -120,130 +202,51 @@ export default function AdminLayout({ children }) {
                 </div>
                 <nav className="flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col">
-                    <li>
-                      <a
-                        href="#"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Dashboard
-                      </a>
-                    </li>
+                  {sidenav.map((item, i) => (
+                  <div key={i}>
+                    <Link
+                      href={item.link || "#"}
+                      onClick={(e) => {
+                        if (item.children) {
+                          e.preventDefault(); // Prevent navigation if there are children
+                          toggleOpen(i);      // Toggle the dropdown
+                        }
+                        // If no children, allow default behavior (navigation)
+                      }}
+                      className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                    >
+                      <div className='flex  items-center justify-between w-full'>
+                        <div className='flex gap-3'>
+                          {item.icon}
+                          {item.label}
+                        </div>
+                        {item.children && (
+                          <ChevronDownIcon
+                            className={`h-5 w-5 transition-transform duration-200 ${openItems[i] ? "rotate-180" : ""
+                              }`}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </div>
+                    </Link>
 
-                    <li>
-                      <a
-                        href="/admin/user_management"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        User Management
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href=""
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Request
-                      </a>
-                    </li>
-
-                    {/* Assets Dropdown */}
-                    <li>
-                      <button
-                        onClick={() => setIsAssetsOpen(!isAssetsOpen)}
-                        className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Assets
-                        <ChevronDownIcon
-                          className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen ? "rotate-180" : ""}`}
-                          aria-hidden="true"
-                        />
-                      </button>
-                      {isAssetsOpen && (
-                        <ul className="ml-8 mt-1 space-y-1">
-                          <li>
-                            <a
-                              href="#"
+                    {item.children && openItems[i] && (
+                      <ul className="ml-8 mt-1 space-y-1">
+                        {item.children.map((child, j) => (
+                          <li key={j}>
+                            <Link
+                              href={child.link || "#"}
                               className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
                             >
-                              <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                              Devices
-                            </a>
+                              {child.icon}
+                              {child.label}
+                            </Link>
                           </li>
-                          <li>
-                            <a
-                              href="#"
-                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                            >
-                              <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                              System Units
-                            </a>
-                          </li>
-                          <li>
-                            <a
-                              href="#"
-                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                            >
-                              <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                              Peripherals
-                            </a>
-                          </li>
-                          <li>
-                            <a
-                              href="#"
-                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                            >
-                              <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                              Parts and Accessories
-                            </a>
-                          </li>
-                        </ul>
-                      )}
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Reports
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Stations
-                      </a>
-                    </li>
-
-                    <li>
-                      <a
-                        href="#"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                      >
-                        <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Locations
-                      </a>
-                    </li>
-
-                    <li className="mt-auto">
-                      <a
-                        href="#"
-                        className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
-                      >
-                        <Cog6ToothIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                        Settings
-                      </a>
-                    </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
                   </ul>
                 </nav>
               </div>
@@ -253,7 +256,7 @@ export default function AdminLayout({ children }) {
 
         {/* Static sidebar for desktop */}
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
+          <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white pl-6 pr-2 pb-4">
             <div className="flex h-16 shrink-0 items-center">
               <img
                 alt="Your Company"
@@ -263,166 +266,51 @@ export default function AdminLayout({ children }) {
             </div>
             <nav className="flex flex-1 flex-col">
               <ul role="list" className="flex flex-1 flex-col">
-                <li>
-                  <a
-                    href="/admin/dashboard"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Dashboard
-                  </a>
-                </li>
+                {sidenav.map((item, i) => (
+                  <div key={i}>
+                    <Link
+                      href={item.link || "#"}
+                      onClick={(e) => {
+                        if (item.children) {
+                          e.preventDefault(); // Prevent navigation if there are children
+                          toggleOpen(i);      // Toggle the dropdown
+                        }
+                        // If no children, allow default behavior (navigation)
+                      }}
+                      className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                    >
+                      <div className='flex  items-center justify-between w-full'>
+                        <div className='flex gap-3'>
+                          {item.icon}
+                          {item.label}
+                        </div>
+                        {item.children && (
+                          <ChevronDownIcon
+                            className={`h-5 w-5 transition-transform duration-200 ${openItems[i] ? "rotate-180" : ""
+                              }`}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </div>
+                    </Link>
 
-                <li>
-                  <a
-                    href="/admin/user_management"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    User Management
-                  </a>
-                </li>
-
-                {/* Assets Dropdown */}
-                <li>
-                  <button
-                    onClick={() => setIsAssetsOpen1(!isAssetsOpen1)}
-                    className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <BellAlertIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Request
-                    <ChevronDownIcon
-                      className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen1 ? "rotate-180" : ""}`}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  {isAssetsOpen1 && (
-                    <ul className="ml-8 mt-1 space-y-1">
-                      <li>
-                        <a
-                          href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          Purchase Request
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          Item Request
-                        </a>
-                      </li>
-                    </ul>
-                  )}
-                </li>
-
-                {/* Assets Dropdown */}
-                <li>
-                  <button
-                    onClick={() => setIsAssetsOpen(!isAssetsOpen)}
-                    className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Assets
-                    <ChevronDownIcon
-                      className={`h-5 w-5 transition-transform duration-200 ${isAssetsOpen ? "rotate-180" : ""}`}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  {isAssetsOpen && (
-                    <ul className="ml-8 mt-1 space-y-1">
-                      <li>
-                        <a
-                          href="/admin/devices"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          Devices
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          System Units
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          Monitors
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          Peripherals
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href="#"
-                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                        >
-                          <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                          Parts and Accessories
-                        </a>
-                      </li>
-                    </ul>
-                  )}
-                </li>
-
-                <li>
-                  <a
-                    href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Reports
-                  </a>
-                </li>
-
-                <li>
-                  <a
-                    href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Stations
-                  </a>
-                </li>
-
-                <li>
-                  <a
-                    href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                  >
-                    <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Locations
-                  </a>
-                </li>
-
-                <li className="mt-auto">
-                  <a
-                    href="#"
-                    className="group -mx-2 flex gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-gray-400 hover:bg-gray-800 hover:text-white"
-                  >
-                    <Cog6ToothIcon aria-hidden="true" className="h-6 w-6 shrink-0" />
-                    Settings
-                  </a>
-                </li>
+                    {item.children && openItems[i] && (
+                      <ul className="ml-8 mt-1 space-y-1">
+                        {item.children.map((child, j) => (
+                          <li key={j}>
+                            <Link
+                              href={child.link || "#"}
+                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                            >
+                              {child.icon}
+                              {child.label}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </ul>
             </nav>
           </div>

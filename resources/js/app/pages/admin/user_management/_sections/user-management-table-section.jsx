@@ -85,7 +85,7 @@ export default function UserManagementTableSection() {
                   Name
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Position
+                  Role
                 </th>
                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                   Status
