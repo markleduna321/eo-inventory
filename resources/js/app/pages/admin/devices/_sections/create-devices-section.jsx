@@ -56,6 +56,17 @@ export default function CreateDevicesSection() {
           </div>
 
           <div className=' mb-3'>
+            <InputLabelComponent htmlFor="serialnumber" labelText="SN"/>
+            <InputTextComponent
+              id="serialnumber"
+              name="serialnumber" 
+              type="text"
+              required
+              onChange=""
+              />
+          </div>
+
+          <div className=' mb-3'>
             <InputLabelComponent htmlFor="deviceType" labelText="Device Type"/>
             <SelectComponent
               id="deviceType"
@@ -82,7 +93,6 @@ export default function CreateDevicesSection() {
               name="model" 
               type="text"
               required
-              value=""
               onChange=""
               />
           </div>
@@ -94,7 +104,6 @@ export default function CreateDevicesSection() {
               name="operatingSystem" 
               type="text"
               required
-              value=""
               onChange=""
               />
           </div>

@@ -51,6 +51,17 @@ export default function CreateSystenUnitSection() {
           </div>
 
           <div className=' mb-3'>
+            <InputLabelComponent htmlFor="serialnumber" labelText="SN"/>
+            <InputTextComponent
+              id="serialnumber"
+              name="serialnumber" 
+              type="text"
+              required
+              onChange=""
+              />
+          </div>
+
+          <div className=' mb-3'>
             <InputLabelComponent htmlFor="cpu" labelText="CPU"/>
             <InputTextComponent
               id="cpu"
@@ -120,7 +131,7 @@ export default function CreateSystenUnitSection() {
             <SelectComponent
               id="status"
               name="status"
-              options={location}
+              options={location} // Data from the database
               required  
             />
           </div>
