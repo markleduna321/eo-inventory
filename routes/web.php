@@ -56,6 +56,22 @@ Route::middleware('auth:sanctum', 'role:1')->prefix('admin')->group(function () 
         return Inertia::render('admin/devices/page'); 
     });
 
+    Route::get('system_units', function () {
+        return Inertia::render('admin/system_units/page'); 
+    });
+
+    Route::get('monitors', function () {
+        return Inertia::render('admin/monitor/page'); 
+    });
+
+    Route::get('peripherals', function () {
+        return Inertia::render('admin/peripherals/page'); 
+    });
+
+    Route::get('parts_and_accessories', function () {
+        return Inertia::render('admin/parts/page'); 
+    });
+
     
     Route::get('reports', function () {
         return Inertia::render('admin/reports/page');

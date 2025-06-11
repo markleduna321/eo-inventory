@@ -131,19 +131,19 @@ export default function AdminLayout({ children }) {
         }, {
           label: "System Units",
           icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: ""
+          link: "/admin/system_units"
         }, {
           label: "Monitors",
           icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: ""
+          link: "/admin/monitors"
         }, {
-          label: "Perophererals",
+          label: "Peripherals",
           icon: <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: ""
+          link: "/admin/peripherals"
         }, {
-          label: "parts and Accessories",
+          label: "Parts and Accessories",
           icon: <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: ""
+          link: "/admin/parts_and_accessories"
         },
 
       ]
