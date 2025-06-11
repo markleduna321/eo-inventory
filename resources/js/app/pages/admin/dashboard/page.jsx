@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Line Chart for Asset Value Per Month */}
-            <div className="bg-white p-4 rounded-lg shadow-md">
+            <div className="bg-white p-4 rounded-lg shadow-md ">
               <AssetValueMonthly />
             </div>
           </div>

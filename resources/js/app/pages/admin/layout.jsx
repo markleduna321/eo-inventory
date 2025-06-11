@@ -71,6 +71,9 @@ export default function AdminLayout({ children }) {
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
   const [isAssetsOpen1, setIsAssetsOpen1] = useState(false);
 
+  function isChildActive(children, currentPath) {
+    return children?.some(child => child.link === currentPath);
+  }
   useEffect(() => {
     // Access the user data from the global window object
     if (window.authUser) {
@@ -170,6 +173,17 @@ export default function AdminLayout({ children }) {
     }));
   };
 
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const initialOpenItems = {};
+    sidenav.forEach((item, i) => {
+      if (item.children && isChildActive(item.children, currentPath)) {
+        initialOpenItems[i] = true;
+      }
+    });
+    setOpenItems(initialOpenItems);
+  }, []);
+
   return (
     <>
       <div>
@@ -202,51 +216,51 @@ export default function AdminLayout({ children }) {
                 </div>
                 <nav className="flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col">
-                  {sidenav.map((item, i) => (
-                  <div key={i}>
-                    <Link
-                      href={item.link || "#"}
-                      onClick={(e) => {
-                        if (item.children) {
-                          e.preventDefault(); // Prevent navigation if there are children
-                          toggleOpen(i);      // Toggle the dropdown
-                        }
-                        // If no children, allow default behavior (navigation)
-                      }}
-                      className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                    >
-                      <div className='flex  items-center justify-between w-full'>
-                        <div className='flex gap-3'>
-                          {item.icon}
-                          {item.label}
-                        </div>
-                        {item.children && (
-                          <ChevronDownIcon
-                            className={`h-5 w-5 transition-transform duration-200 ${openItems[i] ? "rotate-180" : ""
-                              }`}
-                            aria-hidden="true"
-                          />
+                    {sidenav.map((item, i) => (
+                      <div key={i}>
+                        <Link
+                          href={item.link || "#"}
+                          onClick={(e) => {
+                            if (item.children) {
+                              e.preventDefault(); // Prevent navigation if there are children
+                              toggleOpen(i);      // Toggle the dropdown
+                            }
+                            // If no children, allow default behavior (navigation)
+                          }}
+                          className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                        >
+                          <div className='flex  items-center justify-between w-full'>
+                            <div className='flex gap-3'>
+                              {item.icon}
+                              {item.label}
+                            </div>
+                            {item.children && (
+                              <ChevronDownIcon
+                                className={`h-5 w-5 transition-transform duration-200 ${openItems[i] ? "rotate-180" : ""
+                                  }`}
+                                aria-hidden="true"
+                              />
+                            )}
+                          </div>
+                        </Link>
+
+                        {item.children && openItems[i] && (
+                          <ul className="ml-8 mt-1 space-y-1">
+                            {item.children.map((child, j) => (
+                              <li key={j}>
+                                <Link
+                                  href={child.link || "#"}
+                                  className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                                >
+                                  {child.icon}
+                                  {child.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
                         )}
                       </div>
-                    </Link>
-
-                    {item.children && openItems[i] && (
-                      <ul className="ml-8 mt-1 space-y-1">
-                        {item.children.map((child, j) => (
-                          <li key={j}>
-                            <Link
-                              href={child.link || "#"}
-                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
-                            >
-                              {child.icon}
-                              {child.label}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
+                    ))}
                   </ul>
                 </nav>
               </div>
@@ -272,12 +286,18 @@ export default function AdminLayout({ children }) {
                       href={item.link || "#"}
                       onClick={(e) => {
                         if (item.children) {
-                          e.preventDefault(); // Prevent navigation if there are children
-                          toggleOpen(i);      // Toggle the dropdown
+                          e.preventDefault();
+                          toggleOpen(i);
                         }
-                        // If no children, allow default behavior (navigation)
                       }}
-                      className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                      className={
+                        classNames(
+                          "group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6",
+                          window.location.pathname === item.link
+                            ? "bg-gray-800 text-white"
+                            : "text-black hover:bg-gray-800 hover:text-white"
+                        )
+                      }
                     >
                       <div className='flex  items-center justify-between w-full'>
                         <div className='flex gap-3'>
@@ -286,8 +306,7 @@ export default function AdminLayout({ children }) {
                         </div>
                         {item.children && (
                           <ChevronDownIcon
-                            className={`h-5 w-5 transition-transform duration-200 ${openItems[i] ? "rotate-180" : ""
-                              }`}
+                            className={`h-5 w-5 transition-transform duration-200 ${openItems[i] ? "rotate-180" : ""}`}
                             aria-hidden="true"
                           />
                         )}
@@ -300,7 +319,14 @@ export default function AdminLayout({ children }) {
                           <li key={j}>
                             <Link
                               href={child.link || "#"}
-                              className="group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6 text-black hover:bg-gray-800 hover:text-white"
+                              className={
+                                classNames(
+                                  "group -mx-2 flex w-full items-center gap-x-3 rounded-md p-2 text-sm font-semibold leading-6",
+                                  window.location.pathname === child.link
+                                    ? "bg-gray-800 text-white"
+                                    : "text-black hover:bg-gray-800 hover:text-white"
+                                )
+                              }
                             >
                               {child.icon}
                               {child.label}
