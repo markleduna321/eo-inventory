@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -56,8 +57,26 @@ Route::middleware('auth:sanctum', 'role:1')->prefix('admin')->group(function () 
         return Inertia::render('admin/devices/page'); 
     });
 
-    Route::get('system_units', function () {
-        return Inertia::render('admin/system_units/page'); 
+    Route::prefix('system_units')->group(function () {
+        Route::get('/', function () {
+        return Inertia::render('admin/system_units/page');
+        });
+
+        Route::get('1', function () {
+        return Inertia::render('admin/system_units/id/page');
+        });
+
+        /* Route::get('/{id}', function ($id) {
+            $systemUnit = SystemUnit::find($id);
+    
+            if (!$systemUnit) {
+                return redirect()->route('system_units.index')->withErrors('System Unit not found');
+            }
+    
+            return Inertia::render('admin/system_units/id/page', [
+                'systemUnit' => $systemUnit
+            ]);
+        }); */
     });
 
     Route::get('monitors', function () {

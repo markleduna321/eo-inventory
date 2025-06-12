@@ -58,7 +58,7 @@ export default function SystemUnitTableSection() {
                             
                                 <tr >
                                     <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                        #4353452
+                                        <a href={`/admin/system_units/1`} className="text-indigo-600 hover:text-indigo-900">#4321b45</a>
                                     </td>
                                     <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
                                         Intel Core i7 8th Gen
