@@ -1,8 +1,77 @@
 import Button from '@/app/pages/components/button'
 import { ArrowDownCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { get_devices_thunk, delete_device_thunk } from '../_redux/devices-thunk'
+import { setSelectedDevice, clearSelectedDevice } from '../_redux/devices-slice'
+import CreateDevicesSection from './create-devices-section'
 
 export default function DeviceTableSection() {
+    const dispatch = useDispatch()
+    const { devices, loading, error } = useSelector((state) => state.devices)
+    const [editingDevice, setEditingDevice] = useState(null)
+
+    useEffect(() => {
+        dispatch(get_devices_thunk())
+    }, [dispatch])
+
+    const handleEdit = (device) => {
+        setEditingDevice(device)
+    }
+
+    const handleCloseEdit = () => {
+        setEditingDevice(null)
+        dispatch(clearSelectedDevice())
+    }
+
+    const handleDelete = (deviceId) => {
+        if (window.confirm('Are you sure you want to delete this device?')) {
+            dispatch(delete_device_thunk(deviceId))
+        }
+    }
+
+    const getStatusBadge = (status) => {
+        const statusClasses = {
+            'Working': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+            'Defective': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+            'For Repair': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+        }
+        
+        return (
+            <span className={`text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm ${statusClasses[status] || 'bg-gray-100 text-gray-800'}`}>
+                {status}
+            </span>
+        )
+    }
+
+    if (loading) {
+        return (
+            <div className="mt-8 flow-root bg-white p-5 rounded-lg">
+                <div className="text-center py-8">
+                    <div className="text-gray-500">Loading devices...</div>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="mt-8 flow-root bg-white p-5 rounded-lg">
+                <div className="text-center py-8">
+                    <div className="text-red-500">Error: {error}</div>
+                    <Button 
+                        type="button" 
+                        variant="primary" 
+                        size="sm" 
+                        onClick={() => dispatch(get_devices_thunk())}
+                        className="mt-2"
+                    >
+                        Retry
+                    </Button>
+                </div>
+            </div>
+        )
+    }
     return (
         <div className="mt-8 flow-root bg-white p-5 rounded-lg">
             <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
@@ -25,6 +94,9 @@ export default function DeviceTableSection() {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                                    Serial Number
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                     Device Type
                                 </th>
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -46,81 +118,75 @@ export default function DeviceTableSection() {
                                     Received By
                                 </th>
                                 <th scope="col" className="relative py-3.5 pr-4 pl-3 sm:pr-6">
-                                    <span className="sr-only">Edit</span>
+                                    <span className="sr-only">Actions</span>
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                            
-                                <tr >
-                                    <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                        Laptop
-                                    </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">HP</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">HP Zenbook 10</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Windows 10</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">
-                                            Working
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Not Issued</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Quickly</td>
-                                    <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
-                                        <a href="#" className="text-indigo-600 hover:text-indigo-900">
-                                            Edit<span className="sr-only">, </span>
-                                        </a>
+                            {devices.length === 0 ? (
+                                <tr>
+                                    <td colSpan="9" className="text-center py-8 text-gray-500">
+                                        No devices found. Add your first device!
                                     </td>
                                 </tr>
-
-                                <tr >
-                                    <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                        MAC
-                                    </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Apple</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">MacbookAir</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">MAC OS</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                        <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-red-900 dark:text-red-300">
-                                            Defective
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Not Issued</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Quickly</td>
-                                    <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
-                                        <a href="#" className="text-indigo-600 hover:text-indigo-900">
-                                            Edit<span className="sr-only">, </span>
-                                        </a>
-                                    </td>
-                                </tr>
-
-                                <tr >
-                                    <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                        Laptop
-                                    </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">MSI</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Gaming Pro 3</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Windows 11</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">
-                                            Working
-                                        </span>
-                                    </td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Mark Harvey</td>
-                                    <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">Quickly</td>
-                                    <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
-                                        <a href="#" className="text-indigo-600 hover:text-indigo-900">
-                                            Edit<span className="sr-only">, </span>
-                                        </a>
-                                    </td>
-                                </tr>
-                            
+                            ) : (
+                                devices.map((device) => (
+                                    <tr key={device.id}>
+                                        <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
+                                            {device.serial_number}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {device.device_type}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {device.brand}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {device.model}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {device.operating_system || 'N/A'}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {getStatusBadge(device.status)}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {device.issued_to || 'Not Issued'}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                            {device.received_by}
+                                        </td>
+                                        <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
+                                            <div className="flex gap-2 justify-end">
+                                                <button 
+                                                    onClick={() => handleEdit(device)}
+                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(device.id)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-
+            {/* Edit Modal */}
+            {editingDevice && (
+                <CreateDevicesSection 
+                    editDevice={editingDevice} 
+                    onClose={handleCloseEdit}
+                />
+            )}
         </div>
     )
 }

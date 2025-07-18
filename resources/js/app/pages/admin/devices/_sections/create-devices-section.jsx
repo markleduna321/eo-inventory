@@ -4,12 +4,107 @@ import SelectComponent from '@/app/pages/components/input-select';
 import InputTextComponent from '@/app/pages/components/input-text-component';
 import Modal from '@/app/pages/components/modal'
 import React from 'react'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { create_device_thunk, update_device_thunk } from '../_redux/devices-thunk';
+import { clearError, clearSuccess, clearSelectedDevice } from '../_redux/devices-slice';
+import { usePage } from '@inertiajs/react';
 
-export default function CreateDevicesSection() {
+export default function CreateDevicesSection({ editDevice = null, onClose = null }) {
+  const dispatch = useDispatch();
+  const { auth } = usePage().props;
+  const { loading, error, success } = useSelector((state) => state.devices);
+  
   const [isModalOpen, setModalOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    serial_number: '',
+    device_type: '',
+    brand: '',
+    model: '',
+    operating_system: '',
+    status: 'Working',
+    issued_to: '',
+    received_by: auth?.user?.name || '',
+  });
+
+  const [errors, setErrors] = useState({});
+
   const openModal = () => setModalOpen(true);
-  const closeModal = () => setModalOpen(false);
+  const closeModal = () => {
+    setModalOpen(false);
+    setFormData({
+      serial_number: '',
+      device_type: '',
+      brand: '',
+      model: '',
+      operating_system: '',
+      status: 'Working',
+      issued_to: '',
+      received_by: auth?.user?.name || '',
+    });
+    setErrors({});
+    dispatch(clearError());
+    dispatch(clearSuccess());
+    if (onClose) onClose();
+  };
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (editDevice) {
+      setFormData({
+        serial_number: editDevice.serial_number || '',
+        device_type: editDevice.device_type || '',
+        brand: editDevice.brand || '',
+        model: editDevice.model || '',
+        operating_system: editDevice.operating_system || '',
+        status: editDevice.status || 'Working',
+        issued_to: editDevice.issued_to || '',
+        received_by: editDevice.received_by || auth?.user?.name || '',
+      });
+      setModalOpen(true);
+    }
+  }, [editDevice, auth?.user?.name]);
+
+  // Handle form success
+  useEffect(() => {
+    if (success) {
+      closeModal();
+      dispatch(clearSuccess());
+    }
+  }, [success, dispatch]);
+
+  // Handle form errors
+  useEffect(() => {
+    if (error && error.errors) {
+      setErrors(error.errors);
+    }
+  }, [error]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear specific field error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrors({});
+    
+    if (editDevice) {
+      dispatch(update_device_thunk({ id: editDevice.id, deviceData: formData }));
+    } else {
+      dispatch(create_device_thunk(formData));
+    }
+  };
 
   const deviceType = [
     { value: 'Laptop', label: 'Laptop' },
@@ -40,116 +135,176 @@ export default function CreateDevicesSection() {
 
   return (
     <div>
-      <Button
-        type='button'
-        variant='primary'
-        size='md'
-        onClick={openModal}>
-        Add Device
-      </Button>
+      {!editDevice && (
+        <Button
+          type='button'
+          variant='primary'
+          size='md'
+          onClick={openModal}>
+          Add Device
+        </Button>
+      )}
 
       <Modal isOpen={isModalOpen} onClose={closeModal} width='w-1/4'>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <div className=' mb-4 text-2xl'>
+              <b>{editDevice ? 'Edit Device' : 'Add a new device'}</b>
+            </div>
 
-        <div>
-          <div className=' mb-4 text-2xl'>
-            <b>Add a new device</b>
-          </div>
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="serial_number" labelText="Serial Number"/>
+              <InputTextComponent
+                id="serial_number"
+                name="serial_number" 
+                type="text"
+                value={formData.serial_number}
+                required
+                onChange={handleInputChange}
+                />
+              {errors.serial_number && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.serial_number[0]}
+                </div>
+              )}
+            </div>
 
-          <div className=' mb-3'>
-            <InputLabelComponent htmlFor="serialnumber" labelText="SN"/>
-            <InputTextComponent
-              id="serialnumber"
-              name="serialnumber" 
-              type="text"
-              required
-              onChange=""
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="device_type" labelText="Device Type"/>
+              <SelectComponent
+                id="device_type"
+                name="device_type"
+                options={deviceType}
+                value={formData.device_type}
+                onChange={handleInputChange}
+                required  
               />
-          </div>
+              {errors.device_type && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.device_type[0]}
+                </div>
+              )}
+            </div>
 
-          <div className=' mb-3'>
-            <InputLabelComponent htmlFor="deviceType" labelText="Device Type"/>
-            <SelectComponent
-              id="deviceType"
-              name="deviceType"
-              options={deviceType}
-              required  
-            />
-          </div>
-
-          <div className=' mb-3'>
-            <InputLabelComponent htmlFor="brand" labelText="Brand"/>
-            <SelectComponent
-              id="brand"
-              name="brand"
-              options={brand}
-              required  
-            />
-          </div>
-
-          <div className=' mb-3'>
-            <InputLabelComponent htmlFor="model" labelText="Model"/>
-            <InputTextComponent
-              id="model"
-              name="model" 
-              type="text"
-              required
-              onChange=""
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="brand" labelText="Brand"/>
+              <SelectComponent
+                id="brand"
+                name="brand"
+                options={brand}
+                value={formData.brand}
+                onChange={handleInputChange}
+                required  
               />
-          </div>
+              {errors.brand && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.brand[0]}
+                </div>
+              )}
+            </div>
 
-          <div className=' mb-3'>
-            <InputLabelComponent htmlFor="operatingSystem" labelText="OS"/>
-            <InputTextComponent
-              id="operatingSystem"
-              name="operatingSystem" 
-              type="text"
-              required
-              onChange=""
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="model" labelText="Model"/>
+              <InputTextComponent
+                id="model"
+                name="model" 
+                type="text"
+                value={formData.model}
+                required
+                onChange={handleInputChange}
+                />
+              {errors.model && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.model[0]}
+                </div>
+              )}
+            </div>
+
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="operating_system" labelText="Operating System"/>
+              <InputTextComponent
+                id="operating_system"
+                name="operating_system" 
+                type="text"
+                value={formData.operating_system}
+                onChange={handleInputChange}
+                />
+              {errors.operating_system && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.operating_system[0]}
+                </div>
+              )}
+            </div>
+
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="status" labelText="Status"/>
+              <SelectComponent
+                id="status"
+                name="status"
+                options={status}
+                value={formData.status}
+                onChange={handleInputChange}
+                required  
               />
-          </div>
+              {errors.status && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.status[0]}
+                </div>
+              )}
+            </div>
 
-          <div className=' mb-3'>
-            <InputLabelComponent htmlFor="status" labelText="Status"/>
-            <SelectComponent
-              id="status"
-              name="status"
-              options={status}
-              required  
-            />
-          </div>
+            <div className=' mb-3'>
+              <InputLabelComponent htmlFor="issued_to" labelText="Issued To (Optional)"/>
+              <InputTextComponent
+                id="issued_to"
+                name="issued_to" 
+                type="text"
+                value={formData.issued_to}
+                onChange={handleInputChange}
+                />
+              {errors.issued_to && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.issued_to[0]}
+                </div>
+              )}
+            </div>
 
-          <div className=' mb-3'>
             <InputTextComponent
-              id="receivedBy"
-              name="receivedBy" 
+              id="received_by"
+              name="received_by" 
               type="hidden"
-              required
-              value="" // Username
-              onChange=""
+              value={formData.received_by}
+              onChange={handleInputChange}
               />
+
+            {/* General Error Message */}
+            {error && error.message && (
+              <div className="mb-3 text-red-500 text-sm">
+                {error.message}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className='flex float-end gap-2 '>
+              <Button
+                type='submit'
+                variant='primary'
+                size='md'
+                disabled={loading}
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </Button>
+
+              <Button
+                type='button'
+                variant='danger'
+                size='md'
+                onClick={closeModal}>
+                Cancel
+              </Button>
+            </div>
           </div>
-
-          {/* Buttons */}
-          <div className='flex float-end gap-2 '>
-            <Button
-              type='button'
-              variant='primary'
-              size='md'
-            >
-              Save
-            </Button>
-
-            <Button
-              type='button'
-              variant='danger'
-              size='md'
-              onClick={closeModal}>
-              X
-            </Button>
-          </div>
-        </div>
-
-
+        </form>
       </Modal>
     </div>
   )

@@ -1,15 +1,89 @@
 import React, { useState } from 'react'
+import { useDispatch } from 'react-redux'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import InputLabelComponent from '@/app/pages/components/input-label-component'
 import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
+import InputError from '@/app/pages/components/InputError'
+import Alert from '@/app/pages/components/alert'
+import { createMonitor } from '@/app/redux/thunks/monitorThunk'
+import { usePage } from '@inertiajs/react'
 
 export default function CreateMonitorsSection() {
+    const dispatch = useDispatch()
+    const { auth } = usePage().props
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [formData, setFormData] = useState({
+        serial_number: '',
+        brand: '',
+        model: '',
+        size: '',
+        resolution: '',
+        refresh_rate: '',
+        status: 'working',
+        location: '',
+        received_by: auth.user?.name || '',
+        notes: ''
+    })
+    const [errors, setErrors] = useState({})
+    const [loading, setLoading] = useState(false)
+    const [alert, setAlert] = useState({ show: false, type: '', message: '' })
 
     const openModal = () => setIsModalOpen(true)
-    const closeModal = () => setIsModalOpen(false)
+    const closeModal = () => {
+        setIsModalOpen(false)
+        setFormData({
+            serial_number: '',
+            brand: '',
+            model: '',
+            size: '',
+            resolution: '',
+            refresh_rate: '',
+            status: 'working',
+            location: '',
+            received_by: auth.user?.name || '',
+            notes: ''
+        })
+        setErrors({})
+        setAlert({ show: false, type: '', message: '' })
+    }
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target
+        setFormData(prev => ({ ...prev, [name]: value }))
+        // Clear error for this field
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }))
+        }
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        setErrors({})
+
+        try {
+            const result = await dispatch(createMonitor(formData)).unwrap()
+            setAlert({ 
+                show: true, 
+                type: 'success', 
+                message: 'Monitor created successfully!' 
+            })
+            setTimeout(() => {
+                closeModal()
+            }, 1500)
+        } catch (error) {
+            console.error('Error creating monitor:', error)
+            setAlert({ 
+                show: true, 
+                type: 'error', 
+                message: error || 'Failed to create monitor' 
+            })
+        } finally {
+            setLoading(false)
+        }
+    }
 
     // Options for select dropdowns
     const brands = [
@@ -83,8 +157,17 @@ export default function CreateMonitorsSection() {
                             <h3 className="text-base font-semibold text-gray-900" id="modal-title">
                                 Add New Monitor
                             </h3>
+                            
+                            {alert.show && (
+                                <Alert 
+                                    type={alert.type} 
+                                    message={alert.message} 
+                                    onClose={() => setAlert({ show: false, type: '', message: '' })}
+                                />
+                            )}
+                            
                             <div className="mt-2">
-                                <form className="space-y-4">
+                                <form onSubmit={handleSubmit} className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
@@ -94,8 +177,11 @@ export default function CreateMonitorsSection() {
                                                 id="brand"
                                                 name="brand"
                                                 options={brands}
+                                                value={formData.brand}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.brand && <InputError message={errors.brand} />}
                                         </div>
                                         <div>
                                             <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
@@ -106,8 +192,11 @@ export default function CreateMonitorsSection() {
                                                 name="model"
                                                 type="text"
                                                 placeholder="e.g. U2419H, 24GL600F"
+                                                value={formData.model}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.model && <InputError message={errors.model} />}
                                         </div>
                                     </div>
 
@@ -121,8 +210,11 @@ export default function CreateMonitorsSection() {
                                                 name="serial_number"
                                                 type="text"
                                                 placeholder="e.g. MNT123456789"
+                                                value={formData.serial_number}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.serial_number && <InputError message={errors.serial_number} />}
                                         </div>
                                         <div>
                                             <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-1">
@@ -132,8 +224,11 @@ export default function CreateMonitorsSection() {
                                                 id="size"
                                                 name="size"
                                                 options={sizes}
+                                                value={formData.size}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.size && <InputError message={errors.size} />}
                                         </div>
                                     </div>
 
@@ -146,8 +241,11 @@ export default function CreateMonitorsSection() {
                                                 id="resolution"
                                                 name="resolution"
                                                 options={resolutions}
+                                                value={formData.resolution}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.resolution && <InputError message={errors.resolution} />}
                                         </div>
                                         <div>
                                             <label htmlFor="refresh_rate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -158,7 +256,10 @@ export default function CreateMonitorsSection() {
                                                 name="refresh_rate"
                                                 type="number"
                                                 placeholder="60"
+                                                value={formData.refresh_rate}
+                                                onChange={handleInputChange}
                                             />
+                                            {errors.refresh_rate && <InputError message={errors.refresh_rate} />}
                                         </div>
                                     </div>
 
@@ -171,8 +272,11 @@ export default function CreateMonitorsSection() {
                                                 id="status"
                                                 name="status"
                                                 options={status}
+                                                value={formData.status}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.status && <InputError message={errors.status} />}
                                         </div>
                                         <div>
                                             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
@@ -182,13 +286,13 @@ export default function CreateMonitorsSection() {
                                                 id="location"
                                                 name="location"
                                                 options={locations}
+                                                value={formData.location}
+                                                onChange={handleInputChange}
                                                 required
                                             />
+                                            {errors.location && <InputError message={errors.location} />}
                                         </div>
                                     </div>
-
-                                    {/* Hidden field for received_by - will be set to current user */}
-                                    <input type="hidden" name="received_by" value="current_user" />
 
                                     <div>
                                         <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
@@ -200,28 +304,34 @@ export default function CreateMonitorsSection() {
                                             rows={3}
                                             className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                             placeholder="Additional notes about the monitor..."
+                                            value={formData.notes}
+                                            onChange={handleInputChange}
                                         />
+                                        {errors.notes && <InputError message={errors.notes} />}
+                                    </div>
+
+                                    {/* Buttons */}
+                                    <div className='flex float-end gap-2 mt-4'>
+                                        <Button
+                                            type='submit'
+                                            variant='primary'
+                                            size='md'
+                                            disabled={loading}
+                                        >
+                                            {loading ? 'Saving...' : 'Save'}
+                                        </Button>
+
+                                        <Button
+                                            type='button'
+                                            variant='danger'
+                                            size='md'
+                                            onClick={closeModal}
+                                            disabled={loading}
+                                        >
+                                            Cancel
+                                        </Button>
                                     </div>
                                 </form>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className='flex float-end gap-2 mt-4'>
-                                <Button
-                                    type='button'
-                                    variant='primary'
-                                    size='md'
-                                >
-                                    Save
-                                </Button>
-
-                                <Button
-                                    type='button'
-                                    variant='danger'
-                                    size='md'
-                                    onClick={closeModal}>
-                                    X
-                                </Button>
                             </div>
                         </div>
                     </div>

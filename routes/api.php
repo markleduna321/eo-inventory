@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\MonitorController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,3 +27,9 @@ Route::resource('usermanagement', UserController::class);
 
 // Role management routes
 Route::apiResource('roles', RoleController::class);
+
+// Device management routes
+Route::apiResource('devices', DeviceController::class);
+
+// Monitor management routes
+Route::apiResource('monitors', MonitorController::class);
