@@ -14,7 +14,9 @@ class MonitorController extends Controller
     public function index()
     {
         try {
-            $monitors = Monitor::orderBy('created_at', 'desc')->get();
+            $monitors = Monitor::with(['station', 'stationAssignment'])
+                ->orderBy('created_at', 'desc')
+                ->get();
             
             return response()->json([
                 'success' => true,

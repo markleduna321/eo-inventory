@@ -4,6 +4,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\MonitorController;
+use App\Http\Controllers\LocationController;
+use App\Http\Controllers\StationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -33,3 +35,14 @@ Route::apiResource('devices', DeviceController::class);
 
 // Monitor management routes
 Route::apiResource('monitors', MonitorController::class);
+
+// Location management routes
+Route::get('locations/statistics', [LocationController::class, 'statistics']);
+Route::apiResource('locations', LocationController::class);
+
+// Station management routes
+Route::get('stations/available-monitors', [StationController::class, 'getAvailableMonitors']);
+Route::get('stations/locations', [StationController::class, 'getLocations']);
+Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
+Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);
+Route::apiResource('stations', StationController::class);

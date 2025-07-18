@@ -48,7 +48,7 @@ export default function DeviceTableSection() {
         ]
     }
 
-    // Use the filtering hook
+    // Use the filtering hook with date field for 'created_at'
     const {
         searchTerm,
         filters,
@@ -57,7 +57,7 @@ export default function DeviceTableSection() {
         handleSearchChange,
         handleFilterChange,
         clearFilters
-    } = useTableFilters(devices, searchableFields, filterOptions)
+    } = useTableFilters(devices, searchableFields, filterOptions, 'created_at')
 
     useEffect(() => {
         dispatch(get_devices_thunk())
@@ -132,6 +132,8 @@ export default function DeviceTableSection() {
                 onClearFilters={clearFilters}
                 filterOptions={filterOptions}
                 placeholder="Search devices by serial number, type, brand, model..."
+                showDateRange={true}
+                dateRangeLabel="Created Date"
             />
 
             {/* Results Summary */}

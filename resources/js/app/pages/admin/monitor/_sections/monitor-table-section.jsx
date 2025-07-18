@@ -27,7 +27,7 @@ export default function MonitorTableSection() {
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
 
     // Filter configuration
-    const searchableFields = ['serial_number', 'brand', 'model', 'size', 'resolution', 'location', 'received_by', 'notes']
+    const searchableFields = ['serial_number', 'brand', 'model', 'size', 'resolution', 'location', 'received_by', 'notes', 'deployment_status', 'station_name']
     const filterOptions = {
         brand: [
             { label: 'Dell', value: 'Dell' },
@@ -64,6 +64,12 @@ export default function MonitorTableSection() {
             { label: 'Under Repair', value: 'under_repair' },
             { label: 'Retired', value: 'retired' }
         ],
+        deployment_status: [
+            { label: 'Deployed', value: 'Deployed' },
+            { label: 'Available', value: 'Available' },
+            { label: 'Out of Service', value: 'Out of Service' },
+            { label: 'Retired', value: 'Retired' }
+        ],
         location: [
             { label: 'Storage', value: 'storage' },
             { label: 'Office A', value: 'office_a' },
@@ -73,7 +79,7 @@ export default function MonitorTableSection() {
         ]
     }
 
-    // Use the filtering hook
+    // Use the filtering hook with date field for 'created_at'
     const {
         searchTerm,
         filters,
@@ -82,7 +88,7 @@ export default function MonitorTableSection() {
         handleSearchChange,
         handleFilterChange,
         clearFilters
-    } = useTableFilters(monitors, searchableFields, filterOptions)
+    } = useTableFilters(monitors, searchableFields, filterOptions, 'created_at')
 
     // Options for select dropdowns
     const brands = [
@@ -244,6 +250,38 @@ export default function MonitorTableSection() {
         )
     }
 
+    const getDeploymentStatusBadge = (deploymentStatus, stationName = null, deploymentInfo = null) => {
+        const statusConfig = {
+            'Deployed': 'bg-blue-100 text-blue-800',
+            'Available': 'bg-green-100 text-green-800',
+            'Out of Service': 'bg-red-100 text-red-800',
+            'Retired': 'bg-gray-100 text-gray-800'
+        }
+        
+        return (
+            <div className="flex flex-col">
+                <span className={`${statusConfig[deploymentStatus]} text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm`}>
+                    {deploymentStatus}
+                </span>
+                {deploymentStatus === 'Deployed' && stationName && (
+                    <span className="text-xs text-gray-500 mt-1">
+                        Station: {stationName}
+                    </span>
+                )}
+                {deploymentInfo && typeof deploymentInfo === 'object' && deploymentInfo.assigned_user && (
+                    <span className="text-xs text-gray-400 mt-1">
+                        User: {deploymentInfo.assigned_user}
+                    </span>
+                )}
+                {deploymentInfo && typeof deploymentInfo === 'object' && deploymentInfo.deployed_at && (
+                    <span className="text-xs text-gray-400 mt-1">
+                        Since: {new Date(deploymentInfo.deployed_at).toLocaleDateString()}
+                    </span>
+                )}
+            </div>
+        )
+    }
+
     if (loading && monitors.length === 0) {
         return <div className="text-center py-4">Loading monitors...</div>
     }
@@ -258,7 +296,9 @@ export default function MonitorTableSection() {
                 onFilterChange={handleFilterChange}
                 onClearFilters={clearFilters}
                 filterOptions={filterOptions}
-                placeholder="Search monitors by serial number, brand, model, size..."
+                placeholder="Search monitors by serial number, brand, model, size, deployment status..."
+                showDateRange={true}
+                dateRangeLabel="Created Date"
             />
 
             {/* Results Summary */}
@@ -318,6 +358,9 @@ export default function MonitorTableSection() {
                                     Status
                                 </th>
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                    Deployment Status
+                                </th>
+                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                     Location
                                 </th>
                                 <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -331,7 +374,7 @@ export default function MonitorTableSection() {
                         <tbody className="divide-y divide-gray-200 bg-white">
                             {filteredData.length === 0 ? (
                                 <tr>
-                                    <td colSpan="9" className="text-center py-4 text-gray-500">
+                                    <td colSpan="10" className="text-center py-4 text-gray-500">
                                         {filterStats.isFiltered ? 'No monitors match your search criteria' : 'No monitors found'}
                                     </td>
                                 </tr>
@@ -355,6 +398,13 @@ export default function MonitorTableSection() {
                                         </td>
                                         <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                             {getStatusBadge(monitor.status)}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm text-gray-500">
+                                            {getDeploymentStatusBadge(
+                                                monitor.deployment_status,
+                                                monitor.station_name,
+                                                monitor.deployment_info
+                                            )}
                                         </td>
                                         <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                             {monitor.location.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}

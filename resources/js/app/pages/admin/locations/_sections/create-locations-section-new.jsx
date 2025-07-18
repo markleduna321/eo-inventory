@@ -121,24 +121,16 @@ export default function CreateLocationsSection() {
                 Add Location
             </Button>
 
-            <Modal isOpen={isModalOpen} onClose={closeModal}>
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900" id="modal-title">
-                                Add New Location
-                            </h3>
-                            
-                            {alert.show && (
-                                <Alert 
-                                    type={alert.type} 
-                                    message={alert.message} 
-                                    onClose={() => setAlert({ show: false, type: '', message: '' })}
-                                />
-                            )}
-                            
-                            <div className="mt-2">
-                                <form onSubmit={handleSubmit} className="space-y-6">
+            <Modal open={isModalOpen} onClose={closeModal} title="Add New Location" size="large">
+                {alert.show && (
+                    <Alert 
+                        type={alert.type} 
+                        message={alert.message} 
+                        onClose={() => setAlert({ show: false, type: '', message: '' })}
+                    />
+                )}
+                
+                <form onSubmit={handleSubmit} className="space-y-6">
                     {errors.general && (
                         <Alert type="error" message={errors.general} />
                     )}
@@ -293,11 +285,7 @@ export default function CreateLocationsSection() {
                             {loading ? 'Creating...' : 'Create Location'}
                         </Button>
                     </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                </form>
             </Modal>
         </div>
     )

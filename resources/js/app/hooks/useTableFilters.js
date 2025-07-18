@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 
-export const useTableFilters = (data, searchableFields = [], filterableFields = {}) => {
+export const useTableFilters = (data, searchableFields = [], filterableFields = {}, dateField = null) => {
     const [searchTerm, setSearchTerm] = useState('')
     const [filters, setFilters] = useState({})
 
@@ -19,6 +19,19 @@ export const useTableFilters = (data, searchableFields = [], filterableFields = 
             const matchesFilters = Object.entries(filters).every(([filterKey, filterValue]) => {
                 if (!filterValue || filterValue === '') return true
 
+                // Handle date range filters
+                if (filterKey === 'startDate' && dateField) {
+                    const itemDate = new Date(getNestedValue(item, dateField))
+                    const startDate = new Date(filterValue)
+                    return itemDate >= startDate
+                }
+                
+                if (filterKey === 'endDate' && dateField) {
+                    const itemDate = new Date(getNestedValue(item, dateField))
+                    const endDate = new Date(filterValue)
+                    return itemDate <= endDate
+                }
+
                 const itemValue = getNestedValue(item, filterKey)
                 
                 // Handle different filter types
@@ -32,7 +45,7 @@ export const useTableFilters = (data, searchableFields = [], filterableFields = 
 
             return matchesSearch && matchesFilters
         })
-    }, [data, searchTerm, filters, searchableFields, filterableFields])
+    }, [data, searchTerm, filters, searchableFields, filterableFields, dateField])
 
     const handleSearchChange = (value) => {
         setSearchTerm(value)

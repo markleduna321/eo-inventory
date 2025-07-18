@@ -12,7 +12,9 @@ const TableFilter = ({
     onClearFilters,
     filterOptions = {},
     placeholder = "Search...",
-    debounceMs = 300 
+    debounceMs = 300,
+    showDateRange = false,
+    dateRangeLabel = "Date Range"
 }) => {
     const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm)
     const [showFilters, setShowFilters] = useState(false)
@@ -103,6 +105,35 @@ const TableFilter = ({
             {showFilters && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {/* Date Range Filter */}
+                        {showDateRange && (
+                            <>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Start Date
+                                    </label>
+                                    <InputTextComponent
+                                        type="date"
+                                        value={filters.startDate || ''}
+                                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                        className="w-full"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        End Date
+                                    </label>
+                                    <InputTextComponent
+                                        type="date"
+                                        value={filters.endDate || ''}
+                                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                        className="w-full"
+                                    />
+                                </div>
+                            </>
+                        )}
+                        
+                        {/* Dynamic Filter Options */}
                         {Object.entries(filterOptions).map(([key, options]) => (
                             <div key={key}>
                                 <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">

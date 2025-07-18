@@ -330,17 +330,11 @@ export default function LocationsTableSection() {
 
             {/* Edit Modal */}
             <Modal
-                isOpen={isEditModalOpen}
+                open={isEditModalOpen}
                 onClose={handleCloseEdit}
+                title="Edit Location"
+                size="large"
             >
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900" id="modal-title">
-                                Edit Location
-                            </h3>
-                            
-                            <div className="mt-2">
                 <form onSubmit={handleEditSubmit} className="space-y-6">
                     {editErrors.general && (
                         <Alert type="error" message={editErrors.general} />
@@ -511,10 +505,6 @@ export default function LocationsTableSection() {
                         </Button>
                     </div>
                 </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </Modal>
 
             {/* Delete Confirmation Modal */}

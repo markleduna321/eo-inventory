@@ -3,6 +3,8 @@ import usersSlice from '../pages/admin/user_management/_redux/user-management-sl
 import rolesSlice from '../pages/admin/user_management/_redux/roles-slice';
 import devicesSlice from '../pages/admin/devices/_redux/devices-slice';
 import monitorsSlice from '../redux/slices/monitorSlice';
+import locationsSlice from '../redux/slices/locationSlice';
+import stationsSlice from '../redux/slices/stationSlice';
 
 const store = configureStore({
     reducer: {
@@ -10,6 +12,8 @@ const store = configureStore({
         roles: rolesSlice,
         devices: devicesSlice,
         monitors: monitorsSlice,
+        locations: locationsSlice,
+        stations: stationsSlice,
     },
 });
 

@@ -20,9 +20,78 @@ class Monitor extends Model
         'location',
         'received_by',
         'notes',
+        'station_id',
     ];
 
     protected $casts = [
         'refresh_rate' => 'integer',
     ];
+
+    protected $appends = [
+        'deployment_status',
+        'deployment_info',
+        'is_deployed',
+        'station_name'
+    ];
+
+    // Relationships
+    public function station()
+    {
+        return $this->belongsTo(Station::class);
+    }
+
+    public function stationAssignment()
+    {
+        return $this->hasOne(StationAsset::class, 'asset_id')
+            ->where('asset_type', 'monitor')
+            ->whereNull('unassigned_at');
+    }
+
+    // Accessors for deployment status
+    public function getDeploymentStatusAttribute()
+    {
+        if ($this->stationAssignment && $this->station) {
+            return 'Deployed';
+        }
+        
+        if ($this->status === 'working') {
+            return 'Available';
+        }
+        
+        if (in_array($this->status, ['under_repair', 'not_working'])) {
+            return 'Out of Service';
+        }
+        
+        if ($this->status === 'retired') {
+            return 'Retired';
+        }
+        
+        return 'Available';
+    }
+
+    public function getDeploymentInfoAttribute()
+    {
+        if ($this->stationAssignment && $this->station) {
+            return [
+                'station_id' => $this->station->id,
+                'station_name' => $this->station->name,
+                'station_code' => $this->station->code,
+                'location_name' => $this->station->location_name ?? 'Unknown',
+                'assigned_user' => $this->station->assigned_user,
+                'deployed_at' => $this->stationAssignment->assigned_at
+            ];
+        }
+        
+        return null;
+    }
+
+    public function getIsDeployedAttribute()
+    {
+        return $this->stationAssignment && $this->station;
+    }
+
+    public function getStationNameAttribute()
+    {
+        return $this->station ? $this->station->name : null;
+    }
 }
