@@ -34,32 +34,20 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = auth()->user();
+        if ($user) {
+            $user->update(['is_online' => true, 'updated_at' => now()]);
+        }
+
+        // Role-based redirection
         if (Auth::user()->role_id == 1) {
-            $user = auth()->user();
-            if ($user) {
-                $user->update(['is_online' => true]);
-            }
             return redirect()->intended(RouteServiceProvider::ADMIN);
         } else if (Auth::user()->role_id == 2) {
-            $user = auth()->user();
-            if ($user) {
-                $user->update(['is_online' => true, 'updated_at' => now()]);
-            }
-            return redirect()->intended(RouteServiceProvider::USER); 
+            return redirect()->intended(RouteServiceProvider::ADMIN); // Asset Manager goes to admin
+        } else {
+            // For all other roles, redirect to admin dashboard as fallback
+            return redirect()->intended(RouteServiceProvider::ADMIN);
         }
-        // Additional role checks...
-        
-        // else if(Auth::user()->role_id == 3){
-        //     return redirect()->intended(RouteServiceProvider::WAREHOUSE); 
-        // }else if(Auth::user()->role_id == 4){
-        //     return redirect()->intended(RouteServiceProvider::ASC); 
-        // }else if(Auth::user()->role_id == 5){
-        //     return redirect()->intended(RouteServiceProvider::AGENT); 
-        // }else if(Auth::user()->role_id == 6){
-        //     return redirect()->intended(RouteServiceProvider::CURTIS); 
-        // }
-
-        //return redirect()->intended(RouteServiceProvider::HOME);
     }
 
     /**

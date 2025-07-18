@@ -22,7 +22,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
@@ -39,17 +39,11 @@ function classNames(...classes) {
 }
 
 export default function UserLayout({ children }) {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navItems, setNavItems] = useState(navigation);
-
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    // Access the user data from the global window object
-    if (window.authUser) {
-      setUser(window.authUser);
-    }
-  }, []);
 
   useEffect(() => {
     const currentPath = window.location.pathname;

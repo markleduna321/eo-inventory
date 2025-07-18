@@ -8,18 +8,18 @@ use Inertia\Inertia;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, $role_id)
+    public function handle(Request $request, Closure $next, ...$role_ids)
     {
-        if (!$request->user() || !$this->checkRole($request->user()->role_id, $role_id)) {
+        if (!$request->user() || !$this->checkRole($request->user()->role_id, $role_ids)) {
             return Inertia::location(route('login')); 
         }
 
         return $next($request);
     }
 
-    private function checkRole($userRoleId, $requiredRoleId)
+    private function checkRole($userRoleId, $requiredRoleIds)
     {
-        // Define your logic for checking the role here
-        return $userRoleId == $requiredRoleId;
+        // Check if user's role is in the array of allowed roles
+        return in_array($userRoleId, $requiredRoleIds);
     }
 }

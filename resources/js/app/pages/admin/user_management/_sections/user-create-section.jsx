@@ -5,11 +5,13 @@ import InputTextComponent from '@/app/pages/components/input-text-component';
 import Modal from '@/app/pages/components/modal';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import React, { useState } from 'react'
+import { useSelector } from 'react-redux';
 import { create_user_thunk, get_users_thunk } from '../_redux/user-management-thunk';
 import store from '@/app/store/store';
 import InputError from '@/Components/InputError';
 
 export default function UserCreateSection() {
+    const { roles } = useSelector((store) => store.roles);
     const [isModalOpen, setModalOpen] = useState(false);
     const [errors, setErrors] = useState({})
     const [newAgent, setNewAgent] = useState();
@@ -75,9 +77,15 @@ export default function UserCreateSection() {
     
     
 
+    // Generate role options from Redux store
     const typeOptions = [
-        { value: '1', label: 'Admin' },
-        { value: '2', label: 'User' },
+        { value: '', label: 'Select Role' },
+        ...roles
+            .filter(role => role.status === 'Active')
+            .map(role => ({
+                value: role.id.toString(),
+                label: role.name
+            }))
     ];
 
     return (

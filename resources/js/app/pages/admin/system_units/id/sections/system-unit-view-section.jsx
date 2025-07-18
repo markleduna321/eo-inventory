@@ -1,4 +1,4 @@
-import { ArrowDownCircleIcon, BuildingLibraryIcon, PaperClipIcon } from '@heroicons/react/24/outline'
+import { ArrowDownCircleIcon, BuildingLibraryIcon, CheckCircleIcon, CircleStackIcon, ComputerDesktopIcon, CpuChipIcon, DeviceTabletIcon, HashtagIcon, IdentificationIcon, MapPinIcon, PaperClipIcon, ServerStackIcon, UserIcon } from '@heroicons/react/24/outline'
 import React from 'react'
 
 export default function SystemUnitViewSection() {
@@ -10,44 +10,44 @@ export default function SystemUnitViewSection() {
             </div>
             <div className="mt-6">
                 <dl className="grid grid-cols-1 sm:grid-cols-2">
-                    <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Serial Number</dt>
+                    <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0"> 
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><IdentificationIcon className="h-6 w-6 text-blue-500" /> Serial Number</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">#124b31417</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">CPU</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><CpuChipIcon className="h-6 w-6 text-blue-500" /> CPU</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">Intel Core i7 8th Gen</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">RAM</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><ServerStackIcon className="h-6 w-6 text-blue-500" />RAM</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">8 GB</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Motherboard</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><DeviceTabletIcon className="h-6 w-6 text-blue-500" />Motherboard</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">B450m</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Storage</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><CircleStackIcon className="h-6 w-6 text-blue-500" />Storage</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">500 GB SSD</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Operating System</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><ComputerDesktopIcon className="h-6 w-6 text-blue-500" />Operating System</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">Windows 10</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Status</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><CheckCircleIcon className="h-6 w-6 text-blue-500" />Status</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">Working</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Received By</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><UserIcon className="h-6 w-6 text-blue-500" />Received By</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">Quickly</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Location</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><MapPinIcon className="h-6 w-6 text-blue-500" />Location</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">Storage</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-1 sm:px-0">
-                        <dt className="text-sm/6 font-bold text-gray-900">Station #</dt>
+                        <dt className="text-sm/6 font-bold text-gray-900 flex items-center gap-3"><HashtagIcon className="h-6 w-6 text-blue-500" />Station #</dt>
                         <dd className="mt-1 text-sm/6 text-gray-500 sm:mt-2">65</dd>
                     </div>
                     <div className="border-t border-gray-100 px-4 py-6 sm:col-span-2 sm:px-0">

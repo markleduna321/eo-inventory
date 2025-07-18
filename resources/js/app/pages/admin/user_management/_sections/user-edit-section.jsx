@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { update_user_thunk } from "../_redux/user-management-thunk";
 import AlertComponent from "@/app/pages/components/alert";
 
@@ -12,6 +12,7 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
     if (!selectedUser) return null;
 
     const dispatch = useDispatch();
+    const { roles } = useSelector((store) => store.roles);
 
     // State for user data and errors
     const [userData, setUserData] = useState({
@@ -133,8 +134,15 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
                         onChange={(e) => setUserData({ ...userData, role_id: e.target.value })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                     >
-                        <option value="1">Admin</option>
-                        <option value="2">User</option>
+                        <option value="">Select Role</option>
+                        {roles
+                            .filter(role => role.status === 'Active')
+                            .map(role => (
+                                <option key={role.id} value={role.id}>
+                                    {role.name}
+                                </option>
+                            ))
+                        }
                     </select>
                     <InputError message={errors?.role_id} />
                 </div>

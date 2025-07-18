@@ -38,7 +38,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
@@ -61,12 +61,13 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
 }
 
-export default function AdminLayout({ children }) {
+export default function Layout({ children }) {
+  const { auth } = usePage().props;
+  const user = auth?.user;
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navItems, setNavItems] = useState(navigation);
   const [openItems, setOpenItems] = useState({});
-
-  const [user, setUser] = useState(null);
 
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
   const [isAssetsOpen1, setIsAssetsOpen1] = useState(false);
@@ -74,12 +75,6 @@ export default function AdminLayout({ children }) {
   function isChildActive(children, currentPath) {
     return children?.some(child => child.link === currentPath);
   }
-  useEffect(() => {
-    // Access the user data from the global window object
-    if (window.authUser) {
-      setUser(window.authUser);
-    }
-  }, []);
 
   useEffect(() => {
     const currentPath = window.location.pathname;
@@ -111,11 +106,11 @@ export default function AdminLayout({ children }) {
         {
           label: "Purchase Request",
           icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: ""
+          link: "/admin/purchase_request"
         }, {
           label: "Item Request",
           icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: ""
+          link: "/admin/request_item"
         },
       ]
     },
@@ -151,17 +146,17 @@ export default function AdminLayout({ children }) {
     {
       label: "Reports",
       icon: <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: ""
+      link: "/admin/reports"
     },
     {
       label: "Stations",
       icon: <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: ""
+      link: "/admin/stations"
     },
     {
       label: "Locations",
       icon: <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: ""
+      link: "/admin/locations"
     },
   ]
 

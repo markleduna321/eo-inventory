@@ -21,7 +21,7 @@ Route::middleware('redirectBasedOnRole')->get('/', function () {
     return Inertia::render('login/page');
 })->name('login');
 
-Route::middleware('auth:sanctum', 'role:1')->prefix('admin')->group(function () {
+Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function () {
     
     Route::get('dashboard', function () {
         return Inertia::render('admin/dashboard/page');
@@ -89,6 +89,22 @@ Route::middleware('auth:sanctum', 'role:1')->prefix('admin')->group(function () 
 
     Route::get('parts_and_accessories', function () {
         return Inertia::render('admin/parts/page'); 
+    });
+
+    Route::get('locations', function () {
+        return Inertia::render('admin/locations/page'); 
+    });
+
+    Route::get('stations', function () {
+        return Inertia::render('admin/stations/page'); 
+    });
+
+    Route::get('request_item', function () {
+        return Inertia::render('admin/request_item/page'); 
+    });
+
+    Route::get('purchase_request', function () {
+        return Inertia::render('admin/purchase_request/page'); 
     });
 
     

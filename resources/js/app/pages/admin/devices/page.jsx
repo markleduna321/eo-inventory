@@ -25,10 +25,10 @@ export default function DevicesPage() {
 
                 </div>
 
-                <div className=' shadow-md'>
+                <div className='shadow-md'>
                     <DeviceTableSection />
-                </div> 
- 
+                </div>
+
             </div>
         </AdminLayout>
     )
