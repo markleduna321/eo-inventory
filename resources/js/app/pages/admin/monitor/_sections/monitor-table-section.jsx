@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
+import TableFilter from '@/app/pages/components/table-filter'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 import SelectComponent from '@/app/pages/components/input-select'
 import InputError from '@/app/pages/components/InputError'
@@ -10,6 +11,7 @@ import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-
 import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { fetchMonitors, updateMonitor, deleteMonitor } from '@/app/redux/thunks/monitorThunk'
 import { setCurrentMonitor, clearCurrentMonitor } from '@/app/redux/slices/monitorSlice'
+import { useTableFilters } from '@/app/hooks/useTableFilters'
 import { usePage } from '@inertiajs/react'
 
 export default function MonitorTableSection() {
@@ -23,6 +25,64 @@ export default function MonitorTableSection() {
     const [editLoading, setEditLoading] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+
+    // Filter configuration
+    const searchableFields = ['serial_number', 'brand', 'model', 'size', 'resolution', 'location', 'received_by', 'notes']
+    const filterOptions = {
+        brand: [
+            { label: 'Dell', value: 'Dell' },
+            { label: 'HP', value: 'HP' },
+            { label: 'LG', value: 'LG' },
+            { label: 'Samsung', value: 'Samsung' },
+            { label: 'ASUS', value: 'ASUS' },
+            { label: 'Acer', value: 'Acer' },
+            { label: 'BenQ', value: 'BenQ' },
+            { label: 'AOC', value: 'AOC' },
+            { label: 'ViewSonic', value: 'ViewSonic' }
+        ],
+        size: [
+            { label: '19"', value: '19' },
+            { label: '21"', value: '21' },
+            { label: '22"', value: '22' },
+            { label: '23"', value: '23' },
+            { label: '24"', value: '24' },
+            { label: '27"', value: '27' },
+            { label: '32"', value: '32' },
+            { label: '34"', value: '34' },
+            { label: '43"', value: '43' }
+        ],
+        resolution: [
+            { label: '1366x768 (HD)', value: '1366x768' },
+            { label: '1920x1080 (Full HD)', value: '1920x1080' },
+            { label: '2560x1440 (QHD)', value: '2560x1440' },
+            { label: '3840x2160 (4K)', value: '3840x2160' },
+            { label: '5120x2880 (5K)', value: '5120x2880' }
+        ],
+        status: [
+            { label: 'Working', value: 'working' },
+            { label: 'Not Working', value: 'not_working' },
+            { label: 'Under Repair', value: 'under_repair' },
+            { label: 'Retired', value: 'retired' }
+        ],
+        location: [
+            { label: 'Storage', value: 'storage' },
+            { label: 'Office A', value: 'office_a' },
+            { label: 'Office B', value: 'office_b' },
+            { label: 'Conference Room', value: 'conference_room' },
+            { label: 'IT Department', value: 'it_department' }
+        ]
+    }
+
+    // Use the filtering hook
+    const {
+        searchTerm,
+        filters,
+        filteredData,
+        filterStats,
+        handleSearchChange,
+        handleFilterChange,
+        clearFilters
+    } = useTableFilters(monitors, searchableFields, filterOptions)
 
     // Options for select dropdowns
     const brands = [
@@ -189,25 +249,47 @@ export default function MonitorTableSection() {
     }
 
     return (
-        <div className="mt-8 flow-root bg-white p-5 rounded-lg">
-            {alert.show && (
-                <Alert 
-                    type={alert.type} 
-                    message={alert.message} 
-                    onClose={() => setAlert({ show: false, type: '', message: '' })}
-                />
+        <div className="mt-8 space-y-4">
+            {/* Filter Component */}
+            <TableFilter
+                searchTerm={searchTerm}
+                onSearchChange={handleSearchChange}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={clearFilters}
+                filterOptions={filterOptions}
+                placeholder="Search monitors by serial number, brand, model, size..."
+            />
+
+            {/* Results Summary */}
+            {filterStats.isFiltered && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800">
+                        Showing {filterStats.filtered} of {filterStats.total} monitors
+                        {searchTerm && ` matching "${searchTerm}"`}
+                    </p>
+                </div>
             )}
-            
-            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                    <div className="flex float-end mb-4 gap-2">
-                        <Button
-                            type='button'
-                            variant='primary'
-                            size='sm'>
-                            <PrinterIcon className='h-4' />
-                        </Button>
-                        <Button
+
+            <div className="flow-root bg-white p-5 rounded-lg shadow-sm">
+                {alert.show && (
+                    <Alert 
+                        type={alert.type} 
+                        message={alert.message} 
+                        onClose={() => setAlert({ show: false, type: '', message: '' })}
+                    />
+                )}
+                
+                <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                        <div className="flex float-end mb-4 gap-2">
+                            <Button
+                                type='button'
+                                variant='primary'
+                                size='sm'>
+                                <PrinterIcon className='h-4' />
+                            </Button>
+                            <Button
                             type='button'
                             variant='success'
                             size='sm'>
@@ -247,14 +329,14 @@ export default function MonitorTableSection() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 bg-white">
-                            {monitors.length === 0 ? (
+                            {filteredData.length === 0 ? (
                                 <tr>
                                     <td colSpan="9" className="text-center py-4 text-gray-500">
-                                        No monitors found
+                                        {filterStats.isFiltered ? 'No monitors match your search criteria' : 'No monitors found'}
                                     </td>
                                 </tr>
                             ) : (
-                                monitors.map((monitor) => (
+                                filteredData.map((monitor) => (
                                     <tr key={monitor.id}>
                                         <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
                                             {monitor.serial_number}
@@ -307,6 +389,7 @@ export default function MonitorTableSection() {
                     </table>
                 </div>
             </div>
+        </div>
 
             {/* Edit Monitor Modal */}
             <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>

@@ -1,15 +1,63 @@
 import Button from '@/app/pages/components/button'
+import TableFilter from '@/app/pages/components/table-filter'
 import { ArrowDownCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { get_devices_thunk, delete_device_thunk } from '../_redux/devices-thunk'
 import { setSelectedDevice, clearSelectedDevice } from '../_redux/devices-slice'
+import { useTableFilters } from '@/app/hooks/useTableFilters'
 import CreateDevicesSection from './create-devices-section'
 
 export default function DeviceTableSection() {
     const dispatch = useDispatch()
     const { devices, loading, error } = useSelector((state) => state.devices)
     const [editingDevice, setEditingDevice] = useState(null)
+
+    // Filter configuration
+    const searchableFields = ['serial_number', 'device_type', 'brand', 'model', 'operating_system', 'issued_to', 'received_by']
+    const filterOptions = {
+        device_type: [
+            { label: 'Laptop', value: 'Laptop' },
+            { label: 'MAC', value: 'MAC' },
+            { label: 'Mobile Phone', value: 'Mobile Phone' },
+            { label: 'Airpods', value: 'Airpods' },
+            { label: 'Desktop', value: 'Desktop' },
+            { label: 'Tablet', value: 'Tablet' }
+        ],
+        brand: [
+            { label: 'HP', value: 'HP' },
+            { label: 'Apple', value: 'Apple' },
+            { label: 'MSI', value: 'MSI' },
+            { label: 'Dell', value: 'Dell' },
+            { label: 'Lenovo', value: 'Lenovo' },
+            { label: 'ASUS', value: 'ASUS' },
+            { label: 'Samsung', value: 'Samsung' }
+        ],
+        status: [
+            { label: 'Working', value: 'Working' },
+            { label: 'Defective', value: 'Defective' },
+            { label: 'For Repair', value: 'For Repair' }
+        ],
+        operating_system: [
+            { label: 'Windows 10', value: 'Windows 10' },
+            { label: 'Windows 11', value: 'Windows 11' },
+            { label: 'macOS', value: 'macOS' },
+            { label: 'iOS 16', value: 'iOS 16' },
+            { label: 'Android', value: 'Android' },
+            { label: 'Linux', value: 'Linux' }
+        ]
+    }
+
+    // Use the filtering hook
+    const {
+        searchTerm,
+        filters,
+        filteredData,
+        filterStats,
+        handleSearchChange,
+        handleFilterChange,
+        clearFilters
+    } = useTableFilters(devices, searchableFields, filterOptions)
 
     useEffect(() => {
         dispatch(get_devices_thunk())
@@ -72,111 +120,135 @@ export default function DeviceTableSection() {
             </div>
         )
     }
+    
     return (
-        <div className="mt-8 flow-root bg-white p-5 rounded-lg">
-            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-                    <div className=" flex float-end mb-4 gap-2">
-                        <Button
-                            type='button'
-                            variant='primary'
-                            size='sm'>
-                            <PrinterIcon className='h-4'/>
-                        </Button>
-                        <Button
-                            type='button'
-                            variant='success'
-                            size='sm'>
-                            <ArrowDownCircleIcon className='h-4'/>
-                        </Button>
-                    </div>
-                    <table className="min-w-full divide-y divide-gray-300 border">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                                    Serial Number
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Device Type
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Brand
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Model
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Operating System
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Status
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Issued to
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Received By
-                                </th>
-                                <th scope="col" className="relative py-3.5 pr-4 pl-3 sm:pr-6">
-                                    <span className="sr-only">Actions</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                            {devices.length === 0 ? (
+        <div className="mt-8 space-y-4">
+            {/* Filter Component */}
+            <TableFilter
+                searchTerm={searchTerm}
+                onSearchChange={handleSearchChange}
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onClearFilters={clearFilters}
+                filterOptions={filterOptions}
+                placeholder="Search devices by serial number, type, brand, model..."
+            />
+
+            {/* Results Summary */}
+            {filterStats.isFiltered && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-sm text-blue-800">
+                        Showing {filterStats.filtered} of {filterStats.total} devices
+                        {searchTerm && ` matching "${searchTerm}"`}
+                    </p>
+                </div>
+            )}
+
+            <div className="flow-root bg-white p-5 rounded-lg shadow-sm">
+                <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                    <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                        <div className="flex float-end mb-4 gap-2">
+                            <Button
+                                type='button'
+                                variant='primary'
+                                size='sm'>
+                                <PrinterIcon className='h-4'/>
+                            </Button>
+                            <Button
+                                type='button'
+                                variant='success'
+                                size='sm'>
+                                <ArrowDownCircleIcon className='h-4'/>
+                            </Button>
+                        </div>
+                        <table className="min-w-full divide-y divide-gray-300 border">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <td colSpan="9" className="text-center py-8 text-gray-500">
-                                        No devices found. Add your first device!
-                                    </td>
+                                    <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                                        Serial Number
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Device Type
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Brand
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Model
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Operating System
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Status
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Issued To
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Received By
+                                    </th>
+                                    <th scope="col" className="relative py-3.5 pr-4 pl-3 sm:pr-6">
+                                        <span className="sr-only">Actions</span>
+                                    </th>
                                 </tr>
-                            ) : (
-                                devices.map((device) => (
-                                    <tr key={device.id}>
-                                        <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                            {device.serial_number}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {device.device_type}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {device.brand}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {device.model}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {device.operating_system || 'N/A'}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {getStatusBadge(device.status)}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {device.issued_to || 'Not Issued'}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {device.received_by}
-                                        </td>
-                                        <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
-                                            <div className="flex gap-2 justify-end">
-                                                <button 
-                                                    onClick={() => handleEdit(device)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(device.id)}
-                                                    className="text-red-600 hover:text-red-900"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                                {filteredData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="9" className="text-center py-8 text-gray-500">
+                                            {filterStats.isFiltered ? 'No devices match your search criteria' : 'No devices found'}
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    filteredData.map((device) => (
+                                        <tr key={device.id}>
+                                            <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
+                                                {device.serial_number}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.device_type}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.brand}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.model}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.operating_system}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {getStatusBadge(device.status)}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.issued_to || 'Not Issued'}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.received_by}
+                                            </td>
+                                            <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
+                                                <div className="flex gap-2 justify-end">
+                                                    <button 
+                                                        onClick={() => handleEdit(device)}
+                                                        className="text-indigo-600 hover:text-indigo-900"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleDelete(device.id)}
+                                                        className="text-red-600 hover:text-red-900"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
