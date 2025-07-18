@@ -5,6 +5,7 @@ import devicesSlice from '../pages/admin/devices/_redux/devices-slice';
 import monitorsSlice from '../redux/slices/monitorSlice';
 import locationsSlice from '../redux/slices/locationSlice';
 import stationsSlice from '../redux/slices/stationSlice';
+import peripheralsSlice from '../redux/peripheral/peripheralSlice';
 
 const store = configureStore({
     reducer: {
@@ -14,6 +15,7 @@ const store = configureStore({
         monitors: monitorsSlice,
         locations: locationsSlice,
         stations: stationsSlice,
+        peripherals: peripheralsSlice,
     },
 });
 

@@ -28,7 +28,8 @@ class Station extends Model
     protected $appends = [
         'location_name',
         'assets_count',
-        'monitors_count'
+        'monitors_count',
+        'peripherals_count'
     ];
 
     // Relationships
@@ -54,6 +55,18 @@ class Station extends Model
         )->where('station_assets.asset_type', 'monitor');
     }
 
+    public function peripherals()
+    {
+        return $this->hasManyThrough(
+            Peripheral::class,
+            StationAsset::class,
+            'station_id',
+            'id',
+            'id',
+            'asset_id'
+        )->where('station_assets.asset_type', 'peripheral');
+    }
+
     // Accessors
     public function getLocationNameAttribute()
     {
@@ -68,6 +81,11 @@ class Station extends Model
     public function getMonitorsCountAttribute()
     {
         return $this->stationAssets()->where('asset_type', 'monitor')->count();
+    }
+
+    public function getPeripheralsCountAttribute()
+    {
+        return $this->stationAssets()->where('asset_type', 'peripheral')->count();
     }
 
     // Methods for asset assignment
@@ -125,6 +143,10 @@ class Station extends Model
                     ]);
                 }
                 break;
+            case 'peripheral':
+                // For peripherals, we don't update location directly since they're stock-based
+                // The deployment is tracked through the peripheral_deliveries table
+                break;
             // Add other asset types as needed
         }
     }
@@ -140,6 +162,9 @@ class Station extends Model
                         'station_id' => null
                     ]);
                 }
+                break;
+            case 'peripheral':
+                // For peripherals, we handle returns through the PeripheralController
                 break;
             // Add other asset types as needed
         }

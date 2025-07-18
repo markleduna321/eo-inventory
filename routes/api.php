@@ -6,6 +6,7 @@ use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\StationController;
+use App\Http\Controllers\PeripheralController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -46,3 +47,11 @@ Route::get('stations/locations', [StationController::class, 'getLocations']);
 Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
 Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);
 Route::apiResource('stations', StationController::class);
+
+// Peripheral management routes
+Route::post('peripherals/{peripheral}/add-stock', [PeripheralController::class, 'addStock']);
+Route::post('peripherals/{peripheral}/deploy-stock', [PeripheralController::class, 'deployStock']);
+Route::post('peripherals/{peripheral}/return-stock', [PeripheralController::class, 'returnStock']);
+Route::post('peripherals/{peripheral}/mark-damaged', [PeripheralController::class, 'markDamaged']);
+Route::get('peripherals/{peripheral}/delivery-history', [PeripheralController::class, 'deliveryHistory']);
+Route::apiResource('peripherals', PeripheralController::class);
