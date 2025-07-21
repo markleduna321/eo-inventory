@@ -1,13 +1,15 @@
 import { LineChart } from '@mui/x-charts'
 import React, { useRef, useState, useEffect } from 'react'
+import axios from 'axios'
 
 export default function AssetValueMonthly() {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentYearData = [100000, 120000, 140000, 130000, 150000, 170000, 160000, 180000, 190000, 200000, 210000, 220000];
-    const lastYearData = [90000, 110000, 130000, 120000, 140000, 160000, 150000, 170000, 180000, 190000, 200000, 210000];
-
     const chartContainerRef = useRef(null);
     const [chartWidth, setChartWidth] = useState(500);
+    const [valueData, setValueData] = useState({
+        months: [],
+        values: [],
+        loading: true
+    })
 
     useEffect(() => {
         function handleResize() {
@@ -17,21 +19,52 @@ export default function AssetValueMonthly() {
         }
         handleResize();
         window.addEventListener('resize', handleResize);
+        
+        fetchValueData();
+        
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    const fetchValueData = async () => {
+        try {
+            const response = await axios.get('/api/dashboard/asset-value-per-month')
+            setValueData({
+                months: response.data.months,
+                values: response.data.values,
+                loading: false
+            })
+        } catch (error) {
+            console.error('Error fetching value data:', error)
+            setValueData(prev => ({ ...prev, loading: false }))
+        }
+    }
+
+    if (valueData.loading) {
+        return (
+            <div ref={chartContainerRef} className="w-full h-72 bg-white">
+                <h2 className="text-xl font-semibold mb-2">Asset Value Growth</h2>
+                <div className="h-[220px] flex items-center justify-center">
+                    <div className="text-gray-500">Loading...</div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div ref={chartContainerRef} className="w-full h-72 bg-white">
-            <h2 className="text-xl font-semibold mb-2">Financial & Depreciation Analysis</h2>
+            <h2 className="text-xl font-semibold mb-2">Asset Value Growth</h2>
             <LineChart
                 width={chartWidth}
                 height={220}
-                margin={{ left: 60, right: 20, top: 20, bottom: 40 }} // Add space for y-axis
+                margin={{ left: 60, right: 20, top: 20, bottom: 40 }}
                 series={[
-                    { data: currentYearData, label: "This Year", color: "#007bff" },
-                    { data: lastYearData, label: "Last Year", color: "#FF5733" },
+                    { 
+                        data: valueData.values, 
+                        label: "Cumulative Asset Value", 
+                        color: "#10b981" 
+                    },
                 ]}
-                xAxis={[{ scaleType: "point", data: months }]}
+                xAxis={[{ scaleType: "point", data: valueData.months }]}
             />
         </div>
     )

@@ -97,12 +97,18 @@ export default function CreateMonitorsSection() {
         { label: 'BenQ', value: 'benq' },
         { label: 'AOC', value: 'aoc' },
         { label: 'ViewSonic', value: 'viewsonic' },
+        { label: 'Redmi', value: 'redmi' },
+        { label: 'Nvision', value: 'nvision' },
+        { label: 'Philips', value: 'philips' },
+        { label: 'Migen', value: 'migen' },
+        { label: 'Fonudar', value: 'fonudar' },
         { label: 'Other', value: 'other' }
     ]
 
     const sizes = [
         { label: 'Select Size', value: '' },
         { label: '19"', value: '19' },
+        { label: '20"', value: '20' },
         { label: '21"', value: '21' },
         { label: '22"', value: '22' },
         { label: '23"', value: '23' },

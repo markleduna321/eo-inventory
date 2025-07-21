@@ -9,6 +9,7 @@ use App\Http\Controllers\StationController;
 use App\Http\Controllers\PeripheralController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\SystemUnitController;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -77,3 +78,11 @@ Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCo
 Route::post('system-units/{systemUnit}/assign', [SystemUnitController::class, 'assign']);
 Route::post('system-units/{systemUnit}/return', [SystemUnitController::class, 'returnUnit']);
 Route::apiResource('system-units', SystemUnitController::class);
+
+// Dashboard routes (temporary - no auth for testing)
+Route::get('dashboard/stats', [DashboardController::class, 'getStats']);
+Route::get('dashboard/assets-received-per-month', [DashboardController::class, 'getAssetsReceivedPerMonth']);
+Route::get('dashboard/asset-usage', [DashboardController::class, 'getAssetUsage']);
+Route::get('dashboard/total-asset-value', [DashboardController::class, 'getTotalAssetValue']);
+Route::get('dashboard/asset-value-per-month', [DashboardController::class, 'getAssetValuePerMonth']);
+Route::get('dashboard/recent-transactions', [DashboardController::class, 'getRecentTransactions']);

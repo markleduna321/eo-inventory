@@ -38,10 +38,16 @@ export default function MonitorTableSection() {
             { label: 'Acer', value: 'Acer' },
             { label: 'BenQ', value: 'BenQ' },
             { label: 'AOC', value: 'AOC' },
-            { label: 'ViewSonic', value: 'ViewSonic' }
+            { label: 'ViewSonic', value: 'ViewSonic' },
+            { label: 'Redmi', value: 'redmi' },
+            { label: 'Nvision', value: 'nvision' },
+            { label: 'Philips', value: 'philips' },
+            { label: 'Migen', value: 'migen' },
+            { label: 'Fonudar', value: 'fonudar' },
         ],
         size: [
             { label: '19"', value: '19' },
+            { label: '20"', value: '20' },
             { label: '21"', value: '21' },
             { label: '22"', value: '22' },
             { label: '23"', value: '23' },
@@ -182,20 +188,20 @@ export default function MonitorTableSection() {
         try {
             const { id, ...updateData } = editFormData
             await dispatch(updateMonitor({ id, monitorData: updateData })).unwrap()
-            setAlert({ 
-                show: true, 
-                type: 'success', 
-                message: 'Monitor updated successfully!' 
+            setAlert({
+                show: true,
+                type: 'success',
+                message: 'Monitor updated successfully!'
             })
             setTimeout(() => {
                 closeEditModal()
             }, 1500)
         } catch (error) {
             console.error('Error updating monitor:', error)
-            setAlert({ 
-                show: true, 
-                type: 'error', 
-                message: error || 'Failed to update monitor' 
+            setAlert({
+                show: true,
+                type: 'error',
+                message: error || 'Failed to update monitor'
             })
         } finally {
             setEditLoading(false)
@@ -218,19 +224,19 @@ export default function MonitorTableSection() {
     const handleDeleteConfirm = async () => {
         try {
             await dispatch(deleteMonitor(deleteId)).unwrap()
-            setAlert({ 
-                show: true, 
-                type: 'success', 
-                message: 'Monitor deleted successfully!' 
+            setAlert({
+                show: true,
+                type: 'success',
+                message: 'Monitor deleted successfully!'
             })
             setIsDeleteModalOpen(false)
             setDeleteId(null)
         } catch (error) {
             console.error('Error deleting monitor:', error)
-            setAlert({ 
-                show: true, 
-                type: 'error', 
-                message: error || 'Failed to delete monitor' 
+            setAlert({
+                show: true,
+                type: 'error',
+                message: error || 'Failed to delete monitor'
             })
         }
     }
@@ -242,7 +248,7 @@ export default function MonitorTableSection() {
             under_repair: 'bg-yellow-100 text-yellow-800',
             retired: 'bg-gray-100 text-gray-800'
         }
-        
+
         return (
             <span className={`${statusConfig[status]} text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm`}>
                 {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -257,7 +263,7 @@ export default function MonitorTableSection() {
             'Out of Service': 'bg-red-100 text-red-800',
             'Retired': 'bg-gray-100 text-gray-800'
         }
-        
+
         return (
             <div className="flex flex-col">
                 <span className={`${statusConfig[deploymentStatus]} text-xs font-medium me-2 px-2.5 py-0.5 rounded-sm`}>
@@ -313,13 +319,13 @@ export default function MonitorTableSection() {
 
             <div className="flow-root bg-white p-5 rounded-lg shadow-sm">
                 {alert.show && (
-                    <Alert 
-                        type={alert.type} 
-                        message={alert.message} 
+                    <Alert
+                        type={alert.type}
+                        message={alert.message}
                         onClose={() => setAlert({ show: false, type: '', message: '' })}
                     />
                 )}
-                
+
                 <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
                         <div className="flex float-end mb-4 gap-2">
@@ -330,116 +336,116 @@ export default function MonitorTableSection() {
                                 <PrinterIcon className='h-4' />
                             </Button>
                             <Button
-                            type='button'
-                            variant='success'
-                            size='sm'>
-                            <ArrowDownCircleIcon className='h-4' />
-                        </Button>
-                    </div>
-                    <table className="min-w-full divide-y divide-gray-300 border">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                                    Serial Number
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Brand
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Model
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Size
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Resolution
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Status
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Deployment Status
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Location
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Received By
-                                </th>
-                                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 bg-white">
-                            {filteredData.length === 0 ? (
+                                type='button'
+                                variant='success'
+                                size='sm'>
+                                <ArrowDownCircleIcon className='h-4' />
+                            </Button>
+                        </div>
+                        <table className="min-w-full divide-y divide-gray-300 border">
+                            <thead className="bg-gray-50">
                                 <tr>
-                                    <td colSpan="10" className="text-center py-4 text-gray-500">
-                                        {filterStats.isFiltered ? 'No monitors match your search criteria' : 'No monitors found'}
-                                    </td>
+                                    <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                                        Serial Number
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Brand
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Model
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Size
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Resolution
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Status
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Deployment Status
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Location
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Received By
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Actions
+                                    </th>
                                 </tr>
-                            ) : (
-                                filteredData.map((monitor) => (
-                                    <tr key={monitor.id}>
-                                        <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
-                                            {monitor.serial_number}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {monitor.brand}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {monitor.model}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {monitor.size}"
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {monitor.resolution}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {getStatusBadge(monitor.status)}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm text-gray-500">
-                                            {getDeploymentStatusBadge(
-                                                monitor.deployment_status,
-                                                monitor.station_name,
-                                                monitor.deployment_info
-                                            )}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {monitor.location.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            {monitor.received_by}
-                                        </td>
-                                        <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="primary"
-                                                    size="sm"
-                                                    onClick={() => handleEdit(monitor)}
-                                                >
-                                                    <PencilIcon className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="danger"
-                                                    size="sm"
-                                                    onClick={() => handleDeleteClick(monitor.id)}
-                                                >
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </Button>
-                                            </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                                {filteredData.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="10" className="text-center py-4 text-gray-500">
+                                            {filterStats.isFiltered ? 'No monitors match your search criteria' : 'No monitors found'}
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : (
+                                    filteredData.map((monitor) => (
+                                        <tr key={monitor.id}>
+                                            <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
+                                                {monitor.serial_number}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {monitor.brand}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {monitor.model}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {monitor.size}"
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {monitor.resolution}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {getStatusBadge(monitor.status)}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm text-gray-500">
+                                                {getDeploymentStatusBadge(
+                                                    monitor.deployment_status,
+                                                    monitor.station_name,
+                                                    monitor.deployment_info
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {monitor.location.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {monitor.received_by}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="primary"
+                                                        size="sm"
+                                                        onClick={() => handleEdit(monitor)}
+                                                    >
+                                                        <PencilIcon className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="danger"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteClick(monitor.id)}
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
 
             {/* Edit Monitor Modal */}
             <Modal isOpen={isEditModalOpen} onClose={closeEditModal}>
@@ -449,15 +455,15 @@ export default function MonitorTableSection() {
                             <h3 className="text-base font-semibold text-gray-900" id="modal-title">
                                 Edit Monitor
                             </h3>
-                            
+
                             {alert.show && (
-                                <Alert 
-                                    type={alert.type} 
-                                    message={alert.message} 
+                                <Alert
+                                    type={alert.type}
+                                    message={alert.message}
                                     onClose={() => setAlert({ show: false, type: '', message: '' })}
                                 />
                             )}
-                            
+
                             <div className="mt-2">
                                 <form onSubmit={handleEditSubmit} className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

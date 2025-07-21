@@ -1,11 +1,39 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import AdminLayout from '../layout'
 import AssetChartMonthly from './sections/asset-chart-monthly-section'
 import { BarChart, LineChart, PieChart } from '@mui/x-charts'
 import AssetValueMonthly from './sections/asset-value-monthly'
 import AssetUsageSection from './sections/asset-usage-section'
+import axios from 'axios'
 
 export default function AdminDashboardPage() {
+  const [dashboardData, setDashboardData] = useState({
+    totalAssetValue: '$0',
+    recentTransactions: [],
+    loading: true
+  })
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      const [valueResponse, transactionsResponse] = await Promise.all([
+        axios.get('/api/dashboard/total-asset-value'),
+        axios.get('/api/dashboard/recent-transactions')
+      ])
+
+      setDashboardData({
+        totalAssetValue: valueResponse.data.formatted_value,
+        recentTransactions: transactionsResponse.data,
+        loading: false
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      setDashboardData(prev => ({ ...prev, loading: false }))
+    }
+  }
   return (
     <AdminLayout>
       <div>
@@ -26,7 +54,9 @@ export default function AdminDashboardPage() {
             {/* Total Asset Value */}
             <div className="bg-white h-[80px] p-4 flex flex-col items-center justify-center rounded-lg shadow-md">
               <h2 className="text-lg font-semibold text-gray-700">Total Asset Value</h2>
-              <p className="text-2xl font-bold text-blue-600">$1,283,718</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {dashboardData.loading ? 'Loading...' : dashboardData.totalAssetValue}
+              </p>
             </div>
 
             {/* Line Chart for Asset Value Per Month */}
@@ -50,34 +80,33 @@ export default function AdminDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td className="border p-2">2025-04-01</td>
-                  <td className="border p-2">Dell Laptop</td>
-                  <td className="border p-2">Laptop</td>
-                  <td className="border p-2 text-green-600 font-bold">Received</td>
-                  <td className="border p-2">Admin</td>
-                </tr>
-                <tr>
-                  <td className="border p-2">2025-03-30</td>
-                  <td className="border p-2">HP Monitor</td>
-                  <td className="border p-2">Monitor</td>
-                  <td className="border p-2 text-yellow-600 font-bold">Deployed</td>
-                  <td className="border p-2">John Doe</td>
-                </tr>
-                <tr>
-                  <td className="border p-2">2025-03-28</td>
-                  <td className="border p-2">Cisco Router</td>
-                  <td className="border p-2">Network</td>
-                  <td className="border p-2 text-red-600 font-bold">Damaged</td>
-                  <td className="border p-2">IT Support</td>
-                </tr>
-                <tr>
-                  <td className="border p-2">2025-03-25</td>
-                  <td className="border p-2">Logitech Mouse</td>
-                  <td className="border p-2">Peripherals</td>
-                  <td className="border p-2 text-blue-600 font-bold">Repaired</td>
-                  <td className="border p-2">Tech Team</td>
-                </tr>
+                {dashboardData.loading ? (
+                  <tr>
+                    <td colSpan="5" className="border p-4 text-center">Loading...</td>
+                  </tr>
+                ) : dashboardData.recentTransactions.length > 0 ? (
+                  dashboardData.recentTransactions.map((transaction, index) => (
+                    <tr key={index}>
+                      <td className="border p-2">{transaction.date}</td>
+                      <td className="border p-2">{transaction.asset_name}</td>
+                      <td className="border p-2">{transaction.category}</td>
+                      <td className={`border p-2 font-bold ${
+                        transaction.status === 'Received' ? 'text-green-600' :
+                        transaction.status === 'Deployed' ? 'text-yellow-600' :
+                        transaction.status === 'Active' ? 'text-blue-600' :
+                        transaction.status === 'Maintenance' ? 'text-red-600' :
+                        'text-gray-600'
+                      }`}>
+                        {transaction.status}
+                      </td>
+                      <td className="border p-2">{transaction.user}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="border p-4 text-center text-gray-500">No recent transactions found</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
