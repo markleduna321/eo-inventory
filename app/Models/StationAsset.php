@@ -45,6 +45,22 @@ class StationAsset extends Model
         }
     }
 
+    // Specific relationship methods for eager loading
+    public function monitor()
+    {
+        return $this->belongsTo(Monitor::class, 'asset_id');
+    }
+
+    public function peripheral()
+    {
+        return $this->belongsTo(Peripheral::class, 'asset_id');
+    }
+
+    public function systemUnit()
+    {
+        return $this->belongsTo(SystemUnit::class, 'asset_id');
+    }
+
     // Get the actual asset model instance
     public function getAssetAttribute()
     {
