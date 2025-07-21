@@ -108,12 +108,18 @@ export default function MonitorTableSection() {
         { label: 'BenQ', value: 'BenQ' },
         { label: 'AOC', value: 'AOC' },
         { label: 'ViewSonic', value: 'ViewSonic' },
+        { label: 'Redmi', value: 'redmi' },
+        { label: 'Nvision', value: 'nvision' },
+        { label: 'Philips', value: 'philips' },
+        { label: 'Migen', value: 'migen' },
+        { label: 'Fonudar', value: 'fonudar' },
         { label: 'Other', value: 'Other' }
     ]
 
     const sizes = [
         { label: 'Select Size', value: '' },
         { label: '19"', value: '19' },
+        { label: '20"', value: '20' },
         { label: '21"', value: '21' },
         { label: '22"', value: '22' },
         { label: '23"', value: '23' },
