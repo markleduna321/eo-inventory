@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import axios from 'axios'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import TableFilter from '@/app/pages/components/table-filter'
@@ -9,13 +10,13 @@ import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
 import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
-import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
+import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 import { setCurrentStation, clearCurrentStation } from '@/app/redux/slices/stationSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 
 export default function StationsTableSection() {
     const dispatch = useDispatch()
-    const { stations, availableMonitors, locations, loading, error } = useSelector(state => state.stations)
+    const { stations, availableMonitors, availableSystemUnits, locations, loading, error } = useSelector(state => state.stations)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
@@ -99,18 +100,48 @@ export default function StationsTableSection() {
         dispatch(fetchStations())
     }, [dispatch])
 
-    const handleEdit = (station) => {
+    const handleEdit = async (station) => {
+        console.log('Editing station:', station)
+        console.log('Station assets:', station.station_assets)
+        
+        const assignedMonitors = station.station_assets
+            ? station.station_assets.filter(asset => asset.asset_type === 'monitor').map(asset => asset.asset_id)
+            : []
+        const assignedSystemUnits = station.station_assets
+            ? station.station_assets.filter(asset => asset.asset_type === 'system_unit').map(asset => asset.asset_id)
+            : []
+            
+        console.log('Assigned monitors:', assignedMonitors)
+        console.log('Assigned system units:', assignedSystemUnits)
+        
         setEditFormData({
             ...station,
-            assigned_monitors: station.station_assets
-                ? station.station_assets.filter(asset => asset.asset_type === 'monitor').map(asset => asset.asset_id)
-                : []
+            assigned_monitors: assignedMonitors,
+            assigned_system_units: assignedSystemUnits
         })
         setIsEditModalOpen(true)
         setEditErrors({})
-        // Fetch fresh data for editing
-        dispatch(fetchAvailableMonitors())
-        dispatch(fetchStationLocations())
+        
+        // Fetch fresh data for editing including available assets
+        await dispatch(fetchAvailableMonitors())
+        await dispatch(fetchAvailableSystemUnits())
+        await dispatch(fetchStationLocations())
+        
+        // Also fetch the full station details with relationships
+        try {
+            const response = await axios.get(`/api/stations/${station.id}`)
+            const fullStation = response.data
+            console.log('Full station with relationships:', fullStation)
+            
+            // Update form data with full relationships
+            setEditFormData(prev => ({
+                ...prev,
+                monitors: fullStation.monitors || [],
+                system_units: fullStation.system_units || []
+            }))
+        } catch (error) {
+            console.error('Error fetching full station details:', error)
+        }
     }
 
     const handleCloseEdit = () => {
@@ -123,6 +154,7 @@ export default function StationsTableSection() {
 
     const handleEditSubmit = async (e) => {
         e.preventDefault()
+        console.log('Form submitted', editFormData)
         setEditLoading(true)
         setEditErrors({})
 
@@ -139,6 +171,7 @@ export default function StationsTableSection() {
             })
             handleCloseEdit()
         } catch (error) {
+            console.error('Update error:', error)
             setEditErrors({ general: error })
             setAlert({
                 show: true,
@@ -192,6 +225,15 @@ export default function StationsTableSection() {
         }))
     }
 
+    const handleSystemUnitSelection = (systemUnitId) => {
+        setEditFormData(prev => ({
+            ...prev,
+            assigned_system_units: prev.assigned_system_units.includes(systemUnitId)
+                ? [] // If already selected, deselect it (clear array)
+                : [systemUnitId] // If not selected, select only this one (replace array)
+        }))
+    }
+
     const getStatusBadge = (status) => {
         const statusClasses = {
             'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -235,10 +277,73 @@ export default function StationsTableSection() {
     // Get all available monitors (including currently assigned ones for editing)
     const allAvailableMonitors = [
         ...availableMonitors,
-        ...(editFormData.assigned_monitors || []).map(id => 
-            stations.find(s => s.id === editFormData.id)?.monitors?.find(m => m.id === id)
-        ).filter(Boolean)
+        ...(editFormData.monitors || []),
+        ...(editFormData.station_assets || [])
+            .filter(asset => asset.asset_type === 'monitor')
+            .map(asset => asset.monitor)
+            .filter(Boolean)
     ]
+
+    // Get all available system units (including currently assigned ones for editing)  
+    const allAvailableSystemUnits = [
+        ...availableSystemUnits,
+        ...(editFormData.system_units || []),
+        ...(editFormData.station_assets || [])
+            .filter(asset => asset.asset_type === 'system_unit')
+            .map(asset => asset.system_unit)
+            .filter(Boolean)
+    ]
+
+    // Get assigned monitor details by finding them in the Redux store or from all stations
+    const getAssignedMonitorDetails = (monitorIds) => {
+        return monitorIds.map(id => {
+            // First try to find in availableMonitors
+            let monitor = availableMonitors.find(m => m.id === id);
+            if (!monitor) {
+                // Then try to find in all stations' monitors
+                for (const station of stations) {
+                    if (station.monitors) {
+                        monitor = station.monitors.find(m => m.id === id);
+                        if (monitor) break;
+                    }
+                }
+            }
+            // If still not found, try allAvailableMonitors
+            if (!monitor) {
+                monitor = allAvailableMonitors.find(m => m.id === id);
+            }
+            return monitor;
+        }).filter(Boolean);
+    };
+
+    // Get assigned system unit details
+    const getAssignedSystemUnitDetails = (systemUnitIds) => {
+        return systemUnitIds.map(id => {
+            // First try to find in availableSystemUnits
+            let systemUnit = availableSystemUnits.find(su => su.id === id);
+            if (!systemUnit) {
+                // Then try to find in all stations' system units
+                for (const station of stations) {
+                    if (station.system_units) {
+                        systemUnit = station.system_units.find(su => su.id === id);
+                        if (systemUnit) break;
+                    }
+                }
+            }
+            // If still not found, try allAvailableSystemUnits
+            if (!systemUnit) {
+                systemUnit = allAvailableSystemUnits.find(su => su.id === id);
+            }
+            return systemUnit;
+        }).filter(Boolean);
+    };
+
+    // Get current assigned asset details
+    const assignedMonitorDetails = getAssignedMonitorDetails(editFormData.assigned_monitors || []);
+    const assignedSystemUnitDetails = getAssignedSystemUnitDetails(editFormData.assigned_system_units || []);
+
+    console.log('Assigned monitor details:', assignedMonitorDetails);
+    console.log('Assigned system unit details:', assignedSystemUnitDetails);
 
     if (loading) {
         return (
@@ -358,6 +463,9 @@ export default function StationsTableSection() {
                                                     <ComputerDesktopIcon className="w-4 h-4 mr-1" />
                                                     <span>{station.monitors_count || 0} monitors</span>
                                                 </div>
+                                                <div className="flex items-center text-xs text-gray-400">
+                                                    <span>{station.system_units_count || 0} system units</span>
+                                                </div>
                                                 <div className="text-xs text-gray-400">
                                                     {station.assets_count || 0} total assets
                                                 </div>
@@ -406,10 +514,10 @@ export default function StationsTableSection() {
                 isOpen={isEditModalOpen}
                 onClose={handleCloseEdit}
             >
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 max-h-[90vh] overflow-y-auto">
                     <div className="sm:flex sm:items-start">
                         <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900" id="modal-title">
+                            <h3 className="text-base font-semibold text-gray-900 mb-4 sticky top-0 bg-white z-10" id="modal-title">
                                 Edit Station
                             </h3>
                             
@@ -532,34 +640,163 @@ export default function StationsTableSection() {
                                         {editErrors.description && <InputError message={editErrors.description} />}
                                     </div>
 
+                                    {/* Currently Assigned Assets Section */}
+                                    <div className="bg-gray-50 p-4 rounded-lg border">
+                                        <h4 className="text-sm font-semibold text-gray-800 mb-3">Currently Assigned Assets</h4>
+                                        
+                                        {/* Currently Assigned Monitors */}
+                                        {assignedMonitorDetails.length > 0 && (
+                                            <div className="mb-4">
+                                                <h5 className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Monitors</h5>
+                                                <div className="space-y-2">
+                                                    {assignedMonitorDetails.map(monitor => (
+                                                        <div key={monitor.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                                                            <span className="text-sm text-gray-700">
+                                                                {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
+                                                            </span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => handleMonitorSelection(monitor.id)}
+                                                                className="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                                                            >
+                                                                Unbind
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Currently Assigned System Unit */}
+                                        {assignedSystemUnitDetails.length > 0 && (
+                                            <div className="mb-4">
+                                                <h5 className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">System Unit</h5>
+                                                <div className="space-y-2">
+                                                    {assignedSystemUnitDetails.map(systemUnit => (
+                                                        <div key={systemUnit.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                                                            <span className="text-sm text-gray-700">
+                                                                {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
+                                                            </span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => handleSystemUnitSelection(systemUnit.id)}
+                                                                className="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                                                            >
+                                                                Unbind
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* No Assets Assigned */}
+                                        {assignedMonitorDetails.length === 0 && 
+                                         assignedSystemUnitDetails.length === 0 && (
+                                            <div className="text-sm text-gray-500 italic">
+                                                No assets currently assigned to this station
+                                            </div>
+                                        )}
+                                    </div>
+
                                     {/* Monitor Assignment Section */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Assign Monitors
+                                            Assign Additional Monitors
                                         </label>
                                         <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                                            {allAvailableMonitors.length > 0 ? (
-                                                allAvailableMonitors.map(monitor => (
-                                                    <div key={monitor.id} className="flex items-center mb-2">
-                                                        <input
-                                                            type="checkbox"
-                                                            id={`edit-monitor-${monitor.id}`}
-                                                            checked={(editFormData.assigned_monitors || []).includes(monitor.id)}
-                                                            onChange={() => handleMonitorSelection(monitor.id)}
-                                                            className="mr-2"
-                                                        />
-                                                        <label htmlFor={`edit-monitor-${monitor.id}`} className="text-sm">
-                                                            {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
-                                                        </label>
-                                                    </div>
-                                                ))
+                                            {allAvailableMonitors.filter(monitor => 
+                                                !(editFormData.assigned_monitors || []).includes(monitor.id)
+                                            ).length > 0 ? (
+                                                allAvailableMonitors
+                                                    .filter(monitor => !(editFormData.assigned_monitors || []).includes(monitor.id))
+                                                    .map(monitor => (
+                                                        <div key={monitor.id} className="flex items-center mb-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`edit-monitor-${monitor.id}`}
+                                                                checked={false}
+                                                                onChange={() => handleMonitorSelection(monitor.id)}
+                                                                className="mr-2"
+                                                            />
+                                                            <label htmlFor={`edit-monitor-${monitor.id}`} className="text-sm">
+                                                                {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
+                                                            </label>
+                                                        </div>
+                                                    ))
                                             ) : (
-                                                <p className="text-sm text-gray-500">No available monitors</p>
+                                                <p className="text-sm text-gray-500">
+                                                    {allAvailableMonitors.length === 0 
+                                                        ? 'No available monitors' 
+                                                        : 'All available monitors are already assigned to this station'
+                                                    }
+                                                </p>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-4">
+                                    {/* System Unit Assignment Section */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Assign System Unit (One per station)
+                                        </label>
+                                        <div className="text-xs text-gray-500 mb-2">
+                                            {(editFormData.assigned_system_units || []).length > 0 
+                                                ? 'Replace current system unit or select "No System Unit" to remove'
+                                                : 'Select a system unit to assign to this station'
+                                            }
+                                        </div>
+                                        <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                                            <>
+                                                <div className="flex items-center mb-2">
+                                                    <input
+                                                        type="radio"
+                                                        id="edit-system-unit-none"
+                                                        name="edit-system-unit-selection"
+                                                        checked={(editFormData.assigned_system_units || []).length === 0}
+                                                        onChange={() => setEditFormData(prev => ({ ...prev, assigned_system_units: [] }))}
+                                                        className="mr-2"
+                                                    />
+                                                    <label htmlFor="edit-system-unit-none" className="text-sm text-gray-500">
+                                                        No System Unit
+                                                    </label>
+                                                </div>
+                                                {allAvailableSystemUnits
+                                                    .filter(systemUnit => !(editFormData.assigned_system_units || []).includes(systemUnit.id))
+                                                    .map(systemUnit => (
+                                                        <div key={systemUnit.id} className="flex items-center mb-2">
+                                                            <input
+                                                                type="radio"
+                                                                id={`edit-system-unit-${systemUnit.id}`}
+                                                                name="edit-system-unit-selection"
+                                                                checked={false}
+                                                                onChange={() => handleSystemUnitSelection(systemUnit.id)}
+                                                                className="mr-2"
+                                                            />
+                                                            <label htmlFor={`edit-system-unit-${systemUnit.id}`} className="text-sm">
+                                                                {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                {allAvailableSystemUnits
+                                                    .filter(systemUnit => !(editFormData.assigned_system_units || []).includes(systemUnit.id))
+                                                    .length === 0 && (
+                                                    <p className="text-sm text-gray-500">
+                                                        {allAvailableSystemUnits.length === 0 
+                                                            ? 'No available system units' 
+                                                            : 'No additional system units available'
+                                                        }
+                                                    </p>
+                                                )}
+                                            </>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end gap-3 pt-4 pb-2 sticky bottom-0 bg-white border-t mt-6">
                                         <Button
                                             type="button"
                                             variant="secondary"
@@ -572,6 +809,7 @@ export default function StationsTableSection() {
                                             type="submit"
                                             variant="primary"
                                             disabled={editLoading}
+                                            onClick={() => console.log('Update button clicked', editLoading, editFormData)}
                                         >
                                             {editLoading ? 'Updating...' : 'Update Station'}
                                         </Button>

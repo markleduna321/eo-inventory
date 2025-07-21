@@ -21,6 +21,7 @@ class SystemUnit extends Model
         'operating_system',
         'status',
         'location',
+        'station_id',
         'assigned_to',
         'received_by',
         'purchase_price',
@@ -49,6 +50,24 @@ class SystemUnit extends Model
         return $this->belongsToMany(PartItem::class, 'system_unit_parts')
                     ->withPivot('component_role')
                     ->withTimestamps();
+    }
+
+    /**
+     * Get the station this system unit is assigned to
+     */
+    public function station()
+    {
+        return $this->belongsTo(Station::class);
+    }
+
+    /**
+     * Get the current station assignment for this system unit
+     */
+    public function stationAssignment()
+    {
+        return $this->hasOne(StationAsset::class, 'asset_id')
+                    ->where('asset_type', 'system_unit')
+                    ->whereNull('unassigned_at');
     }
 
     /**

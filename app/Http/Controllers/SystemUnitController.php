@@ -21,7 +21,7 @@ class SystemUnitController extends Controller
      */
     public function index(): JsonResponse
     {
-        $systemUnits = SystemUnit::with(['partItems.part'])
+        $systemUnits = SystemUnit::with(['partItems.part', 'station'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -96,7 +96,7 @@ class SystemUnitController extends Controller
      */
     public function show(SystemUnit $systemUnit): JsonResponse
     {
-        return response()->json($systemUnit->load(['partItems.part']));
+        return response()->json($systemUnit->load(['partItems.part', 'station']));
     }
 
     /**
@@ -235,7 +235,7 @@ class SystemUnitController extends Controller
     public function showByQrCode(string $qrCode)
     {
         $systemUnit = SystemUnit::where('qr_code', $qrCode)
-            ->with(['partItems.part'])
+            ->with(['partItems.part', 'station'])
             ->firstOrFail();
 
         // If it's an API request, return JSON

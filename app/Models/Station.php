@@ -29,7 +29,8 @@ class Station extends Model
         'location_name',
         'assets_count',
         'monitors_count',
-        'peripherals_count'
+        'peripherals_count',
+        'system_units_count'
     ];
 
     // Relationships
@@ -67,6 +68,18 @@ class Station extends Model
         )->where('station_assets.asset_type', 'peripheral');
     }
 
+    public function systemUnits()
+    {
+        return $this->hasManyThrough(
+            SystemUnit::class,
+            StationAsset::class,
+            'station_id',
+            'id',
+            'id',
+            'asset_id'
+        )->where('station_assets.asset_type', 'system_unit');
+    }
+
     // Accessors
     public function getLocationNameAttribute()
     {
@@ -88,6 +101,11 @@ class Station extends Model
         return $this->stationAssets()->where('asset_type', 'peripheral')->count();
     }
 
+    public function getSystemUnitsCountAttribute()
+    {
+        return $this->stationAssets()->where('asset_type', 'system_unit')->count();
+    }
+
     // Methods for asset assignment
     public function assignAsset($assetType, $assetId)
     {
@@ -99,6 +117,18 @@ class Station extends Model
 
         if ($existingAssignment) {
             throw new \Exception('Asset is already assigned to another station');
+        }
+
+        // For system units, check if station already has one assigned
+        if ($assetType === 'system_unit') {
+            $currentSystemUnit = $this->stationAssets()
+                ->where('asset_type', 'system_unit')
+                ->whereNull('unassigned_at')
+                ->first();
+                
+            if ($currentSystemUnit) {
+                throw new \Exception('Station can only have one system unit assigned. Please unassign the current system unit first.');
+            }
         }
 
         // Create new assignment
@@ -143,11 +173,20 @@ class Station extends Model
                     ]);
                 }
                 break;
+            case 'system_unit':
+                $asset = SystemUnit::find($assetId);
+                if ($asset) {
+                    $asset->update([
+                        'location' => $this->location->name ?? 'Unknown',
+                        'station_id' => $this->id,
+                        'status' => 'assigned'
+                    ]);
+                }
+                break;
             case 'peripheral':
                 // For peripherals, we don't update location directly since they're stock-based
                 // The deployment is tracked through the peripheral_deliveries table
                 break;
-            // Add other asset types as needed
         }
     }
 
@@ -163,10 +202,19 @@ class Station extends Model
                     ]);
                 }
                 break;
+            case 'system_unit':
+                $asset = SystemUnit::find($assetId);
+                if ($asset) {
+                    $asset->update([
+                        'location' => 'Storage',
+                        'station_id' => null,
+                        'status' => 'available'
+                    ]);
+                }
+                break;
             case 'peripheral':
                 // For peripherals, we handle returns through the PeripheralController
                 break;
-            // Add other asset types as needed
         }
     }
 }

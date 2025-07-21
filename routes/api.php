@@ -45,6 +45,7 @@ Route::apiResource('locations', LocationController::class);
 
 // Station management routes
 Route::get('stations/available-monitors', [StationController::class, 'getAvailableMonitors']);
+Route::get('stations/available-system-units', [StationController::class, 'getAvailableSystemUnits']);
 Route::get('stations/locations', [StationController::class, 'getLocations']);
 Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
 Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);

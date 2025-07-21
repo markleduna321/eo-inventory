@@ -396,7 +396,7 @@ export default function SystemUnitTableSection() {
                                 Location
                             </th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                Assigned To
+                                Station / Assignment
                             </th>
                             <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                 Actions
@@ -448,7 +448,16 @@ export default function SystemUnitTableSection() {
                                             {unit.location.replace('_', ' ')}
                                         </td>
                                         <td className="px-3 py-4 text-sm text-gray-500">
-                                            {unit.assigned_to || '-'}
+                                            {unit.station ? (
+                                                <div>
+                                                    <div className="font-medium text-gray-900">{unit.station.name}</div>
+                                                    <div className="text-xs text-gray-500">{unit.station.type} - {unit.assigned_to || 'Unassigned user'}</div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-gray-400">
+                                                    {unit.assigned_to || 'Not assigned'}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-3 py-4 text-sm">
                                             <div className="flex gap-2">
@@ -542,7 +551,26 @@ export default function SystemUnitTableSection() {
                                                 <div><span className="font-medium">Purchase Date:</span> {selectedUnit.purchase_date || 'N/A'}</div>
                                                 <div><span className="font-medium">Warranty Expiry:</span> {selectedUnit.warranty_expiry || 'N/A'}</div>
                                                 <div><span className="font-medium">Received By:</span> {selectedUnit.received_by}</div>
-                                                {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                            </div>
+                                        </div>
+
+                                        {/* Assignment Information */}
+                                        <div>
+                                            <h4 className="font-medium text-gray-900 mb-3">Assignment Information</h4>
+                                            <div className="space-y-2 text-sm">
+                                                {selectedUnit.station ? (
+                                                    <>
+                                                        <div><span className="font-medium">Station:</span> {selectedUnit.station.name}</div>
+                                                        <div><span className="font-medium">Station Type:</span> {selectedUnit.station.type}</div>
+                                                        <div><span className="font-medium">Department:</span> {selectedUnit.station.department}</div>
+                                                        {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <div className="text-gray-500">Not assigned to any station</div>
+                                                        {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

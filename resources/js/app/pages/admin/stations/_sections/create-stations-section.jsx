@@ -6,11 +6,11 @@ import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
-import { createStation, fetchAvailableMonitors, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
+import { createStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 
 export default function CreateStationsSection() {
     const dispatch = useDispatch()
-    const { availableMonitors, locations, loading } = useSelector(state => state.stations)
+    const { availableMonitors, availableSystemUnits, locations, loading } = useSelector(state => state.stations)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [errors, setErrors] = useState({})
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
@@ -23,7 +23,8 @@ export default function CreateStationsSection() {
         assigned_user: '',
         description: '',
         status: 'active',
-        assigned_monitors: []
+        assigned_monitors: [],
+        assigned_system_units: []
     })
 
     const openModal = () => {
@@ -32,6 +33,7 @@ export default function CreateStationsSection() {
         setAlert({ show: false, type: '', message: '' })
         // Fetch available data when modal opens
         dispatch(fetchAvailableMonitors())
+        dispatch(fetchAvailableSystemUnits())
         dispatch(fetchStationLocations())
     }
     
@@ -46,7 +48,8 @@ export default function CreateStationsSection() {
             assigned_user: '',
             description: '',
             status: 'active',
-            assigned_monitors: []
+            assigned_monitors: [],
+            assigned_system_units: []
         })
         setErrors({})
         setAlert({ show: false, type: '', message: '' })
@@ -67,6 +70,15 @@ export default function CreateStationsSection() {
             assigned_monitors: prev.assigned_monitors.includes(monitorId)
                 ? prev.assigned_monitors.filter(id => id !== monitorId)
                 : [...prev.assigned_monitors, monitorId]
+        }))
+    }
+
+    const handleSystemUnitSelection = (systemUnitId) => {
+        setFormData(prev => ({
+            ...prev,
+            assigned_system_units: prev.assigned_system_units.includes(systemUnitId)
+                ? [] // If already selected, deselect it (clear array)
+                : [systemUnitId] // If not selected, select only this one (replace array)
         }))
     }
 
@@ -297,6 +309,49 @@ export default function CreateStationsSection() {
                                                 ))
                                             ) : (
                                                 <p className="text-sm text-gray-500">No available monitors</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* System Unit Assignment Section */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Assign System Unit (Optional - One per station)
+                                        </label>
+                                        <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                                            {availableSystemUnits.length > 0 ? (
+                                                <>
+                                                    <div className="flex items-center mb-2">
+                                                        <input
+                                                            type="radio"
+                                                            id="system-unit-none"
+                                                            name="system-unit-selection"
+                                                            checked={formData.assigned_system_units.length === 0}
+                                                            onChange={() => setFormData(prev => ({ ...prev, assigned_system_units: [] }))}
+                                                            className="mr-2"
+                                                        />
+                                                        <label htmlFor="system-unit-none" className="text-sm text-gray-500">
+                                                            No System Unit
+                                                        </label>
+                                                    </div>
+                                                    {availableSystemUnits.map(systemUnit => (
+                                                        <div key={systemUnit.id} className="flex items-center mb-2">
+                                                            <input
+                                                                type="radio"
+                                                                id={`system-unit-${systemUnit.id}`}
+                                                                name="system-unit-selection"
+                                                                checked={formData.assigned_system_units.includes(systemUnit.id)}
+                                                                onChange={() => handleSystemUnitSelection(systemUnit.id)}
+                                                                className="mr-2"
+                                                            />
+                                                            <label htmlFor={`system-unit-${systemUnit.id}`} className="text-sm">
+                                                                {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                </>
+                                            ) : (
+                                                <p className="text-sm text-gray-500">No available system units</p>
                                             )}
                                         </div>
                                     </div>

@@ -5,12 +5,14 @@ import {
     updateStation, 
     deleteStation,
     fetchAvailableMonitors,
+    fetchAvailableSystemUnits,
     fetchStationLocations
 } from '../thunks/stationThunk'
 
 const initialState = {
     stations: [],
     availableMonitors: [],
+    availableSystemUnits: [],
     locations: [],
     currentStation: null,
     loading: false,
@@ -95,6 +97,11 @@ const stationSlice = createSlice({
             // Fetch available monitors
             .addCase(fetchAvailableMonitors.fulfilled, (state, action) => {
                 state.availableMonitors = action.payload
+            })
+
+            // Fetch available system units
+            .addCase(fetchAvailableSystemUnits.fulfilled, (state, action) => {
+                state.availableSystemUnits = action.payload
             })
 
             // Fetch locations

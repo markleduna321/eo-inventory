@@ -76,6 +76,21 @@ export const fetchAvailableMonitors = createAsyncThunk(
     }
 )
 
+// Fetch available system units
+export const fetchAvailableSystemUnits = createAsyncThunk(
+    'stations/fetchAvailableSystemUnits',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await axios.get('/api/stations/available-system-units')
+            return response.data
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to fetch available system units'
+            )
+        }
+    }
+)
+
 // Fetch station locations
 export const fetchStationLocations = createAsyncThunk(
     'stations/fetchStationLocations',

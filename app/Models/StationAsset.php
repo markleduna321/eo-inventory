@@ -36,7 +36,25 @@ class StationAsset extends Model
         switch ($this->asset_type) {
             case 'monitor':
                 return $this->belongsTo(Monitor::class, 'asset_id');
-            // Add other asset types as needed
+            case 'peripheral':
+                return $this->belongsTo(Peripheral::class, 'asset_id');
+            case 'system_unit':
+                return $this->belongsTo(SystemUnit::class, 'asset_id');
+            default:
+                return null;
+        }
+    }
+
+    // Get the actual asset model instance
+    public function getAssetAttribute()
+    {
+        switch ($this->asset_type) {
+            case 'monitor':
+                return Monitor::find($this->asset_id);
+            case 'peripheral':
+                return Peripheral::find($this->asset_id);
+            case 'system_unit':
+                return SystemUnit::find($this->asset_id);
             default:
                 return null;
         }

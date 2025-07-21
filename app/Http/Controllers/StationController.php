@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Station;
 use App\Models\Location;
 use App\Models\Monitor;
+use App\Models\SystemUnit;
 use App\Models\StationAsset;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -39,7 +40,9 @@ class StationController extends Controller
             'description' => 'nullable|string',
             'status' => 'in:active,inactive,maintenance',
             'assigned_monitors' => 'nullable|array',
-            'assigned_monitors.*' => 'exists:monitors,id'
+            'assigned_monitors.*' => 'exists:monitors,id',
+            'assigned_system_units' => 'nullable|array|max:1',
+            'assigned_system_units.*' => 'exists:system_units,id'
         ]);
 
         try {
@@ -54,6 +57,18 @@ class StationController extends Controller
                     } catch (\Exception $e) {
                         // Log error but continue with other assignments
                         Log::warning("Failed to assign monitor {$monitorId} to station {$station->id}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Assign system units if provided
+            if (isset($validated['assigned_system_units']) && !empty($validated['assigned_system_units'])) {
+                foreach ($validated['assigned_system_units'] as $systemUnitId) {
+                    try {
+                        $station->assignAsset('system_unit', $systemUnitId);
+                    } catch (\Exception $e) {
+                        // Log error but continue with other assignments
+                        Log::warning("Failed to assign system unit {$systemUnitId} to station {$station->id}: " . $e->getMessage());
                     }
                 }
             }
@@ -76,7 +91,7 @@ class StationController extends Controller
      */
     public function show(Station $station)
     {
-        $station->load(['location', 'stationAssets', 'monitors']);
+        $station->load(['location', 'stationAssets', 'monitors', 'systemUnits']);
         return response()->json($station);
     }
 
@@ -95,7 +110,9 @@ class StationController extends Controller
             'description' => 'nullable|string',
             'status' => 'in:active,inactive,maintenance',
             'assigned_monitors' => 'nullable|array',
-            'assigned_monitors.*' => 'exists:monitors,id'
+            'assigned_monitors.*' => 'exists:monitors,id',
+            'assigned_system_units' => 'nullable|array|max:1',
+            'assigned_system_units.*' => 'exists:system_units,id'
         ]);
 
         try {
@@ -126,6 +143,34 @@ class StationController extends Controller
                         $station->assignAsset('monitor', $monitorId);
                     } catch (\Exception $e) {
                         Log::warning("Failed to assign monitor {$monitorId} to station {$station->id}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Handle system unit assignments if provided
+            if (isset($validated['assigned_system_units'])) {
+                // Get current assignments
+                $currentSystemUnits = $station->stationAssets()
+                    ->where('asset_type', 'system_unit')
+                    ->whereNull('unassigned_at')
+                    ->pluck('asset_id')
+                    ->toArray();
+
+                $newSystemUnits = $validated['assigned_system_units'];
+
+                // Unassign system units that are no longer assigned
+                $toUnassign = array_diff($currentSystemUnits, $newSystemUnits);
+                foreach ($toUnassign as $systemUnitId) {
+                    $station->unassignAsset('system_unit', $systemUnitId);
+                }
+
+                // Assign new system units
+                $toAssign = array_diff($newSystemUnits, $currentSystemUnits);
+                foreach ($toAssign as $systemUnitId) {
+                    try {
+                        $station->assignAsset('system_unit', $systemUnitId);
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to assign system unit {$systemUnitId} to station {$station->id}: " . $e->getMessage());
                     }
                 }
             }
@@ -189,6 +234,26 @@ class StationController extends Controller
     }
 
     /**
+     * Get available system units for assignment
+     */
+    public function getAvailableSystemUnits()
+    {
+        $systemUnits = SystemUnit::where('status', 'available')
+            ->whereDoesntHave('stationAssignment')
+            ->orWhere(function($query) {
+                $query->where('status', 'available')
+                      ->whereHas('stationAssignment', function ($subQuery) {
+                          $subQuery->whereNotNull('unassigned_at');
+                      });
+            })
+            ->orderBy('brand')
+            ->orderBy('model')
+            ->get();
+
+        return response()->json($systemUnits);
+    }
+
+    /**
      * Get locations for dropdown
      */
     public function getLocations()
@@ -206,7 +271,7 @@ class StationController extends Controller
     public function assignAsset(Request $request, Station $station)
     {
         $validated = $request->validate([
-            'asset_type' => 'required|in:monitor',
+            'asset_type' => 'required|in:monitor,system_unit',
             'asset_id' => 'required|integer'
         ]);
 
@@ -232,7 +297,7 @@ class StationController extends Controller
     public function unassignAsset(Request $request, Station $station)
     {
         $validated = $request->validate([
-            'asset_type' => 'required|in:monitor',
+            'asset_type' => 'required|in:monitor,system_unit',
             'asset_id' => 'required|integer'
         ]);
 
