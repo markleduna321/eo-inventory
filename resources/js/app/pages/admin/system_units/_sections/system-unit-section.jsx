@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
+import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 import SelectComponent from '@/app/pages/components/input-select'
 import QrScanner from './QrScanner'
@@ -16,6 +17,8 @@ export default function SystemUnitTableSection() {
     const [detailsModalOpen, setDetailsModalOpen] = useState(false)
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [scannerModalOpen, setScannerModalOpen] = useState(false)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [deleteId, setDeleteId] = useState(null)
     
     // Filter states
     const [searchTerm, setSearchTerm] = useState('')
@@ -53,6 +56,36 @@ export default function SystemUnitTableSection() {
     useEffect(() => {
         fetchSystemUnits()
     }, [])
+
+    const handleDeleteClick = (id) => {
+        setDeleteId(id)
+        setIsDeleteModalOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        try {
+            const response = await fetch(`/api/system-units/${deleteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            })
+            
+            if (!response.ok) {
+                throw new Error('Failed to delete system unit')
+            }
+            
+            // Refresh the list
+            fetchSystemUnits()
+            setIsDeleteModalOpen(false)
+            setDeleteId(null)
+            console.log('System unit deleted successfully')
+        } catch (err) {
+            console.error('Error deleting system unit:', err)
+            alert('Error deleting system unit: ' + err.message)
+        }
+    }
 
     const openDetailsModal = (unit) => {
         setSelectedUnit(unit)
@@ -462,49 +495,63 @@ export default function SystemUnitTableSection() {
                                         <td className="px-3 py-4 text-sm">
                                             <div className="flex gap-2">
                                                 <Button
-                                                    variant="outline"
-                                                    size="xs"
+                                                    type="button"
+                                                    variant="primary"
+                                                    size="sm"
                                                     onClick={() => openDetailsModal(unit)}
                                                     title="View Details"
                                                 >
-                                                    <EyeIcon className="h-3 w-3" />
+                                                    <EyeIcon className="h-4 w-4" />
                                                 </Button>
                                                 <Button
-                                                    variant="outline"
-                                                    size="xs"
+                                                    type="button"
+                                                    variant="success"
+                                                    size="sm"
                                                     onClick={() => window.open(`/system-units/${unit.id}/qr-image`, '_blank')}
-                                                    className="text-green-600 hover:text-green-800"
                                                     title="View QR Code"
                                                 >
-                                                    <QrCodeIcon className="h-3 w-3" />
+                                                    <QrCodeIcon className="h-4 w-4" />
                                                 </Button>
                                                 <Button
-                                                    variant="outline"
-                                                    size="xs"
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="sm"
                                                     onClick={() => window.open(`/system-units/${unit.id}/qr-image?download=1`, '_blank')}
-                                                    className="text-purple-600 hover:text-purple-800"
                                                     title="Download QR Code"
                                                 >
-                                                    <ArrowDownCircleIcon className="h-3 w-3" />
+                                                    <ArrowDownCircleIcon className="h-4 w-4" />
                                                 </Button>
                                                 {unit.status === 'available' && (
                                                     <Button
-                                                        variant="primary"
-                                                        size="xs"
+                                                        type="button"
+                                                        variant="warning"
+                                                        size="sm"
                                                         onClick={() => openAssignModal(unit)}
+                                                        title="Assign to User"
                                                     >
-                                                        Assign
+                                                        <ComputerDesktopIcon className="h-4 w-4" />
                                                     </Button>
                                                 )}
                                                 {unit.status === 'assigned' && (
                                                     <Button
-                                                        variant="danger"
-                                                        size="xs"
+                                                        type="button"
+                                                        variant="info"
+                                                        size="sm"
                                                         onClick={() => openAssignModal(unit)}
+                                                        title="Return Unit"
                                                     >
-                                                        Return
+                                                        <ComputerDesktopIcon className="h-4 w-4" />
                                                     </Button>
                                                 )}
+                                                <Button
+                                                    type="button"
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteClick(unit.id)}
+                                                    title="Delete"
+                                                >
+                                                    <TrashIcon className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -750,6 +797,15 @@ export default function SystemUnitTableSection() {
                 isOpen={scannerModalOpen}
                 onClose={closeScannerModal}
                 onScan={handleQrScan}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                title="Delete System Unit"
+                message="Are you sure you want to delete this system unit? This action cannot be undone."
             />
         </div>
     )

@@ -1,6 +1,7 @@
 import Button from '@/app/pages/components/button'
+import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
 import TableFilter from '@/app/pages/components/table-filter'
-import { ArrowDownCircleIcon, PrinterIcon } from '@heroicons/react/24/outline'
+import { ArrowDownCircleIcon, PrinterIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { get_devices_thunk, delete_device_thunk } from '../_redux/devices-thunk'
@@ -12,6 +13,8 @@ export default function DeviceTableSection() {
     const dispatch = useDispatch()
     const { devices, loading, error } = useSelector((state) => state.devices)
     const [editingDevice, setEditingDevice] = useState(null)
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [deleteId, setDeleteId] = useState(null)
 
     // Filter configuration
     const searchableFields = ['serial_number', 'device_type', 'brand', 'model', 'operating_system', 'issued_to', 'received_by']
@@ -73,9 +76,14 @@ export default function DeviceTableSection() {
     }
 
     const handleDelete = (deviceId) => {
-        if (window.confirm('Are you sure you want to delete this device?')) {
-            dispatch(delete_device_thunk(deviceId))
-        }
+        setDeleteId(deviceId)
+        setIsDeleteModalOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        dispatch(delete_device_thunk(deleteId))
+        setIsDeleteModalOpen(false)
+        setDeleteId(null)
     }
 
     const getStatusBadge = (status) => {
@@ -231,18 +239,24 @@ export default function DeviceTableSection() {
                                             </td>
                                             <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
                                                 <div className="flex gap-2 justify-end">
-                                                    <button 
+                                                    <Button
+                                                        type="button"
+                                                        variant="primary"
+                                                        size="sm"
                                                         onClick={() => handleEdit(device)}
-                                                        className="text-indigo-600 hover:text-indigo-900"
+                                                        title="Edit Device"
                                                     >
-                                                        Edit
-                                                    </button>
-                                                    <button 
+                                                        <PencilIcon className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="danger"
+                                                        size="sm"
                                                         onClick={() => handleDelete(device.id)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        title="Delete"
                                                     >
-                                                        Delete
-                                                    </button>
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -261,6 +275,15 @@ export default function DeviceTableSection() {
                     onClose={handleCloseEdit}
                 />
             )}
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Device"
+                message="Are you sure you want to delete this device? This action cannot be undone."
+            />
         </div>
     )
 }
