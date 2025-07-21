@@ -6,11 +6,11 @@ import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
-import { createStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
+import { createStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 
 export default function CreateStationsSection() {
     const dispatch = useDispatch()
-    const { availableMonitors, availableSystemUnits, locations, loading } = useSelector(state => state.stations)
+    const { availableMonitors, availableSystemUnits, availablePeripherals, locations, loading } = useSelector(state => state.stations)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [errors, setErrors] = useState({})
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
@@ -24,7 +24,8 @@ export default function CreateStationsSection() {
         description: '',
         status: 'active',
         assigned_monitors: [],
-        assigned_system_units: []
+        assigned_system_units: [],
+        assigned_peripherals: []
     })
 
     const openModal = () => {
@@ -34,6 +35,7 @@ export default function CreateStationsSection() {
         // Fetch available data when modal opens
         dispatch(fetchAvailableMonitors())
         dispatch(fetchAvailableSystemUnits())
+        dispatch(fetchAvailablePeripherals())
         dispatch(fetchStationLocations())
     }
     
@@ -49,7 +51,8 @@ export default function CreateStationsSection() {
             description: '',
             status: 'active',
             assigned_monitors: [],
-            assigned_system_units: []
+            assigned_system_units: [],
+            assigned_peripherals: []
         })
         setErrors({})
         setAlert({ show: false, type: '', message: '' })
@@ -79,6 +82,15 @@ export default function CreateStationsSection() {
             assigned_system_units: prev.assigned_system_units.includes(systemUnitId)
                 ? [] // If already selected, deselect it (clear array)
                 : [systemUnitId] // If not selected, select only this one (replace array)
+        }))
+    }
+
+    const handlePeripheralSelection = (peripheralId) => {
+        setFormData(prev => ({
+            ...prev,
+            assigned_peripherals: prev.assigned_peripherals.includes(peripheralId)
+                ? prev.assigned_peripherals.filter(id => id !== peripheralId)
+                : [...prev.assigned_peripherals, peripheralId]
         }))
     }
 
@@ -352,6 +364,33 @@ export default function CreateStationsSection() {
                                                 </>
                                             ) : (
                                                 <p className="text-sm text-gray-500">No available system units</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Peripheral Assignment Section */}
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Assign Peripherals (Optional)
+                                        </label>
+                                        <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                                            {availablePeripherals.length > 0 ? (
+                                                availablePeripherals.map(peripheral => (
+                                                    <div key={peripheral.id} className="flex items-center mb-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`peripheral-${peripheral.id}`}
+                                                            checked={formData.assigned_peripherals.includes(peripheral.id)}
+                                                            onChange={() => handlePeripheralSelection(peripheral.id)}
+                                                            className="mr-2"
+                                                        />
+                                                        <label htmlFor={`peripheral-${peripheral.id}`} className="text-sm">
+                                                            {peripheral.type} - {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
+                                                        </label>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-sm text-gray-500">No available peripherals</p>
                                             )}
                                         </div>
                                     </div>

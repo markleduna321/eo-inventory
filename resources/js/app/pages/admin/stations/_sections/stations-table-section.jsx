@@ -9,14 +9,14 @@ import SelectComponent from '@/app/pages/components/input-select'
 import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
-import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDesktopIcon } from '@heroicons/react/24/outline'
-import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
+import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDesktopIcon, QrCodeIcon } from '@heroicons/react/24/outline'
+import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 import { setCurrentStation, clearCurrentStation } from '@/app/redux/slices/stationSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 
 export default function StationsTableSection() {
     const dispatch = useDispatch()
-    const { stations, availableMonitors, availableSystemUnits, locations, loading, error } = useSelector(state => state.stations)
+    const { stations, availableMonitors, availableSystemUnits, availablePeripherals, locations, loading, error } = useSelector(state => state.stations)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
@@ -105,19 +105,24 @@ export default function StationsTableSection() {
         console.log('Station assets:', station.station_assets)
         
         const assignedMonitors = station.station_assets
-            ? station.station_assets.filter(asset => asset.asset_type === 'monitor').map(asset => asset.asset_id)
+            ? station.station_assets.filter(asset => asset.asset_type === 'monitor' && asset.unassigned_at === null).map(asset => asset.asset_id)
             : []
         const assignedSystemUnits = station.station_assets
-            ? station.station_assets.filter(asset => asset.asset_type === 'system_unit').map(asset => asset.asset_id)
+            ? station.station_assets.filter(asset => asset.asset_type === 'system_unit' && asset.unassigned_at === null).map(asset => asset.asset_id)
+            : []
+        const assignedPeripherals = station.station_assets
+            ? station.station_assets.filter(asset => asset.asset_type === 'peripheral' && asset.unassigned_at === null).map(asset => asset.asset_id)
             : []
             
         console.log('Assigned monitors:', assignedMonitors)
         console.log('Assigned system units:', assignedSystemUnits)
+        console.log('Assigned peripherals:', assignedPeripherals)
         
         setEditFormData({
             ...station,
             assigned_monitors: assignedMonitors,
-            assigned_system_units: assignedSystemUnits
+            assigned_system_units: assignedSystemUnits,
+            assigned_peripherals: assignedPeripherals
         })
         setIsEditModalOpen(true)
         setEditErrors({})
@@ -125,6 +130,7 @@ export default function StationsTableSection() {
         // Fetch fresh data for editing including available assets
         await dispatch(fetchAvailableMonitors())
         await dispatch(fetchAvailableSystemUnits())
+        await dispatch(fetchAvailablePeripherals())
         await dispatch(fetchStationLocations())
         
         // Also fetch the full station details with relationships
@@ -137,7 +143,8 @@ export default function StationsTableSection() {
             setEditFormData(prev => ({
                 ...prev,
                 monitors: fullStation.monitors || [],
-                system_units: fullStation.system_units || []
+                system_units: fullStation.system_units || [],
+                peripherals: fullStation.peripherals || []
             }))
         } catch (error) {
             console.error('Error fetching full station details:', error)
@@ -234,6 +241,15 @@ export default function StationsTableSection() {
         }))
     }
 
+    const handlePeripheralSelection = (peripheralId) => {
+        setEditFormData(prev => ({
+            ...prev,
+            assigned_peripherals: prev.assigned_peripherals.includes(peripheralId)
+                ? prev.assigned_peripherals.filter(id => id !== peripheralId)
+                : [...prev.assigned_peripherals, peripheralId]
+        }))
+    }
+
     const getStatusBadge = (status) => {
         const statusClasses = {
             'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -294,6 +310,20 @@ export default function StationsTableSection() {
             .filter(Boolean)
     ]
 
+    // Get all available peripherals (including currently assigned ones for editing)  
+    const allAvailablePeripherals = [
+        ...availablePeripherals,
+        ...(editFormData.peripherals || []),
+        ...(editFormData.station_assets || [])
+            .filter(asset => asset.asset_type === 'peripheral')
+            .map(asset => asset.peripheral)
+            .filter(Boolean)
+    ]
+
+    console.log('Available peripherals from Redux:', availablePeripherals)
+    console.log('Edit form peripherals:', editFormData.peripherals)
+    console.log('All available peripherals:', allAvailablePeripherals)
+
     // Get assigned monitor details by finding them in the Redux store or from all stations
     const getAssignedMonitorDetails = (monitorIds) => {
         return monitorIds.map(id => {
@@ -338,12 +368,36 @@ export default function StationsTableSection() {
         }).filter(Boolean);
     };
 
+    // Get assigned peripheral details
+    const getAssignedPeripheralDetails = (peripheralIds) => {
+        return peripheralIds.map(id => {
+            // First try to find in availablePeripherals
+            let peripheral = availablePeripherals.find(p => p.id === id);
+            if (!peripheral) {
+                // Then try to find in all stations' peripherals
+                for (const station of stations) {
+                    if (station.peripherals) {
+                        peripheral = station.peripherals.find(p => p.id === id);
+                        if (peripheral) break;
+                    }
+                }
+            }
+            // If still not found, try allAvailablePeripherals
+            if (!peripheral) {
+                peripheral = allAvailablePeripherals.find(p => p.id === id);
+            }
+            return peripheral;
+        }).filter(Boolean);
+    };
+
     // Get current assigned asset details
     const assignedMonitorDetails = getAssignedMonitorDetails(editFormData.assigned_monitors || []);
     const assignedSystemUnitDetails = getAssignedSystemUnitDetails(editFormData.assigned_system_units || []);
+    const assignedPeripheralDetails = getAssignedPeripheralDetails(editFormData.assigned_peripherals || []);
 
     console.log('Assigned monitor details:', assignedMonitorDetails);
     console.log('Assigned system unit details:', assignedSystemUnitDetails);
+    console.log('Assigned peripheral details:', assignedPeripheralDetails);
 
     if (loading) {
         return (
@@ -475,6 +529,22 @@ export default function StationsTableSection() {
                                             </td>
                                             <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                                                 <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => window.open(`/stations/${station.id}/qr-image`, '_blank')}
+                                                        title="View QR Code"
+                                                    >
+                                                        <QrCodeIcon className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={() => window.open(`/stations/${station.id}/qr-image?download=1`, '_blank')}
+                                                        title="Download QR Code"
+                                                    >
+                                                        <ArrowDownCircleIcon className="w-4 h-4" />
+                                                    </Button>
                                                     <Button
                                                         variant="secondary"
                                                         size="sm"
@@ -694,9 +764,35 @@ export default function StationsTableSection() {
                                             </div>
                                         )}
 
+                                        {/* Currently Assigned Peripherals */}
+                                        {assignedPeripheralDetails.length > 0 && (
+                                            <div className="mb-4">
+                                                <h5 className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Peripherals</h5>
+                                                <div className="space-y-2">
+                                                    {assignedPeripheralDetails.map(peripheral => (
+                                                        <div key={peripheral.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                                                            <span className="text-sm text-gray-700">
+                                                                {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
+                                                            </span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => handlePeripheralSelection(peripheral.id)}
+                                                                className="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
+                                                            >
+                                                                Unbind
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* No Assets Assigned */}
                                         {assignedMonitorDetails.length === 0 && 
-                                         assignedSystemUnitDetails.length === 0 && (
+                                         assignedSystemUnitDetails.length === 0 && 
+                                         assignedPeripheralDetails.length === 0 && (
                                             <div className="text-sm text-gray-500 italic">
                                                 No assets currently assigned to this station
                                             </div>
@@ -791,6 +887,103 @@ export default function StationsTableSection() {
                                                             : 'No additional system units available'
                                                         }
                                                     </p>
+                                                )}
+                                            </>
+                                        </div>
+                                    </div>
+
+                                    {/* Peripherals Assignment Section */}
+                                    <div className="mb-6">
+                                        <h4 className="font-medium text-gray-900 mb-3">Assign Peripherals</h4>
+                                        <div className="border border-gray-200 rounded-lg p-3">
+                                            <>
+                                                {editFormData.assigned_peripherals && editFormData.assigned_peripherals.length > 0 && (
+                                                    <div className="mb-4">
+                                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Currently Selected:</h5>
+                                                        <div className="space-y-2">
+                                                            {editFormData.assigned_peripherals.map(peripheralId => {
+                                                                const peripheral = allAvailablePeripherals.find(p => p.id === peripheralId);
+                                                                return peripheral ? (
+                                                                    <div key={peripheralId} className="flex items-center justify-between bg-blue-50 p-2 rounded">
+                                                                        <span className="text-sm">
+                                                                            {peripheral.type} - {peripheral.brand} {peripheral.model}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handlePeripheralSelection(peripheralId)}
+                                                                            className="text-red-600 hover:text-red-800 text-sm"
+                                                                        >
+                                                                            Remove
+                                                                        </button>
+                                                                    </div>
+                                                                ) : null;
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                <h5 className="text-sm font-medium text-gray-700 mb-2">Available Peripherals:</h5>
+                                                {allAvailablePeripherals
+                                                    .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
+                                                    .map(peripheral => (
+                                                        <div key={peripheral.id} className="flex items-center mb-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`edit-peripheral-${peripheral.id}`}
+                                                                name="edit-peripheral-selection"
+                                                                checked={false}
+                                                                onChange={() => handlePeripheralSelection(peripheral.id)}
+                                                                className="mr-2"
+                                                            />
+                                                            <label htmlFor={`edit-peripheral-${peripheral.id}`} className="text-sm">
+                                                                {peripheral.type} - {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
+                                                            </label>
+                                                        </div>
+                                                    ))}
+                                                {allAvailablePeripherals
+                                                    .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
+                                                    .length === 0 && (
+                                                    <p className="text-sm text-gray-500">
+                                                        {allAvailablePeripherals.length === 0 
+                                                            ? 'No available peripherals' 
+                                                            : 'No additional peripherals available'
+                                                        }
+                                                    </p>
+                                                )}
+                                            </>
+                                        </div>
+                                    </div>
+
+                                    {/* QR Code Section */}
+                                    <div className="mb-6">
+                                        <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
+                                        <div className="border border-gray-200 rounded-lg p-3">
+                                            <>
+                                                {editFormData.id && (
+                                                    <>
+                                                        <p className="text-gray-600 mb-2">Scan or share this QR code to view station details:</p>
+                                                        <p className="font-mono text-xs text-gray-500">QR Code: {editFormData.qr_code || 'Generating...'}</p>
+                                                        <div className="flex gap-2 mt-3">
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => window.open(`/stations/${editFormData.id}/qr-image`, '_blank')}
+                                                            >
+                                                                <QrCodeIcon className="w-4 h-4 mr-1" />
+                                                                View QR Code
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                onClick={() => window.open(`/stations/${editFormData.id}/qr-image?download=1`, '_blank')}
+                                                            >
+                                                                <ArrowDownCircleIcon className="w-4 h-4 mr-1" />
+                                                                Download QR
+                                                            </Button>
+                                                        </div>
+                                                    </>
                                                 )}
                                             </>
                                         </div>

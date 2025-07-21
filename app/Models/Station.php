@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Station extends Model
 {
@@ -12,6 +13,7 @@ class Station extends Model
     protected $fillable = [
         'name',
         'code',
+        'qr_code',
         'type',
         'department',
         'location_id',
@@ -184,8 +186,11 @@ class Station extends Model
                 }
                 break;
             case 'peripheral':
-                // For peripherals, we don't update location directly since they're stock-based
-                // The deployment is tracked through the peripheral_deliveries table
+                // For peripherals, deploy stock from available to deployed
+                $asset = Peripheral::find($assetId);
+                if ($asset) {
+                    $asset->deployStock(1); // Deploy 1 unit of the peripheral
+                }
                 break;
         }
     }
@@ -213,8 +218,48 @@ class Station extends Model
                 }
                 break;
             case 'peripheral':
-                // For peripherals, we handle returns through the PeripheralController
+                // For peripherals, return stock from deployed to available
+                $asset = Peripheral::find($assetId);
+                if ($asset) {
+                    $asset->returnStock(1); // Return 1 unit of the peripheral
+                }
                 break;
         }
+    }
+
+    /**
+     * Generate a unique QR code for this station
+     */
+    public function generateQrCode(): string
+    {
+        if (!$this->qr_code) {
+            $this->qr_code = 'ST-' . Str::upper(Str::random(8));
+            $this->save();
+        }
+        
+        return $this->qr_code;
+    }
+
+    /**
+     * Get the QR code URL that will display this station's data
+     */
+    public function getQrCodeUrl(): string
+    {
+        $this->generateQrCode();
+        return url("/stations/qr/{$this->qr_code}");
+    }
+
+    /**
+     * Boot method to generate QR code when creating new station
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($station) {
+            if (!$station->qr_code) {
+                $station->qr_code = 'ST-' . Str::upper(Str::random(8));
+            }
+        });
     }
 }

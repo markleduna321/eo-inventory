@@ -91,6 +91,24 @@ export const fetchAvailableSystemUnits = createAsyncThunk(
     }
 )
 
+// Fetch available peripherals
+export const fetchAvailablePeripherals = createAsyncThunk(
+    'stations/fetchAvailablePeripherals',
+    async (_, { rejectWithValue }) => {
+        try {
+            console.log('Fetching available peripherals...')
+            const response = await axios.get('/api/stations/available-peripherals')
+            console.log('Available peripherals response:', response.data)
+            return response.data
+        } catch (error) {
+            console.error('Error fetching available peripherals:', error)
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to fetch available peripherals'
+            )
+        }
+    }
+)
+
 // Fetch station locations
 export const fetchStationLocations = createAsyncThunk(
     'stations/fetchStationLocations',

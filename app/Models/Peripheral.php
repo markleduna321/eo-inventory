@@ -39,6 +39,13 @@ class Peripheral extends Model
         return $this->hasMany(PeripheralDelivery::class);
     }
 
+    public function stationAssignment()
+    {
+        return $this->hasOne(StationAsset::class, 'asset_id')
+            ->where('asset_type', 'peripheral')
+            ->whereNull('unassigned_at');
+    }
+
     // Accessors
     public function getStockStatusAttribute()
     {

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StationController;
 use App\Http\Controllers\SystemUnitController;
 use App\Models\User;
 use Illuminate\Foundation\Application;
@@ -120,6 +121,19 @@ Route::get('/system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrC
 
 Route::get('/system-units/{systemUnit}/qr-image', [SystemUnitController::class, 'generateQrCode'])
     ->name('system-units.qr-image');
+
+Route::get('/stations/qr/{qrCode}', [StationController::class, 'showByQrCode'])
+    ->name('stations.qr-view');
+
+Route::get('/stations/{station}/qr-image', [StationController::class, 'generateQrCode'])
+    ->name('stations.qr-image');
+
+// Station QR Code routes (public access for scanning)
+Route::get('/stations/qr/{qrCode}', [StationController::class, 'showByQrCode'])
+    ->name('stations.qr-view');
+
+Route::get('/stations/{station}/qr-image', [StationController::class, 'generateQrCode'])
+    ->name('stations.qr-image');
 
 Route::middleware('auth:sanctum', 'role:3')->prefix('user')->group(function () {
     Route::get('dashboard', function () {

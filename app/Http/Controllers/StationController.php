@@ -6,10 +6,16 @@ use App\Models\Station;
 use App\Models\Location;
 use App\Models\Monitor;
 use App\Models\SystemUnit;
+use App\Models\Peripheral;
 use App\Models\StationAsset;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 class StationController extends Controller
 {
@@ -42,7 +48,9 @@ class StationController extends Controller
             'assigned_monitors' => 'nullable|array',
             'assigned_monitors.*' => 'exists:monitors,id',
             'assigned_system_units' => 'nullable|array|max:1',
-            'assigned_system_units.*' => 'exists:system_units,id'
+            'assigned_system_units.*' => 'exists:system_units,id',
+            'assigned_peripherals' => 'nullable|array',
+            'assigned_peripherals.*' => 'exists:peripherals,id'
         ]);
 
         try {
@@ -73,6 +81,18 @@ class StationController extends Controller
                 }
             }
 
+            // Assign peripherals if provided
+            if (isset($validated['assigned_peripherals']) && !empty($validated['assigned_peripherals'])) {
+                foreach ($validated['assigned_peripherals'] as $peripheralId) {
+                    try {
+                        $station->assignAsset('peripheral', $peripheralId);
+                    } catch (\Exception $e) {
+                        // Log error but continue with other assignments
+                        Log::warning("Failed to assign peripheral {$peripheralId} to station {$station->id}: " . $e->getMessage());
+                    }
+                }
+            }
+
             return response()->json([
                 'message' => 'Station created successfully',
                 'station' => $station->load(['location', 'stationAssets'])
@@ -91,7 +111,7 @@ class StationController extends Controller
      */
     public function show(Station $station)
     {
-        $station->load(['location', 'stationAssets', 'monitors', 'systemUnits']);
+        $station->load(['location', 'stationAssets', 'monitors', 'systemUnits', 'peripherals']);
         return response()->json($station);
     }
 
@@ -112,7 +132,9 @@ class StationController extends Controller
             'assigned_monitors' => 'nullable|array',
             'assigned_monitors.*' => 'exists:monitors,id',
             'assigned_system_units' => 'nullable|array|max:1',
-            'assigned_system_units.*' => 'exists:system_units,id'
+            'assigned_system_units.*' => 'exists:system_units,id',
+            'assigned_peripherals' => 'nullable|array',
+            'assigned_peripherals.*' => 'exists:peripherals,id'
         ]);
 
         try {
@@ -171,6 +193,34 @@ class StationController extends Controller
                         $station->assignAsset('system_unit', $systemUnitId);
                     } catch (\Exception $e) {
                         Log::warning("Failed to assign system unit {$systemUnitId} to station {$station->id}: " . $e->getMessage());
+                    }
+                }
+            }
+
+            // Handle peripheral assignments if provided
+            if (isset($validated['assigned_peripherals'])) {
+                // Get current assignments
+                $currentPeripherals = $station->stationAssets()
+                    ->where('asset_type', 'peripheral')
+                    ->whereNull('unassigned_at')
+                    ->pluck('asset_id')
+                    ->toArray();
+
+                $newPeripherals = $validated['assigned_peripherals'];
+
+                // Unassign peripherals that are no longer assigned
+                $toUnassign = array_diff($currentPeripherals, $newPeripherals);
+                foreach ($toUnassign as $peripheralId) {
+                    $station->unassignAsset('peripheral', $peripheralId);
+                }
+
+                // Assign new peripherals
+                $toAssign = array_diff($newPeripherals, $currentPeripherals);
+                foreach ($toAssign as $peripheralId) {
+                    try {
+                        $station->assignAsset('peripheral', $peripheralId);
+                    } catch (\Exception $e) {
+                        Log::warning("Failed to assign peripheral {$peripheralId} to station {$station->id}: " . $e->getMessage());
                     }
                 }
             }
@@ -254,6 +304,21 @@ class StationController extends Controller
     }
 
     /**
+     * Get available peripherals for assignment
+     */
+    public function getAvailablePeripherals()
+    {
+        $peripherals = Peripheral::where('status', 'active')
+            ->where('available_stock', '>', 0)  // Only show peripherals with available stock
+            ->orderBy('device_type')
+            ->orderBy('brand')
+            ->orderBy('model')
+            ->get();
+
+        return response()->json($peripherals);
+    }
+
+    /**
      * Get locations for dropdown
      */
     public function getLocations()
@@ -315,5 +380,77 @@ class StationController extends Controller
                 'error' => $e->getMessage()
             ], 400);
         }
+    }
+
+    /**
+     * Generate QR code image for a station
+     */
+    public function generateQrCode(Station $station)
+    {
+        $qrCodeUrl = $station->getQrCodeUrl();
+        $download = request()->get('download', false);
+        
+        $result = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($qrCodeUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::Medium)
+            ->size(300)
+            ->margin(10)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->build();
+
+        $filename = "station_" . $station->code . "_qr.png";
+        $disposition = $download ? 'attachment' : 'inline';
+
+        return response($result->getString())
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Disposition', $disposition . '; filename="' . $filename . '"');
+    }
+
+    /**
+     * Display station data from QR code scan
+     */
+    public function showByQrCode(string $qrCode)
+    {
+        $station = Station::where('qr_code', $qrCode)
+            ->with(['location', 'stationAssets.monitor', 'stationAssets.systemUnit', 'stationAssets.peripheral'])
+            ->firstOrFail();
+
+        // If it's an API request, return JSON
+        if (request()->wantsJson() || request()->is('api/*')) {
+            return response()->json([
+                'id' => $station->id,
+                'name' => $station->name,
+                'code' => $station->code,
+                'type' => $station->type,
+                'department' => $station->department,
+                'assigned_user' => $station->assigned_user,
+                'description' => $station->description,
+                'status' => $station->status,
+                'location' => $station->location,
+                'assets' => [
+                    'monitors' => $station->stationAssets->where('asset_type', 'monitor')
+                        ->filter(function($asset) { return $asset->unassigned_at === null; })
+                        ->pluck('monitor')
+                        ->filter()
+                        ->values(),
+                    'system_units' => $station->stationAssets->where('asset_type', 'system_unit')
+                        ->filter(function($asset) { return $asset->unassigned_at === null; })
+                        ->pluck('systemUnit')
+                        ->filter()
+                        ->values(),
+                    'peripherals' => $station->stationAssets->where('asset_type', 'peripheral')
+                        ->filter(function($asset) { return $asset->unassigned_at === null; })
+                        ->pluck('peripheral')
+                        ->filter()
+                        ->values()
+                ]
+            ]);
+        }
+
+        // For web requests, return a view with station data
+        return view('stations.qr-view', compact('station'));
     }
 }

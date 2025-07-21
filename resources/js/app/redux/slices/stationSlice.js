@@ -1,11 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { 
-    fetchStations, 
-    createStation, 
-    updateStation, 
+import {
+    fetchStations,
+    createStation,
+    updateStation,
     deleteStation,
     fetchAvailableMonitors,
     fetchAvailableSystemUnits,
+    fetchAvailablePeripherals,
     fetchStationLocations
 } from '../thunks/stationThunk'
 
@@ -13,6 +14,7 @@ const initialState = {
     stations: [],
     availableMonitors: [],
     availableSystemUnits: [],
+    availablePeripherals: [],
     locations: [],
     currentStation: null,
     loading: false,
@@ -102,6 +104,15 @@ const stationSlice = createSlice({
             // Fetch available system units
             .addCase(fetchAvailableSystemUnits.fulfilled, (state, action) => {
                 state.availableSystemUnits = action.payload
+            })
+
+            // Fetch available peripherals
+            .addCase(fetchAvailablePeripherals.fulfilled, (state, action) => {
+                state.availablePeripherals = action.payload
+            })
+            .addCase(fetchAvailablePeripherals.rejected, (state, action) => {
+                state.error = action.payload
+                console.error('Failed to fetch available peripherals:', action.payload)
             })
 
             // Fetch locations
