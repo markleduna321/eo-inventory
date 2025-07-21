@@ -8,6 +8,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\PeripheralController;
 use App\Http\Controllers\PartController;
+use App\Http\Controllers\SystemUnitController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -65,3 +66,11 @@ Route::post('parts/{part}/remove-stock', [PartController::class, 'removeStock'])
 Route::post('parts/{part}/items/{item}/assign', [PartController::class, 'assignItem']);
 Route::post('parts/{part}/items/{item}/return', [PartController::class, 'returnItem']);
 Route::apiResource('parts', PartController::class);
+
+// System Unit management routes
+Route::get('system-units/available-parts', [SystemUnitController::class, 'getAvailableParts']);
+Route::get('system-units/with-qr', [SystemUnitController::class, 'indexWithQr']);
+Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCode']);
+Route::post('system-units/{systemUnit}/assign', [SystemUnitController::class, 'assign']);
+Route::post('system-units/{systemUnit}/return', [SystemUnitController::class, 'returnUnit']);
+Route::apiResource('system-units', SystemUnitController::class);

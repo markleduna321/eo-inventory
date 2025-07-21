@@ -1,7 +1,7 @@
 import React from 'react'
 import AdminLayout from '../layout'
 import SystemUnitTableSection from './_sections/system-unit-section'
-import CreateSystenUnitSection from './_sections/create-system-unit-section'
+import CreateSystemUnitSection from './_sections/create-system-unit-section'
 
 export default function SystemUnitPage() {
   return (
@@ -12,15 +12,15 @@ export default function SystemUnitPage() {
 
           <div className="sm:flex-auto">
 
-            <h1 className="text-base font-semibold text-gray-900">Devices</h1>
+            <h1 className="text-base font-semibold text-gray-900">System Units</h1>
             <p className="mt-2 text-sm text-gray-700">
-              A list of all the devices in your organization.
+              Manage pre-built systems and custom-built computers from your parts inventory.
             </p>
 
           </div>
 
           <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <CreateSystenUnitSection />
+            <CreateSystemUnitSection />
           </div>
 
         </div>

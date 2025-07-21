@@ -43,4 +43,22 @@ class PartItem extends Model
     {
         return $this->belongsTo(PartDelivery::class, 'part_delivery_id');
     }
+
+    /**
+     * Get the system units this part item is used in.
+     */
+    public function systemUnits()
+    {
+        return $this->belongsToMany(SystemUnit::class, 'system_unit_parts')
+                    ->withPivot('component_role')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Check if this part item is available for use in a system unit
+     */
+    public function isAvailableForSystemUnit(): bool
+    {
+        return $this->status === 'available' && $this->systemUnits()->count() === 0;
+    }
 }

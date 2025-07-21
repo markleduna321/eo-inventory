@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Demo - EO Inventory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-800 px-6 py-4">
+                <h1 class="text-2xl font-bold text-white flex items-center">
+                    <i class="fas fa-qrcode mr-3"></i>
+                    System Units QR Code Demo
+                </h1>
+                <p class="text-blue-100 mt-1">Test and demonstrate QR code functionality</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- QR Code Display -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-qrcode mr-2 text-blue-500"></i>
+                    Generated QR Codes
+                </h2>
+                
+                <div id="qr-codes" class="space-y-4">
+                    <!-- QR codes will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-info-circle mr-2 text-green-500"></i>
+                    How to Use QR Codes
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">
+                            <i class="fas fa-eye mr-2 text-blue-500"></i>
+                            View System Details
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            Scan the QR code with any QR scanner app or camera to view complete system unit details including specifications, status, and assignment information.
+                        </p>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">
+                            <i class="fas fa-print mr-2 text-green-500"></i>
+                            Print Labels
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            Right-click on any QR code image and save/print to create physical labels for your system units. These can be attached to equipment for easy identification.
+                        </p>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">
+                            <i class="fas fa-camera mr-2 text-purple-500"></i>
+                            In-App Scanning
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            Use the "Scan QR" button in the system units management page to quickly scan and view system details without leaving the application.
+                        </p>
+                    </div>
+
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">
+                            <i class="fas fa-mobile-alt mr-2 text-orange-500"></i>
+                            Mobile Access
+                        </h3>
+                        <p class="text-sm text-gray-600">
+                            QR codes work on any device - phones, tablets, or desktops. Perfect for field technicians and remote access to system information.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Links -->
+        <div class="mt-6 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-link mr-2 text-indigo-500"></i>
+                Test Links
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <a href="/admin/system_units" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="text-center">
+                        <i class="fas fa-desktop text-2xl text-blue-500 mb-2"></i>
+                        <p class="font-medium text-gray-900">System Units Management</p>
+                        <p class="text-sm text-gray-600">View all system units with QR functionality</p>
+                    </div>
+                </a>
+                <a href="/system-units/qr/SU-2BXI3NEX" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="text-center">
+                        <i class="fas fa-eye text-2xl text-green-500 mb-2"></i>
+                        <p class="font-medium text-gray-900">Sample QR View</p>
+                        <p class="text-sm text-gray-600">View system via QR code scan</p>
+                    </div>
+                </a>
+                <a href="/system-units/1/qr-image" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="text-center">
+                        <i class="fas fa-qrcode text-2xl text-purple-500 mb-2"></i>
+                        <p class="font-medium text-gray-900">View QR Image</p>
+                        <p class="text-sm text-gray-600">Display QR code in browser</p>
+                    </div>
+                </a>
+                <a href="/system-units/1/qr-image?download=1" class="block p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div class="text-center">
+                        <i class="fas fa-download text-2xl text-orange-500 mb-2"></i>
+                        <p class="font-medium text-gray-900">Download QR Code</p>
+                        <p class="text-sm text-gray-600">Download PNG file directly</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load system units and display QR codes
+        async function loadQRCodes() {
+            try {
+                const response = await fetch('/api/system-units');
+                const systemUnits = await response.json();
+                
+                const container = document.getElementById('qr-codes');
+                container.innerHTML = '';
+
+                systemUnits.forEach((unit, index) => {
+                    if (index < 3) { // Show first 3 units
+                        const qrDiv = document.createElement('div');
+                        qrDiv.className = 'border border-gray-200 rounded-lg p-4';
+                        qrDiv.innerHTML = `
+                            <div class="flex items-center space-x-4">
+                                <img src="/system-units/${unit.id}/qr-image" 
+                                     alt="QR Code for ${unit.system_name}" 
+                                     class="w-20 h-20 border border-gray-300 rounded"
+                                     title="Right-click to save">
+                                <div class="flex-1">
+                                    <h4 class="font-medium text-gray-900">${unit.system_name}</h4>
+                                    <p class="text-sm text-gray-600">SN: ${unit.serial_number}</p>
+                                    <p class="text-xs text-gray-500 font-mono">QR: ${unit.qr_code || 'Generating...'}</p>
+                                    <div class="flex space-x-2 mt-2">
+                                        <a href="/system-units/qr/${unit.qr_code}" 
+                                           target="_blank" 
+                                           class="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 border border-blue-200 rounded">
+                                            📱 Test QR Link
+                                        </a>
+                                        <a href="/system-units/${unit.id}/qr-image?download=1" 
+                                           target="_blank" 
+                                           class="text-xs text-green-600 hover:text-green-800 px-2 py-1 border border-green-200 rounded">
+                                            📥 Download QR
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(qrDiv);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading QR codes:', error);
+                document.getElementById('qr-codes').innerHTML = 
+                    '<p class="text-red-600">Error loading QR codes. Please check if the server is running.</p>';
+            }
+        }
+
+        // Load QR codes when page loads
+        document.addEventListener('DOMContentLoaded', loadQRCodes);
+    </script>
+</body>
+</html>

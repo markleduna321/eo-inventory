@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SystemUnitController;
 use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -111,12 +112,19 @@ Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function (
     Route::get('reports', function () {
         return Inertia::render('admin/reports/page');
     });
-
-
 });
 
-Route::middleware('auth:sanctum', 'role:2')->get('/user/dashboard', function () {
-    return Inertia::render('user/dashboard/page');
+// QR Code routes (public access for scanning)
+Route::get('/system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCode'])
+    ->name('system-units.qr-view');
+
+Route::get('/system-units/{systemUnit}/qr-image', [SystemUnitController::class, 'generateQrCode'])
+    ->name('system-units.qr-image');
+
+Route::middleware('auth:sanctum', 'role:3')->prefix('user')->group(function () {
+    Route::get('dashboard', function () {
+        return Inertia::render('user/dashboard/page');
+    });
 });
 
 
