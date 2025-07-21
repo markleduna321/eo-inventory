@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
-import Authenticated from '@/layouts/authenticated-layout';
 import { 
     PlusIcon,
     PencilIcon,
@@ -8,6 +7,7 @@ import {
     MagnifyingGlassIcon,
     AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
+import Authenticated from '@/Layouts/AuthenticatedLayout';
 
 export default function PartsNew({ auth }) {
     // State management

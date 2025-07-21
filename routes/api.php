@@ -7,6 +7,7 @@ use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\PeripheralController;
+use App\Http\Controllers\PartController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -55,3 +56,12 @@ Route::post('peripherals/{peripheral}/return-stock', [PeripheralController::clas
 Route::post('peripherals/{peripheral}/mark-damaged', [PeripheralController::class, 'markDamaged']);
 Route::get('peripherals/{peripheral}/delivery-history', [PeripheralController::class, 'deliveryHistory']);
 Route::apiResource('peripherals', PeripheralController::class);
+
+// Parts management routes
+Route::get('parts/types', [PartController::class, 'getPartTypes']);
+Route::get('parts/{part}/items', [PartController::class, 'getItems']);
+Route::post('parts/{part}/add-stock', [PartController::class, 'addStock']);
+Route::post('parts/{part}/remove-stock', [PartController::class, 'removeStock']);
+Route::post('parts/{part}/items/{item}/assign', [PartController::class, 'assignItem']);
+Route::post('parts/{part}/items/{item}/return', [PartController::class, 'returnItem']);
+Route::apiResource('parts', PartController::class);
