@@ -11,6 +11,7 @@ import { useTableFilters } from '@/app/hooks/useTableFilters'
 import { usePage } from '@inertiajs/react'
 
 export default function PeripheralTableSection() {
+    // ...existing code...
     const dispatch = useDispatch()
     const { auth } = usePage().props
     const { peripherals, stations = [], deliveryHistory = [], loading, error, successMessage } = useSelector(state => state.peripherals)
@@ -240,6 +241,8 @@ export default function PeripheralTableSection() {
         return <div className="text-center py-4">Loading peripherals...</div>
     }
 
+    // ...existing code...
+
     return (
         <div className="mt-8 space-y-4">
             {/* Filter Component */}
@@ -318,6 +321,7 @@ export default function PeripheralTableSection() {
                                 ) : (
                                     filteredData.map((peripheral) => (
                                         <tr key={peripheral.id}>
+            {/* ...pagination controls removed... */}
                                             <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{peripheral.type.charAt(0).toUpperCase() + peripheral.type.slice(1)}</span>

@@ -13,10 +13,12 @@ import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDeskto
 import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 import { setCurrentStation, clearCurrentStation } from '@/app/redux/slices/stationSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
+import { useLocationRefresh } from '@/app/hooks/useLocationRefresh'
 
 export default function StationsTableSection() {
     const dispatch = useDispatch()
     const { stations, availableMonitors, availableSystemUnits, availablePeripherals, locations, loading, error } = useSelector(state => state.stations)
+    const { refreshLocations } = useLocationRefresh()
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
@@ -176,6 +178,9 @@ export default function StationsTableSection() {
                 type: 'success',
                 message: 'Station updated successfully!'
             })
+            // Refresh locations to update capacity counts
+            dispatch(fetchStationLocations())
+            refreshLocations()
             handleCloseEdit()
         } catch (error) {
             console.error('Update error:', error)
@@ -203,6 +208,9 @@ export default function StationsTableSection() {
                 type: 'success',
                 message: 'Station deleted successfully!'
             })
+            // Refresh locations to update capacity counts
+            dispatch(fetchStationLocations())
+            refreshLocations()
         } catch (error) {
             setAlert({
                 show: true,

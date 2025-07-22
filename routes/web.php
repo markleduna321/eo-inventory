@@ -159,6 +159,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
+    // Web-based user endpoint for frontend forms
+    Route::get('/current-user', function (Request $request) {
+        return response()->json($request->user());
+    })->name('current.user');
 }); */
 
 require __DIR__.'/auth.php';

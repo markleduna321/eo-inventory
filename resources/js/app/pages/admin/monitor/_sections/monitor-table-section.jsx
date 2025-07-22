@@ -18,6 +18,7 @@ export default function MonitorTableSection() {
     const dispatch = useDispatch()
     const { auth } = usePage().props
     const { monitors, loading, error } = useSelector(state => state.monitors)
+    // ...existing code...
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
@@ -95,6 +96,8 @@ export default function MonitorTableSection() {
         handleFilterChange,
         clearFilters
     } = useTableFilters(monitors, searchableFields, filterOptions, 'created_at')
+
+    // ...existing code...
 
     // Options for select dropdowns
     const brands = [
@@ -447,6 +450,7 @@ export default function MonitorTableSection() {
                                         </tr>
                                     ))
                                 )}
+            {/* ...pagination controls removed... */}
                             </tbody>
                         </table>
                     </div>

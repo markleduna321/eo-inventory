@@ -9,6 +9,9 @@ import { ArrowDownCircleIcon, EyeIcon, PrinterIcon, ComputerDesktopIcon, CpuChip
 
 export default function SystemUnitTableSection() {
     const [systemUnits, setSystemUnits] = useState([])
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     
@@ -416,13 +419,21 @@ export default function SystemUnitTableSection() {
             unit.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (unit.brand && unit.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()))
-        
         const matchesStatus = !statusFilter || unit.status === statusFilter
         const matchesType = !typeFilter || unit.unit_type === typeFilter
         const matchesLocation = !locationFilter || unit.location === locationFilter
-        
         return matchesSearch && matchesStatus && matchesType && matchesLocation
     })
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredUnits.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const paginatedUnits = filteredUnits.slice(startIndex, startIndex + itemsPerPage)
+
+    // Reset to first page if filters change and current page is out of range
+    useEffect(() => {
+        if (currentPage > totalPages) setCurrentPage(1)
+    }, [filteredUnits.length])
 
     const formatSpecifications = (unit) => {
         if (unit.unit_type === 'pre_built') {
@@ -685,10 +696,38 @@ export default function SystemUnitTableSection() {
                                 </td>
                             </tr>
                         ) : (
-                            filteredUnits.map((unit) => {
+                            paginatedUnits.map((unit) => {
                                 const specs = formatSpecifications(unit)
                                 return (
                                     <tr key={unit.id} className="hover:bg-gray-50">
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6">
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                        disabled={currentPage === 1}
+                        className={`px-3 py-1 rounded border text-sm font-medium ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-indigo-50 hover:border-indigo-300'}`}
+                    >
+                        Prev
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-3 py-1 rounded border text-sm font-medium ${currentPage === page ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 hover:bg-indigo-50 hover:border-indigo-300'}`}
+                        >
+                            {page}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                        disabled={currentPage === totalPages}
+                        className={`px-3 py-1 rounded border text-sm font-medium ${currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-indigo-50 hover:border-indigo-300'}`}
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
                                         <td className="py-4 pr-3 pl-4 text-sm">
                                             <div>
                                                 <div className="font-medium text-gray-900">{unit.system_name}</div>

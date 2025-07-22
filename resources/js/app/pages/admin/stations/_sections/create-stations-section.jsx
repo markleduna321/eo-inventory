@@ -7,10 +7,12 @@ import InputTextComponent from '@/app/pages/components/input-text-component'
 import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import { createStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
+import { useLocationRefresh } from '@/app/hooks/useLocationRefresh'
 
 export default function CreateStationsSection() {
     const dispatch = useDispatch()
     const { availableMonitors, availableSystemUnits, availablePeripherals, locations, loading } = useSelector(state => state.stations)
+    const { refreshLocations } = useLocationRefresh()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [errors, setErrors] = useState({})
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
@@ -105,6 +107,9 @@ export default function CreateStationsSection() {
                 type: 'success', 
                 message: 'Station created successfully!' 
             })
+            // Refresh locations to update capacity counts
+            dispatch(fetchStationLocations())
+            refreshLocations()
             setTimeout(() => {
                 closeModal()
             }, 1500)
@@ -150,10 +155,17 @@ export default function CreateStationsSection() {
 
     const locationOptions = [
         { label: 'Select Location', value: '' },
-        ...locations.map(location => ({
-            label: `${location.name} - ${location.building}, ${location.floor}`,
-            value: location.id
-        }))
+        ...locations.map(location => {
+            const capacityText = location.capacity_display || `${location.current_count || 0}/${location.capacity || '∞'}`
+            const label = `${location.name} - ${location.building}, ${location.floor} (${capacityText})`
+            const isFull = location.is_full || (location.capacity > 0 && (location.current_count || 0) >= location.capacity)
+            
+            return {
+                label: isFull ? `${label} - FULL` : label,
+                value: location.id,
+                disabled: isFull
+            }
+        })
     ]
 
     return (

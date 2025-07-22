@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
+import { usePage } from '@inertiajs/react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import InputLabelComponent from '@/app/pages/components/input-label-component'
@@ -6,9 +7,9 @@ import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 
 export default function CreatePeripheralsSection() {
+    const { auth } = usePage().props
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [currentUser, setCurrentUser] = useState(null)
     const [formData, setFormData] = useState({
         type: '',
         brand: '',
@@ -25,7 +26,7 @@ export default function CreatePeripheralsSection() {
         invoice_number: '',
         delivery_date: new Date().toISOString().split('T')[0],
         delivery_notes: '',
-        received_by: ''
+        received_by: auth?.user?.name || ''
     })
 
     const openModal = () => setIsModalOpen(true)
@@ -47,33 +48,11 @@ export default function CreatePeripheralsSection() {
             invoice_number: '',
             delivery_date: new Date().toISOString().split('T')[0],
             delivery_notes: '',
-            received_by: currentUser?.name || ''
+            received_by: auth?.user?.name || ''
         })
     }
 
-    const fetchCurrentUser = async () => {
-        try {
-            const response = await fetch('/api/user', {
-                headers: { 'Accept': 'application/json' }
-            })
-            if (response.ok) {
-                const user = await response.json()
-                setCurrentUser(user)
-                // Update received_by in form data
-                setFormData(prev => ({
-                    ...prev,
-                    received_by: user.name || ''
-                }))
-            }
-        } catch (error) {
-            console.error('Error fetching current user:', error)
-        }
-    }
 
-    useEffect(() => {
-        // Fetch current user on component mount
-        fetchCurrentUser()
-    }, [])
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({
@@ -343,6 +322,16 @@ export default function CreatePeripheralsSection() {
                                             onChange={(e) => handleInputChange('notes', e.target.value)}
                                         />
                                     </div>
+
+
+                                    {/* Hidden field for received_by (controlled) */}
+                                    <InputTextComponent
+                                        id="received_by"
+                                        name="received_by"
+                                        type="hidden"
+                                        value={formData.received_by}
+                                        onChange={e => setFormData(prev => ({ ...prev, received_by: e.target.value }))}
+                                    />
 
                                     {/* Buttons */}
                                     <div className='flex justify-end gap-2 mt-4'>

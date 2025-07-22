@@ -323,9 +323,18 @@ class StationController extends Controller
      */
     public function getLocations()
     {
-        $locations = Location::where('status', 'Active')
+        $locations = Location::withCount(['stations as current_stations'])
+            ->where('status', 'Active')
             ->orderBy('name')
-            ->get(['id', 'name', 'code', 'type', 'building', 'floor', 'room']);
+            ->get(['id', 'name', 'code', 'type', 'building', 'floor', 'room', 'capacity']);
+
+        // Add capacity information
+        $locations = $locations->map(function ($location) {
+            $location->current_count = $location->current_stations;
+            $location->is_full = $location->capacity > 0 && $location->current_stations >= $location->capacity;
+            $location->capacity_display = $location->capacity > 0 ? "{$location->current_stations}/{$location->capacity}" : "∞";
+            return $location;
+        });
 
         return response()->json($locations);
     }

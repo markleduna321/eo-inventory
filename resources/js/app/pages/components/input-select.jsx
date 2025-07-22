@@ -12,7 +12,16 @@ export default function SelectComponent({ id, name, value, onChange, options, re
     >
       <option value="">-- Select --</option> {/* Optional default placeholder */}
       {options.map((option, index) => (
-        <option key={index} value={option.value}>
+        <option 
+          key={index} 
+          value={option.value}
+          disabled={option.disabled}
+          style={option.disabled ? {
+            backgroundColor: '#f3f4f6',
+            color: '#9ca3af',
+            fontStyle: 'italic'
+          } : {}}
+        >
           {option.label}
         </option>
       ))}

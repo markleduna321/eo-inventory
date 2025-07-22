@@ -15,10 +15,14 @@ class LocationController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $locations = Location::orderBy('created_at', 'desc')->get();
+            $locations = Location::withCount(['stations as current_stations'])
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-            // Add computed fields without relationships for now
+            // Add computed fields and update current_items with actual station count
             $locations = $locations->map(function ($location) {
+                // Update current_items to reflect actual station count
+                $location->current_items = $location->current_stations;
                 $location->utilization_percentage = $location->utilization_percentage;
                 $location->full_address = $location->full_address;
                 return $location;
