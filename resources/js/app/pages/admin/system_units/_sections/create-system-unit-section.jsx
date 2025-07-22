@@ -8,6 +8,7 @@ export default function CreateSystemUnitSection() {
     const [isModalOpen, setModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [availableParts, setAvailableParts] = useState([])
+    const [currentUser, setCurrentUser] = useState(null)
     const [formData, setFormData] = useState({
         unit_type: 'pre_built',
         system_name: '',
@@ -19,7 +20,7 @@ export default function CreateSystemUnitSection() {
         status: 'available',
         location: '',
         assigned_to: '',
-        received_by: 'current_user',
+        received_by: '',
         purchase_price: '',
         supplier: '',
         purchase_date: new Date().toISOString().split('T')[0],
@@ -59,7 +60,7 @@ export default function CreateSystemUnitSection() {
             status: 'available',
             location: '',
             assigned_to: '',
-            received_by: 'current_user',
+            received_by: currentUser?.name || '',
             purchase_price: '',
             supplier: '',
             purchase_date: new Date().toISOString().split('T')[0],
@@ -78,6 +79,25 @@ export default function CreateSystemUnitSection() {
         })
     }
 
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await fetch('/api/user', {
+                headers: { 'Accept': 'application/json' }
+            })
+            if (response.ok) {
+                const user = await response.json()
+                setCurrentUser(user)
+                // Update received_by in form data
+                setFormData(prev => ({
+                    ...prev,
+                    received_by: user.name || ''
+                }))
+            }
+        } catch (error) {
+            console.error('Error fetching current user:', error)
+        }
+    }
+
     const fetchAvailableParts = async () => {
         try {
             const response = await fetch('/api/system-units/available-parts', {
@@ -91,6 +111,11 @@ export default function CreateSystemUnitSection() {
             console.error('Error fetching available parts:', error)
         }
     }
+
+    useEffect(() => {
+        // Fetch current user on component mount
+        fetchCurrentUser()
+    }, [])
 
     useEffect(() => {
         if (isModalOpen && formData.unit_type === 'custom_built') {

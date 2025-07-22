@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import InputLabelComponent from '@/app/pages/components/input-label-component'
@@ -8,6 +8,7 @@ import InputTextComponent from '@/app/pages/components/input-text-component'
 export default function CreatePeripheralsSection() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [currentUser, setCurrentUser] = useState(null)
     const [formData, setFormData] = useState({
         type: '',
         brand: '',
@@ -24,7 +25,7 @@ export default function CreatePeripheralsSection() {
         invoice_number: '',
         delivery_date: new Date().toISOString().split('T')[0],
         delivery_notes: '',
-        received_by: 'current_user'
+        received_by: ''
     })
 
     const openModal = () => setIsModalOpen(true)
@@ -46,9 +47,33 @@ export default function CreatePeripheralsSection() {
             invoice_number: '',
             delivery_date: new Date().toISOString().split('T')[0],
             delivery_notes: '',
-            received_by: 'current_user'
+            received_by: currentUser?.name || ''
         })
     }
+
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await fetch('/api/user', {
+                headers: { 'Accept': 'application/json' }
+            })
+            if (response.ok) {
+                const user = await response.json()
+                setCurrentUser(user)
+                // Update received_by in form data
+                setFormData(prev => ({
+                    ...prev,
+                    received_by: user.name || ''
+                }))
+            }
+        } catch (error) {
+            console.error('Error fetching current user:', error)
+        }
+    }
+
+    useEffect(() => {
+        // Fetch current user on component mount
+        fetchCurrentUser()
+    }, [])
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({

@@ -8,6 +8,7 @@ export default function CreatePartsSection() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [partTypes, setPartTypes] = useState([])
+    const [currentUser, setCurrentUser] = useState(null)
     const [formData, setFormData] = useState({
         type: '',
         brand: '',
@@ -22,7 +23,7 @@ export default function CreatePartsSection() {
         invoice_number: '',
         delivery_date: new Date().toISOString().split('T')[0],
         delivery_notes: '',
-        received_by: 'current_user',
+        received_by: '',
         // For individual items
         items: []
     })
@@ -48,8 +49,26 @@ export default function CreatePartsSection() {
         }
     }
 
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await fetch('/api/user', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Accept': 'application/json'
+                }
+            })
+            if (response.ok) {
+                const user = await response.json()
+                setCurrentUser(user.name)
+            }
+        } catch (error) {
+            console.error('Failed to fetch current user:', error)
+        }
+    }
+
     useEffect(() => {
         fetchPartTypes()
+        fetchCurrentUser()
     }, [])
 
     const openModal = () => setIsModalOpen(true)
@@ -73,7 +92,7 @@ export default function CreatePartsSection() {
             invoice_number: '',
             delivery_date: new Date().toISOString().split('T')[0],
             delivery_notes: '',
-            received_by: 'current_user',
+            received_by: currentUser,
             items: []
         })
         setSpecFields([])

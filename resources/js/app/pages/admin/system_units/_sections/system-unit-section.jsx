@@ -15,6 +15,7 @@ export default function SystemUnitTableSection() {
     // Modal states
     const [selectedUnit, setSelectedUnit] = useState(null)
     const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+    const [isEditMode, setIsEditMode] = useState(false)
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [scannerModalOpen, setScannerModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -30,6 +31,27 @@ export default function SystemUnitTableSection() {
     const [assignmentData, setAssignmentData] = useState({
         assigned_to: '',
         notes: ''
+    })
+
+    // Edit form data
+    const [editFormData, setEditFormData] = useState({
+        serial_number: '',
+        system_name: '',
+        unit_type: '',
+        brand: '',
+        model: '',
+        description: '',
+        operating_system: '',
+        status: '',
+        location: '',
+        assigned_to: '',
+        received_by: '',
+        purchase_price: '',
+        supplier: '',
+        purchase_date: '',
+        warranty_expiry: '',
+        notes: '',
+        specifications: ''
     })
 
     const fetchSystemUnits = async () => {
@@ -89,12 +111,200 @@ export default function SystemUnitTableSection() {
 
     const openDetailsModal = (unit) => {
         setSelectedUnit(unit)
+        setEditFormData({
+            serial_number: unit.serial_number || '',
+            system_name: unit.system_name || '',
+            unit_type: unit.unit_type || '',
+            brand: unit.brand || '',
+            model: unit.model || '',
+            description: unit.description || '',
+            operating_system: unit.operating_system || '',
+            status: unit.status || '',
+            location: unit.location || '',
+            assigned_to: unit.assigned_to || '',
+            received_by: unit.received_by || '',
+            purchase_price: unit.purchase_price || '',
+            supplier: unit.supplier || '',
+            purchase_date: unit.purchase_date || '',
+            warranty_expiry: unit.warranty_expiry || '',
+            notes: unit.notes || '',
+            specifications: typeof unit.specifications === 'object' && unit.specifications !== null 
+                ? JSON.stringify(unit.specifications, null, 2) 
+                : unit.specifications || ''
+        })
+        setIsEditMode(false) // Start in view mode
         setDetailsModalOpen(true)
     }
 
     const closeDetailsModal = () => {
         setSelectedUnit(null)
         setDetailsModalOpen(false)
+        setIsEditMode(false)
+        setEditFormData({
+            serial_number: '',
+            system_name: '',
+            unit_type: '',
+            brand: '',
+            model: '',
+            description: '',
+            operating_system: '',
+            status: '',
+            location: '',
+            assigned_to: '',
+            received_by: '',
+            purchase_price: '',
+            supplier: '',
+            purchase_date: '',
+            warranty_expiry: '',
+            notes: '',
+            specifications: ''
+        })
+    }
+
+    const toggleEditMode = () => {
+        if (!isEditMode) {
+            // When entering edit mode, refresh the form data with current selectedUnit data
+            setEditFormData({
+                serial_number: selectedUnit.serial_number || '',
+                system_name: selectedUnit.system_name || '',
+                unit_type: selectedUnit.unit_type || '',
+                brand: selectedUnit.brand || '',
+                model: selectedUnit.model || '',
+                description: selectedUnit.description || '',
+                operating_system: selectedUnit.operating_system || '',
+                status: selectedUnit.status || '',
+                location: selectedUnit.location || '',
+                assigned_to: selectedUnit.assigned_to || '',
+                received_by: selectedUnit.received_by || '',
+                purchase_price: selectedUnit.purchase_price || '',
+                supplier: selectedUnit.supplier || '',
+                purchase_date: selectedUnit.purchase_date || '',
+                warranty_expiry: selectedUnit.warranty_expiry || '',
+                notes: selectedUnit.notes || '',
+                specifications: typeof selectedUnit.specifications === 'object' && selectedUnit.specifications !== null 
+                    ? JSON.stringify(selectedUnit.specifications, null, 2) 
+                    : selectedUnit.specifications || ''
+            })
+        }
+        setIsEditMode(!isEditMode)
+    }
+
+    const handleEditInputChange = (e) => {
+        const { name, value } = e.target
+        setEditFormData(prev => ({
+            ...prev,
+            [name]: value
+        }))
+    }
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault()
+        console.log('Submitting form data:', editFormData)
+        console.log('Selected unit ID:', selectedUnit.id)
+        
+        // Prepare the data for submission
+        const submitData = { ...editFormData }
+        
+        // Remove serial_number from submission as it should not be changed
+        delete submitData.serial_number
+        
+        // Debug: Check specific fields before and after processing
+        console.log('Raw form data brand:', editFormData.brand)
+        console.log('Raw form data model:', editFormData.model)
+        
+        // Ensure brand and model are properly included (handle null/undefined)
+        if (submitData.brand === null || submitData.brand === undefined) {
+            submitData.brand = ''
+        }
+        if (submitData.model === null || submitData.model === undefined) {
+            submitData.model = ''
+        }
+        
+        console.log('After processing brand:', submitData.brand)
+        console.log('After processing model:', submitData.model)
+        
+        // Parse specifications if it's a string
+        if (typeof submitData.specifications === 'string' && submitData.specifications.trim()) {
+            try {
+                submitData.specifications = JSON.parse(submitData.specifications)
+            } catch (error) {
+                console.warn('Invalid JSON in specifications, sending as string:', error)
+            }
+        }
+        
+        console.log('Prepared submit data:', submitData)
+        console.log('Submit data keys:', Object.keys(submitData))
+        console.log('Submit data brand included:', 'brand' in submitData)
+        console.log('Submit data model included:', 'model' in submitData)
+        
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            console.log('CSRF Token:', csrfToken)
+            
+            const response = await fetch(`/api/system-units/${selectedUnit.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify(submitData)
+            })
+
+            console.log('Response status:', response.status)
+            console.log('Response ok:', response.ok)
+
+            if (response.ok) {
+                const updatedData = await response.json()
+                console.log('Update successful, received data:', updatedData)
+                
+                // Debug: Check if brand and model are in the response
+                console.log('Server returned brand:', updatedData.brand)
+                console.log('Server returned model:', updatedData.model)
+                
+                // Update both the selected unit and form data with fresh server data
+                setSelectedUnit(updatedData)
+                setEditFormData({
+                    serial_number: updatedData.serial_number || '',
+                    system_name: updatedData.system_name || '',
+                    unit_type: updatedData.unit_type || '',
+                    brand: updatedData.brand || '',
+                    model: updatedData.model || '',
+                    description: updatedData.description || '',
+                    operating_system: updatedData.operating_system || '',
+                    status: updatedData.status || '',
+                    location: updatedData.location || '',
+                    assigned_to: updatedData.assigned_to || '',
+                    received_by: updatedData.received_by || '',
+                    purchase_price: updatedData.purchase_price || '',
+                    supplier: updatedData.supplier || '',
+                    purchase_date: updatedData.purchase_date || '',
+                    warranty_expiry: updatedData.warranty_expiry || '',
+                    notes: updatedData.notes || '',
+                    specifications: typeof updatedData.specifications === 'object' && updatedData.specifications !== null 
+                        ? JSON.stringify(updatedData.specifications, null, 2) 
+                        : updatedData.specifications || ''
+                })
+                
+                setIsEditMode(false) // Switch back to view mode
+                fetchSystemUnits() // Refresh the list
+                alert('System unit updated successfully!')
+            } else {
+                const errorText = await response.text()
+                console.error('Failed to update system unit. Status:', response.status)
+                console.error('Error response:', errorText)
+                
+                try {
+                    const errorData = JSON.parse(errorText)
+                    alert(`Failed to update system unit: ${errorData.message || 'Unknown error'}`)
+                } catch {
+                    alert(`Failed to update system unit. Server returned: ${response.status} - ${errorText}`)
+                }
+            }
+        } catch (err) {
+            console.error('Error updating system unit:', err)
+            alert('Network error occurred while updating system unit: ' + err.message)
+        }
     }
 
     const openAssignModal = (unit) => {
@@ -499,7 +709,7 @@ export default function SystemUnitTableSection() {
                                                     variant="primary"
                                                     size="sm"
                                                     onClick={() => openDetailsModal(unit)}
-                                                    title="View Details"
+                                                    title="View/Edit Details"
                                                 >
                                                     <EyeIcon className="h-4 w-4" />
                                                 </Button>
@@ -562,160 +772,376 @@ export default function SystemUnitTableSection() {
                 </table>
             </div>
 
-            {/* Details Modal */}
+            {/* Details/Edit Combined Modal */}
             <Modal isOpen={detailsModalOpen} onClose={closeDetailsModal}>
                 {selectedUnit && (
-                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div className="sm:flex sm:items-start">
-                            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    System Unit Details - {selectedUnit.system_name}
+                    <div className="bg-white max-h-[90vh] flex flex-col">
+                        {/* Fixed Header */}
+                        <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                    {isEditMode ? 'Edit System Unit' : `System Unit Details - ${selectedUnit.system_name}`}
                                 </h3>
-                                
-                                <div className="space-y-6">
-                                    {/* Basic Information */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">ID:</span> #{selectedUnit.id}</div>
-                                                <div><span className="font-medium">Serial Number:</span> {selectedUnit.serial_number}</div>
-                                                <div><span className="font-medium">System Name:</span> {selectedUnit.system_name}</div>
-                                                <div><span className="font-medium">Type:</span> {getUnitTypeBadge(selectedUnit.unit_type)}</div>
-                                                {selectedUnit.brand && <div><span className="font-medium">Brand:</span> {selectedUnit.brand}</div>}
-                                                {selectedUnit.model && <div><span className="font-medium">Model:</span> {selectedUnit.model}</div>}
-                                                <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
-                                                <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
-                                                <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={toggleEditMode}
+                                >
+                                    <PencilIcon className="h-4 w-4 mr-2" />
+                                    {isEditMode ? 'Cancel Edit' : 'Edit'}
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Form wrapper for edit mode */}
+                        <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 overflow-hidden">
+                            {/* Scrollable Content */}
+                            <div className="flex-1 overflow-y-auto px-6 py-4">
+                                {isEditMode ? (
+                                    /* Edit Mode - Form Fields */
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Serial Number * (Read-only)
+                                                </label>
+                                                <InputTextComponent
+                                                    name="serial_number"
+                                                    value={editFormData.serial_number}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Serial number cannot be changed"
+                                                    disabled
+                                                    className="bg-gray-100"
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1">Serial numbers cannot be modified to maintain data integrity</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    System Name *
+                                                </label>
+                                                <InputTextComponent
+                                                    name="system_name"
+                                                    value={editFormData.system_name}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Enter system name"
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Unit Type *
+                                                </label>
+                                                <SelectComponent
+                                                    name="unit_type"
+                                                    value={editFormData.unit_type}
+                                                    onChange={handleEditInputChange}
+                                                    options={[
+                                                        { value: '', label: 'Select Type' },
+                                                        { value: 'custom_built', label: 'Custom Built' },
+                                                        { value: 'pre_built', label: 'Pre-built' }
+                                                    ]}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Brand
+                                                </label>
+                                                <InputTextComponent
+                                                    name="brand"
+                                                    value={editFormData.brand}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Enter brand"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Model
+                                                </label>
+                                                <InputTextComponent
+                                                    name="model"
+                                                    value={editFormData.model}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Enter model"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Operating System
+                                                </label>
+                                                <InputTextComponent
+                                                    name="operating_system"
+                                                    value={editFormData.operating_system}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="e.g., Windows 11, macOS"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Status *
+                                                </label>
+                                                <SelectComponent
+                                                    name="status"
+                                                    value={editFormData.status}
+                                                    onChange={handleEditInputChange}
+                                                    options={[
+                                                        { value: '', label: 'Select Status' },
+                                                        { value: 'available', label: 'Available' },
+                                                        { value: 'assigned', label: 'Assigned' },
+                                                        { value: 'maintenance', label: 'Maintenance' },
+                                                        { value: 'retired', label: 'Retired' }
+                                                    ]}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Location
+                                                </label>
+                                                <InputTextComponent
+                                                    name="location"
+                                                    value={editFormData.location}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Enter location"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Purchase Price
+                                                </label>
+                                                <InputTextComponent
+                                                    name="purchase_price"
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={editFormData.purchase_price}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Enter purchase price"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Supplier
+                                                </label>
+                                                <InputTextComponent
+                                                    name="supplier"
+                                                    value={editFormData.supplier}
+                                                    onChange={handleEditInputChange}
+                                                    placeholder="Enter supplier"
+                                                />
                                             </div>
                                         </div>
                                         
                                         <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Purchase Price:</span> ${parseFloat(selectedUnit.purchase_price || 0).toFixed(2)}</div>
-                                                <div><span className="font-medium">Supplier:</span> {selectedUnit.supplier || 'N/A'}</div>
-                                                <div><span className="font-medium">Purchase Date:</span> {selectedUnit.purchase_date || 'N/A'}</div>
-                                                <div><span className="font-medium">Warranty Expiry:</span> {selectedUnit.warranty_expiry || 'N/A'}</div>
-                                                <div><span className="font-medium">Received By:</span> {selectedUnit.received_by}</div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Description
+                                            </label>
+                                            <textarea
+                                                name="description"
+                                                rows={3}
+                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                value={editFormData.description}
+                                                onChange={handleEditInputChange}
+                                                placeholder="Enter description"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Specifications
+                                            </label>
+                                            <textarea
+                                                name="specifications"
+                                                rows={3}
+                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                value={editFormData.specifications}
+                                                onChange={handleEditInputChange}
+                                                placeholder="Enter specifications (JSON format)"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Notes
+                                            </label>
+                                            <textarea
+                                                name="notes"
+                                                rows={3}
+                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                value={editFormData.notes}
+                                                onChange={handleEditInputChange}
+                                                placeholder="Enter additional notes"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* View Mode - Display */
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Basic Information */}
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    <div><span className="font-medium">ID:</span> #{selectedUnit.id}</div>
+                                                    <div><span className="font-medium">Serial Number:</span> {selectedUnit.serial_number}</div>
+                                                    <div><span className="font-medium">System Name:</span> {selectedUnit.system_name}</div>
+                                                    <div><span className="font-medium">Type:</span> {getUnitTypeBadge(selectedUnit.unit_type)}</div>
+                                                    {selectedUnit.brand && <div><span className="font-medium">Brand:</span> {selectedUnit.brand}</div>}
+                                                    {selectedUnit.model && <div><span className="font-medium">Model:</span> {selectedUnit.model}</div>}
+                                                    <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
+                                                    <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
+                                                    <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    <div><span className="font-medium">Purchase Price:</span> ${parseFloat(selectedUnit.purchase_price || 0).toFixed(2)}</div>
+                                                    <div><span className="font-medium">Supplier:</span> {selectedUnit.supplier || 'N/A'}</div>
+                                                    <div><span className="font-medium">Purchase Date:</span> {selectedUnit.purchase_date || 'N/A'}</div>
+                                                    <div><span className="font-medium">Warranty Expiry:</span> {selectedUnit.warranty_expiry || 'N/A'}</div>
+                                                    <div><span className="font-medium">Received By:</span> {selectedUnit.received_by}</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Assignment Information */}
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Assignment Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    {selectedUnit.station ? (
+                                                        <>
+                                                            <div><span className="font-medium">Station:</span> {selectedUnit.station.name}</div>
+                                                            <div><span className="font-medium">Station Type:</span> {selectedUnit.station.type}</div>
+                                                            <div><span className="font-medium">Department:</span> {selectedUnit.station.department}</div>
+                                                            {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="text-gray-500">Not assigned to any station</div>
+                                                            {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* QR Code Section */}
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
+                                                <div className="bg-gray-50 rounded-lg p-4">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="text-sm">
+                                                            <p className="text-gray-600 mb-2">Scan or share this QR code:</p>
+                                                            <p className="font-mono text-xs text-gray-500">QR Code: {selectedUnit.qr_code || 'Generating...'}</p>
+                                                        </div>
+                                                        <div className="flex space-x-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image`, '_blank')}
+                                                                className="flex items-center space-x-2"
+                                                            >
+                                                                <QrCodeIcon className="h-4 w-4" />
+                                                                <span>View QR</span>
+                                                            </Button>
+                                                            <Button
+                                                                variant="primary"
+                                                                size="sm"
+                                                                onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image?download=1`, '_blank')}
+                                                                className="flex items-center space-x-2"
+                                                            >
+                                                                <ArrowDownCircleIcon className="h-4 w-4" />
+                                                                <span>Download</span>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-
-                                        {/* Assignment Information */}
+                                        
+                                        {/* Specifications/Components */}
                                         <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Assignment Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                {selectedUnit.station ? (
-                                                    <>
-                                                        <div><span className="font-medium">Station:</span> {selectedUnit.station.name}</div>
-                                                        <div><span className="font-medium">Station Type:</span> {selectedUnit.station.type}</div>
-                                                        <div><span className="font-medium">Department:</span> {selectedUnit.station.department}</div>
-                                                        {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
-                                                    </>
+                                            <h4 className="font-medium text-gray-900 mb-3">
+                                                {selectedUnit.unit_type === 'pre_built' ? 'Specifications' : 'Components'}
+                                            </h4>
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                                {selectedUnit.unit_type === 'pre_built' ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {Object.entries(selectedUnit.specifications || {}).map(([key, value]) => (
+                                                            value && (
+                                                                <div key={key} className="text-sm">
+                                                                    <span className="font-medium capitalize">{key === 'psu' ? 'Power Supply' : key}:</span> {value}
+                                                                </div>
+                                                            )
+                                                        ))}
+                                                    </div>
                                                 ) : (
-                                                    <>
-                                                        <div className="text-gray-500">Not assigned to any station</div>
-                                                        {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
-                                                    </>
+                                                    <div className="space-y-3">
+                                                        {selectedUnit.part_items && selectedUnit.part_items.length > 0 ? (
+                                                            selectedUnit.part_items.map((item) => (
+                                                                <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded border">
+                                                                    <div>
+                                                                        <div className="font-medium capitalize">{item.pivot.component_role}</div>
+                                                                        <div className="text-sm text-gray-600">
+                                                                            {item.part.brand} {item.part.model}
+                                                                            {item.serial_number && ` (SN: ${item.serial_number})`}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-500">
+                                                                        ${parseFloat(item.unit_price || 0).toFixed(2)}
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-gray-500">No components tracked for this system unit.</p>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
-                                    
-                                    {/* Specifications/Components */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">
-                                            {selectedUnit.unit_type === 'pre_built' ? 'Specifications' : 'Components'}
-                                        </h4>
-                                        <div className="bg-gray-50 rounded-lg p-4">
-                                            {selectedUnit.unit_type === 'pre_built' ? (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {Object.entries(selectedUnit.specifications || {}).map(([key, value]) => (
-                                                        value && (
-                                                            <div key={key} className="text-sm">
-                                                                <span className="font-medium capitalize">{key === 'psu' ? 'Power Supply' : key}:</span> {value}
-                                                            </div>
-                                                        )
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {selectedUnit.part_items && selectedUnit.part_items.length > 0 ? (
-                                                        selectedUnit.part_items.map((item) => (
-                                                            <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded border">
-                                                                <div>
-                                                                    <div className="font-medium capitalize">{item.pivot.component_role}</div>
-                                                                    <div className="text-sm text-gray-600">
-                                                                        {item.part.brand} {item.part.model}
-                                                                        {item.serial_number && ` (SN: ${item.serial_number})`}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="text-sm text-gray-500">
-                                                                    ${parseFloat(item.unit_price || 0).toFixed(2)}
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-gray-500">No components tracked for this system unit.</p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Description and Notes */}
-                                    {(selectedUnit.description || selectedUnit.notes) && (
-                                        <div>
-                                            {selectedUnit.description && (
-                                                <div className="mb-3">
-                                                    <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                                                    <p className="text-sm text-gray-600">{selectedUnit.description}</p>
-                                                </div>
-                                            )}
-                                            {selectedUnit.notes && (
-                                                <div>
-                                                    <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
-                                                    <p className="text-sm text-gray-600">{selectedUnit.notes}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    
-                                    {/* QR Code Section */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
-                                        <div className="bg-gray-50 rounded-lg p-4">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="text-sm">
-                                                    <p className="text-gray-600 mb-2">Scan or share this QR code to view system unit details:</p>
-                                                    <p className="font-mono text-xs text-gray-500">QR Code: {selectedUnit.qr_code || 'Generating...'}</p>
-                                                </div>
-                                                <div className="flex space-x-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image`, '_blank')}
-                                                        className="flex items-center space-x-2"
-                                                    >
-                                                        <QrCodeIcon className="h-4 w-4" />
-                                                        <span>View QR</span>
-                                                    </Button>
-                                                    <Button
-                                                        variant="primary"
-                                                        size="sm"
-                                                        onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image?download=1`, '_blank')}
-                                                        className="flex items-center space-x-2"
-                                                    >
-                                                        <ArrowDownCircleIcon className="h-4 w-4" />
-                                                        <span>Download</span>
-                                                    </Button>
-                                                </div>
+                                        
+                                        {/* Description and Notes */}
+                                        {(selectedUnit.description || selectedUnit.notes) && (
+                                            <div>
+                                                {selectedUnit.description && (
+                                                    <div className="mb-3">
+                                                        <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+                                                        <p className="text-sm text-gray-600">{selectedUnit.description}</p>
+                                                    </div>
+                                                )}
+                                                {selectedUnit.notes && (
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
+                                                        <p className="text-sm text-gray-600">{selectedUnit.notes}</p>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
+                                )}
+                            </div>
+                            
+                            {/* Fixed Footer */}
+                            {isEditMode ? (
+                                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2 flex-shrink-0">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="md"
+                                        onClick={() => setIsEditMode(false)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        variant="primary"
+                                        size="md"
+                                    >
+                                        Update System Unit
+                                    </Button>
                                 </div>
-                                
-                                <div className="flex justify-end mt-6">
+                            ) : (
+                                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end flex-shrink-0">
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -725,8 +1151,8 @@ export default function SystemUnitTableSection() {
                                         Close
                                     </Button>
                                 </div>
-                            </div>
-                        </div>
+                            )}
+                        </form>
                     </div>
                 )}
             </Modal>
