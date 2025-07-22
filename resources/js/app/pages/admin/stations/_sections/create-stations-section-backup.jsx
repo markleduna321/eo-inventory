@@ -227,7 +227,7 @@ export default function CreateStationsSection() {
                                     </div>
 
                                     {/* Hidden field for created_by - will be set to current user */}
-                                    <input type="hidden" name="created_by" value="current_user" />
+                                    <input type="hidden" name="created_by" value={currentUser} />
 
                                     <div>
                                         <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">

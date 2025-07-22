@@ -197,6 +197,32 @@ export default function SystemUnitTableSection() {
         }))
     }
 
+    const handleSpecificationChange = (field, value) => {
+        try {
+            const specs = JSON.parse(editFormData.specifications || '{}')
+            specs[field] = value || null
+            setEditFormData(prev => ({
+                ...prev,
+                specifications: JSON.stringify(specs, null, 2)
+            }))
+        } catch {
+            const specs = { [field]: value || null }
+            setEditFormData(prev => ({
+                ...prev,
+                specifications: JSON.stringify(specs, null, 2)
+            }))
+        }
+    }
+
+    const getSpecificationValue = (field) => {
+        try {
+            const specs = JSON.parse(editFormData.specifications || '{}')
+            return specs[field] || ''
+        } catch {
+            return ''
+        }
+    }
+
     const handleEditSubmit = async (e) => {
         e.preventDefault()
         console.log('Submitting form data:', editFormData)
@@ -228,8 +254,13 @@ export default function SystemUnitTableSection() {
             try {
                 submitData.specifications = JSON.parse(submitData.specifications)
             } catch (error) {
-                console.warn('Invalid JSON in specifications, sending as string:', error)
+                console.error('Invalid JSON in specifications:', error)
+                alert('Invalid JSON format in specifications. Please check the JSON syntax or use the individual fields instead.')
+                return
             }
+        } else if (!submitData.specifications || submitData.specifications === '') {
+            // If specifications is empty, set it to an empty object
+            submitData.specifications = {}
         }
         
         console.log('Prepared submit data:', submitData)
@@ -950,14 +981,104 @@ export default function SystemUnitTableSection() {
                                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                                 Specifications
                                             </label>
-                                            <textarea
-                                                name="specifications"
-                                                rows={3}
-                                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                                value={editFormData.specifications}
-                                                onChange={handleEditInputChange}
-                                                placeholder="Enter specifications (JSON format)"
-                                            />
+                                            {editFormData.unit_type === 'pre_built' ? (
+                                                <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">CPU</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., Intel Core i7-12700K"
+                                                                value={getSpecificationValue('cpu')}
+                                                                onChange={(e) => handleSpecificationChange('cpu', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">RAM</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., 32GB DDR4 3200MHz"
+                                                                value={getSpecificationValue('ram')}
+                                                                onChange={(e) => handleSpecificationChange('ram', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">Storage</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., 1TB NVMe SSD"
+                                                                value={getSpecificationValue('storage')}
+                                                                onChange={(e) => handleSpecificationChange('storage', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">GPU</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., NVIDIA RTX 4070"
+                                                                value={getSpecificationValue('gpu')}
+                                                                onChange={(e) => handleSpecificationChange('gpu', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">Motherboard</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., ASUS ROG Strix B660-F"
+                                                                value={getSpecificationValue('motherboard')}
+                                                                onChange={(e) => handleSpecificationChange('motherboard', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">Power Supply</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., 750W 80+ Gold"
+                                                                value={getSpecificationValue('psu')}
+                                                                onChange={(e) => handleSpecificationChange('psu', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">Case</label>
+                                                            <InputTextComponent
+                                                                placeholder="e.g., Fractal Design Define 7"
+                                                                value={getSpecificationValue('case')}
+                                                                onChange={(e) => handleSpecificationChange('case', e.target.value)}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-700 mb-1">Other</label>
+                                                            <InputTextComponent
+                                                                placeholder="Any additional specifications"
+                                                                value={getSpecificationValue('other')}
+                                                                onChange={(e) => handleSpecificationChange('other', e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3">
+                                                        <button 
+                                                            type="button"
+                                                            className="text-xs text-gray-500 hover:text-gray-700"
+                                                            onClick={() => {
+                                                                const showRaw = document.getElementById('raw-specs-' + selectedUnit?.id)
+                                                                showRaw.style.display = showRaw.style.display === 'none' ? 'block' : 'none'
+                                                            }}
+                                                        >
+                                                            Toggle Raw JSON View
+                                                        </button>
+                                                        <div id={'raw-specs-' + (selectedUnit?.id || 0)} style={{display: 'none'}} className="mt-2">
+                                                            <textarea
+                                                                name="specifications"
+                                                                rows={4}
+                                                                className="block w-full text-xs rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+                                                                value={editFormData.specifications}
+                                                                onChange={handleEditInputChange}
+                                                                placeholder="Raw JSON format"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                    <p className="text-sm text-blue-800">
+                                                        This is a custom-built system. Specifications are automatically tracked through the associated components.
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                         
                                         <div>
