@@ -172,13 +172,18 @@ export default function StationsTableSection() {
                 id: editFormData.id, 
                 data: editFormData 
             })).unwrap()
-            
+
             setAlert({
                 show: true,
                 type: 'success',
                 message: 'Station updated successfully!'
             })
-            // Refresh locations to update capacity counts
+
+            // Refresh stations and available assets to update UI
+            await dispatch(fetchStations())
+            await dispatch(fetchAvailableMonitors())
+            await dispatch(fetchAvailableSystemUnits())
+            await dispatch(fetchAvailablePeripherals())
             dispatch(fetchStationLocations())
             refreshLocations()
             handleCloseEdit()
@@ -523,13 +528,25 @@ export default function StationsTableSection() {
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 <div className="flex items-center">
                                                     <ComputerDesktopIcon className="w-4 h-4 mr-1" />
-                                                    <span>{station.monitors_count || 0} monitors</span>
+                                                    <span>{
+                                                        Array.isArray(station.station_assets)
+                                                            ? station.station_assets.filter(a => a.asset_type === 'monitor' && a.unassigned_at === null).length
+                                                            : (station.monitors_count || 0)
+                                                    } monitors</span>
                                                 </div>
                                                 <div className="flex items-center text-xs text-gray-400">
-                                                    <span>{station.system_units_count || 0} system units</span>
+                                                    <span>{
+                                                        Array.isArray(station.station_assets)
+                                                            ? station.station_assets.filter(a => a.asset_type === 'system_unit' && a.unassigned_at === null).length
+                                                            : (station.system_units_count || 0)
+                                                    } system units</span>
                                                 </div>
                                                 <div className="text-xs text-gray-400">
-                                                    {station.assets_count || 0} total assets
+                                                    {
+                                                        Array.isArray(station.station_assets)
+                                                            ? station.station_assets.filter(a => a.unassigned_at === null).length
+                                                            : (station.assets_count || 0)
+                                                    } total assets
                                                 </div>
                                             </td>
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
