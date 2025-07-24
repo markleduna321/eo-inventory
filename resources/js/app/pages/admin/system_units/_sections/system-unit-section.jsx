@@ -11,14 +11,12 @@ import ActionButtonSection from './action-button-section'
 
 export default function SystemUnitTableSection() {
     const [systemUnits, setSystemUnits] = useState([])
-    // ...existing code...
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
     // Modal states
     const [selectedUnit, setSelectedUnit] = useState(null)
     const [detailsModalOpen, setDetailsModalOpen] = useState(false)
-    const [isEditMode, setIsEditMode] = useState(false)
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [scannerModalOpen, setScannerModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -34,27 +32,6 @@ export default function SystemUnitTableSection() {
     const [assignmentData, setAssignmentData] = useState({
         assigned_to: '',
         notes: ''
-    })
-
-    // Edit form data
-    const [editFormData, setEditFormData] = useState({
-        serial_number: '',
-        system_name: '',
-        unit_type: '',
-        brand: '',
-        model: '',
-        description: '',
-        operating_system: '',
-        status: '',
-        location: '',
-        assigned_to: '',
-        received_by: '',
-        purchase_price: '',
-        supplier: '',
-        purchase_date: '',
-        warranty_expiry: '',
-        notes: '',
-        specifications: ''
     })
 
     const fetchSystemUnits = async () => {
@@ -114,231 +91,12 @@ export default function SystemUnitTableSection() {
 
     const openDetailsModal = (unit) => {
         setSelectedUnit(unit)
-        setEditFormData({
-            serial_number: unit.serial_number || '',
-            system_name: unit.system_name || '',
-            unit_type: unit.unit_type || '',
-            brand: unit.brand || '',
-            model: unit.model || '',
-            description: unit.description || '',
-            operating_system: unit.operating_system || '',
-            status: unit.status || '',
-            location: unit.location || '',
-            assigned_to: unit.assigned_to || '',
-            received_by: unit.received_by || '',
-            purchase_price: unit.purchase_price || '',
-            supplier: unit.supplier || '',
-            purchase_date: unit.purchase_date || '',
-            warranty_expiry: unit.warranty_expiry || '',
-            notes: unit.notes || '',
-            specifications: typeof unit.specifications === 'object' && unit.specifications !== null 
-                ? JSON.stringify(unit.specifications, null, 2) 
-                : unit.specifications || ''
-        })
-        setIsEditMode(false) // Start in view mode
         setDetailsModalOpen(true)
     }
 
     const closeDetailsModal = () => {
         setSelectedUnit(null)
         setDetailsModalOpen(false)
-        setIsEditMode(false)
-        setEditFormData({
-            serial_number: '',
-            system_name: '',
-            unit_type: '',
-            brand: '',
-            model: '',
-            description: '',
-            operating_system: '',
-            status: '',
-            location: '',
-            assigned_to: '',
-            received_by: '',
-            purchase_price: '',
-            supplier: '',
-            purchase_date: '',
-            warranty_expiry: '',
-            notes: '',
-            specifications: ''
-        })
-    }
-
-    const toggleEditMode = () => {
-        if (!isEditMode) {
-            // When entering edit mode, refresh the form data with current selectedUnit data
-            setEditFormData({
-                serial_number: selectedUnit.serial_number || '',
-                system_name: selectedUnit.system_name || '',
-                unit_type: selectedUnit.unit_type || '',
-                brand: selectedUnit.brand || '',
-                model: selectedUnit.model || '',
-                description: selectedUnit.description || '',
-                operating_system: selectedUnit.operating_system || '',
-                status: selectedUnit.status || '',
-                location: selectedUnit.location || '',
-                assigned_to: selectedUnit.assigned_to || '',
-                received_by: selectedUnit.received_by || '',
-                purchase_price: selectedUnit.purchase_price || '',
-                supplier: selectedUnit.supplier || '',
-                purchase_date: selectedUnit.purchase_date || '',
-                warranty_expiry: selectedUnit.warranty_expiry || '',
-                notes: selectedUnit.notes || '',
-                specifications: typeof selectedUnit.specifications === 'object' && selectedUnit.specifications !== null 
-                    ? JSON.stringify(selectedUnit.specifications, null, 2) 
-                    : selectedUnit.specifications || ''
-            })
-        }
-        setIsEditMode(!isEditMode)
-    }
-
-    const handleEditInputChange = (e) => {
-        const { name, value } = e.target
-        setEditFormData(prev => ({
-            ...prev,
-            [name]: value
-        }))
-    }
-
-    const handleSpecificationChange = (field, value) => {
-        try {
-            const specs = JSON.parse(editFormData.specifications || '{}')
-            specs[field] = value || null
-            setEditFormData(prev => ({
-                ...prev,
-                specifications: JSON.stringify(specs, null, 2)
-            }))
-        } catch {
-            const specs = { [field]: value || null }
-            setEditFormData(prev => ({
-                ...prev,
-                specifications: JSON.stringify(specs, null, 2)
-            }))
-        }
-    }
-
-    const getSpecificationValue = (field) => {
-        try {
-            const specs = JSON.parse(editFormData.specifications || '{}')
-            return specs[field] || ''
-        } catch {
-            return ''
-        }
-    }
-
-    const handleEditSubmit = async (e) => {
-        e.preventDefault()
-        console.log('Submitting form data:', editFormData)
-        console.log('Selected unit ID:', selectedUnit.id)
-        
-        // Prepare the data for submission
-        const submitData = { ...editFormData }
-        
-        // Remove serial_number from submission as it should not be changed
-        delete submitData.serial_number
-        
-        // Debug: Check specific fields before and after processing
-        console.log('Raw form data brand:', editFormData.brand)
-        console.log('Raw form data model:', editFormData.model)
-        
-        // Ensure brand and model are properly included (handle null/undefined)
-        if (submitData.brand === null || submitData.brand === undefined) {
-            submitData.brand = ''
-        }
-        if (submitData.model === null || submitData.model === undefined) {
-            submitData.model = ''
-        }
-        
-        console.log('After processing brand:', submitData.brand)
-        console.log('After processing model:', submitData.model)
-        
-        // Parse specifications if it's a string
-        if (typeof submitData.specifications === 'string' && submitData.specifications.trim()) {
-            try {
-                submitData.specifications = JSON.parse(submitData.specifications)
-            } catch (error) {
-                console.error('Invalid JSON in specifications:', error)
-                alert('Invalid JSON format in specifications. Please check the JSON syntax or use the individual fields instead.')
-                return
-            }
-        } else if (!submitData.specifications || submitData.specifications === '') {
-            // If specifications is empty, set it to an empty object
-            submitData.specifications = {}
-        }
-        
-        console.log('Prepared submit data:', submitData)
-        console.log('Submit data keys:', Object.keys(submitData))
-        console.log('Submit data brand included:', 'brand' in submitData)
-        console.log('Submit data model included:', 'model' in submitData)
-        
-        try {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-            console.log('CSRF Token:', csrfToken)
-            
-            const response = await fetch(`/api/system-units/${selectedUnit.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify(submitData)
-            })
-
-            console.log('Response status:', response.status)
-            console.log('Response ok:', response.ok)
-
-            if (response.ok) {
-                const updatedData = await response.json()
-                console.log('Update successful, received data:', updatedData)
-                
-                // Debug: Check if brand and model are in the response
-                console.log('Server returned brand:', updatedData.brand)
-                console.log('Server returned model:', updatedData.model)
-                
-                // Update both the selected unit and form data with fresh server data
-                setSelectedUnit(updatedData)
-                setEditFormData({
-                    serial_number: updatedData.serial_number || '',
-                    system_name: updatedData.system_name || '',
-                    unit_type: updatedData.unit_type || '',
-                    brand: updatedData.brand || '',
-                    model: updatedData.model || '',
-                    description: updatedData.description || '',
-                    operating_system: updatedData.operating_system || '',
-                    status: updatedData.status || '',
-                    location: updatedData.location || '',
-                    assigned_to: updatedData.assigned_to || '',
-                    received_by: updatedData.received_by || '',
-                    purchase_price: updatedData.purchase_price || '',
-                    supplier: updatedData.supplier || '',
-                    purchase_date: updatedData.purchase_date || '',
-                    warranty_expiry: updatedData.warranty_expiry || '',
-                    notes: updatedData.notes || '',
-                    specifications: typeof updatedData.specifications === 'object' && updatedData.specifications !== null 
-                        ? JSON.stringify(updatedData.specifications, null, 2) 
-                        : updatedData.specifications || ''
-                })
-                
-                setIsEditMode(false) // Switch back to view mode
-                fetchSystemUnits() // Refresh the list
-                alert('System unit updated successfully!')
-            } else {
-                const errorText = await response.text()
-                console.error('Failed to update system unit. Status:', response.status)
-                console.error('Error response:', errorText)
-                
-                try {
-                    const errorData = JSON.parse(errorText)
-                    alert(`Failed to update system unit: ${errorData.message || 'Unknown error'}`)
-                } catch {
-                    alert(`Failed to update system unit. Server returned: ${response.status} - ${errorText}`)
-                }
-            }
-        } catch (err) {
-            console.error('Error updating system unit:', err)
-            alert('Network error occurred while updating system unit: ' + err.message)
-        }
     }
 
     const openAssignModal = (unit) => {
@@ -418,15 +176,16 @@ export default function SystemUnitTableSection() {
             unit.system_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             unit.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (unit.brand && unit.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()))
-        
-        const matchesStatus = !statusFilter || unit.status === statusFilter
-        const matchesType = !typeFilter || unit.unit_type === typeFilter
-        const matchesLocation = !locationFilter || unit.location === locationFilter
-        
-        return matchesSearch && matchesStatus && matchesType && matchesLocation
-    })
+            (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()));
 
+        const matchesStatus = !statusFilter || unit.status === statusFilter;
+        const matchesType = !typeFilter || unit.unit_type === typeFilter;
+        const matchesLocation = !locationFilter || unit.location === locationFilter;
+
+        return matchesSearch && matchesStatus && matchesType && matchesLocation;
+    }) || [];
+
+    console.log('systemUnits', systemUnits)
     const formatSpecifications = (unit) => {
         if (unit.unit_type === 'pre_built') {
             return unit.specifications || {}
@@ -704,7 +463,6 @@ export default function SystemUnitTableSection() {
                                 const specs = formatSpecifications(unit);
                                 return (
                                     <tr key={unit.id} className="hover:bg-gray-50">
-            {/* ...pagination controls removed... */}
                                         <td className="py-4 pr-3 pl-4 text-sm">
                                             <div>
                                                 <div className="font-medium text-gray-900">{unit.system_name}</div>
@@ -763,7 +521,7 @@ export default function SystemUnitTableSection() {
                                                     variant="primary"
                                                     size="sm"
                                                     onClick={() => openDetailsModal(unit)}
-                                                    title="View/Edit Details"
+                                                    title="View Details"
                                                 >
                                                     <EyeIcon className="h-4 w-4" />
                                                 </Button>
@@ -837,17 +595,16 @@ export default function SystemUnitTableSection() {
             </div>
 
 
-            {/* Details/Edit Combined Modal */}
+            {/* Details Modal */}
             <Modal isOpen={detailsModalOpen} onClose={closeDetailsModal}>
                 {selectedUnit && (
-                    <div className="bg-white max-h-[90vh] flex flex-col">
-                        {/* Fixed Header */}
-                        <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    {isEditMode ? 'Edit System Unit' : `System Unit Details - ${selectedUnit.system_name}`}
+                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                        <div className="sm:flex sm:items-start">
+                            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                    System Unit Details - {selectedUnit.system_name}
                                 </h3>
-                                
+
                                 <div className="space-y-6">
                                     {/* Basic Information */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -865,7 +622,7 @@ export default function SystemUnitTableSection() {
                                                 <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
                                             </div>
                                         </div>
-                                        
+
                                         <div>
                                             <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
                                             <div className="space-y-2 text-sm">
@@ -897,7 +654,7 @@ export default function SystemUnitTableSection() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Specifications/Components */}
                                     <div>
                                         <h4 className="font-medium text-gray-900 mb-3">
@@ -938,7 +695,7 @@ export default function SystemUnitTableSection() {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     {/* Description and Notes */}
                                     {(selectedUnit.description || selectedUnit.notes) && (
                                         <div>
@@ -956,7 +713,7 @@ export default function SystemUnitTableSection() {
                                             )}
                                         </div>
                                     )}
-                                    
+
                                     {/* QR Code Section */}
                                     <div>
                                         <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
@@ -990,7 +747,7 @@ export default function SystemUnitTableSection() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="flex justify-end mt-6">
                                     <Button
                                         type="button"
@@ -1001,8 +758,8 @@ export default function SystemUnitTableSection() {
                                         Close
                                     </Button>
                                 </div>
-                            )}
-                        </form>
+                            </div>
+                        </div>
                     </div>
                 )}
             </Modal>
