@@ -6,6 +6,16 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'App\\Console\\Commands\\CheckAssetStatuses' => $baseDir . '/app/Console/Commands/CheckAssetStatuses.php',
+    'App\\Console\\Commands\\CheckIndexes' => $baseDir . '/app/Console/Commands/CheckIndexes.php',
+    'App\\Console\\Commands\\CheckPeripherals' => $baseDir . '/app/Console/Commands/CheckPeripherals.php',
+    'App\\Console\\Commands\\CheckStationAssets' => $baseDir . '/app/Console/Commands/CheckStationAssets.php',
+    'App\\Console\\Commands\\CheckStationData' => $baseDir . '/app/Console/Commands/CheckStationData.php',
+    'App\\Console\\Commands\\FixPeripheralStock' => $baseDir . '/app/Console/Commands/FixPeripheralStock.php',
+    'App\\Console\\Commands\\ListStations' => $baseDir . '/app/Console/Commands/ListStations.php',
+    'App\\Console\\Commands\\TestPeripheralAssignment' => $baseDir . '/app/Console/Commands/TestPeripheralAssignment.php',
+    'App\\Console\\Commands\\TestPeripheralFlow' => $baseDir . '/app/Console/Commands/TestPeripheralFlow.php',
+    'App\\Console\\Commands\\TestUnbindFlow' => $baseDir . '/app/Console/Commands/TestUnbindFlow.php',
     'App\\Console\\Kernel' => $baseDir . '/app/Console/Kernel.php',
     'App\\Exceptions\\Handler' => $baseDir . '/app/Exceptions/Handler.php',
     'App\\Http\\Controllers\\Api\\RoleController' => $baseDir . '/app/Http/Controllers/Api/RoleController.php',
@@ -19,6 +29,7 @@ return array(
     'App\\Http\\Controllers\\Auth\\RegisteredUserController' => $baseDir . '/app/Http/Controllers/Auth/RegisteredUserController.php',
     'App\\Http\\Controllers\\Auth\\VerifyEmailController' => $baseDir . '/app/Http/Controllers/Auth/VerifyEmailController.php',
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
+    'App\\Http\\Controllers\\DashboardController' => $baseDir . '/app/Http/Controllers/DashboardController.php',
     'App\\Http\\Controllers\\DeviceController' => $baseDir . '/app/Http/Controllers/DeviceController.php',
     'App\\Http\\Controllers\\LocationController' => $baseDir . '/app/Http/Controllers/LocationController.php',
     'App\\Http\\Controllers\\MonitorController' => $baseDir . '/app/Http/Controllers/MonitorController.php',

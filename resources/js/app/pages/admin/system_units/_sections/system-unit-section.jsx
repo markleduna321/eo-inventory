@@ -6,12 +6,14 @@ import InputTextComponent from '@/app/pages/components/input-text-component'
 import SelectComponent from '@/app/pages/components/input-select'
 import QrScanner from './QrScanner'
 import { ArrowDownCircleIcon, EyeIcon, PrinterIcon, ComputerDesktopIcon, CpuChipIcon, QrCodeIcon, PencilIcon, TrashIcon, CameraIcon } from '@heroicons/react/24/outline'
+import PaginationSection from './pagination-section'
+import ActionButtonSection from './action-button-section'
 
 export default function SystemUnitTableSection() {
     const [systemUnits, setSystemUnits] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-    
+
     // Modal states
     const [selectedUnit, setSelectedUnit] = useState(null)
     const [detailsModalOpen, setDetailsModalOpen] = useState(false)
@@ -19,13 +21,13 @@ export default function SystemUnitTableSection() {
     const [scannerModalOpen, setScannerModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
-    
+
     // Filter states
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
     const [typeFilter, setTypeFilter] = useState('')
     const [locationFilter, setLocationFilter] = useState('')
-    
+
     // Assignment form
     const [assignmentData, setAssignmentData] = useState({
         assigned_to: '',
@@ -38,11 +40,11 @@ export default function SystemUnitTableSection() {
             const response = await fetch('/api/system-units', {
                 headers: { 'Accept': 'application/json' }
             })
-            
+
             if (!response.ok) {
                 throw new Error('Failed to fetch system units')
             }
-            
+
             const data = await response.json()
             setSystemUnits(data)
         } catch (err) {
@@ -71,11 +73,11 @@ export default function SystemUnitTableSection() {
                     'Content-Type': 'application/json',
                 }
             })
-            
+
             if (!response.ok) {
                 throw new Error('Failed to delete system unit')
             }
-            
+
             // Refresh the list
             fetchSystemUnits()
             setIsDeleteModalOpen(false)
@@ -137,13 +139,13 @@ export default function SystemUnitTableSection() {
 
     const handleAssignment = async (e) => {
         e.preventDefault()
-        
+
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-            const endpoint = selectedUnit.status === 'assigned' 
+            const endpoint = selectedUnit.status === 'assigned'
                 ? `/api/system-units/${selectedUnit.id}/return`
                 : `/api/system-units/${selectedUnit.id}/assign`
-                
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -169,20 +171,21 @@ export default function SystemUnitTableSection() {
     }
 
     // Filter system units
-    const filteredUnits = systemUnits.filter(unit => {
-        const matchesSearch = !searchTerm || 
+    const filteredUnits = systemUnits?.data?.filter(unit => {
+        const matchesSearch = !searchTerm ||
             unit.system_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             unit.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (unit.brand && unit.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()))
-        
-        const matchesStatus = !statusFilter || unit.status === statusFilter
-        const matchesType = !typeFilter || unit.unit_type === typeFilter
-        const matchesLocation = !locationFilter || unit.location === locationFilter
-        
-        return matchesSearch && matchesStatus && matchesType && matchesLocation
-    })
+            (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()));
 
+        const matchesStatus = !statusFilter || unit.status === statusFilter;
+        const matchesType = !typeFilter || unit.unit_type === typeFilter;
+        const matchesLocation = !locationFilter || unit.location === locationFilter;
+
+        return matchesSearch && matchesStatus && matchesType && matchesLocation;
+    }) || [];
+
+    console.log('systemUnits', systemUnits)
     const formatSpecifications = (unit) => {
         if (unit.unit_type === 'pre_built') {
             return unit.specifications || {}
@@ -267,9 +270,9 @@ export default function SystemUnitTableSection() {
             <div className="mt-8 flow-root bg-white p-8 rounded-lg shadow-lg">
                 <div className="text-center text-red-600">
                     <p>Error: {error}</p>
-                    <Button 
-                        variant="primary" 
-                        size="sm" 
+                    <Button
+                        variant="primary"
+                        size="sm"
                         onClick={fetchSystemUnits}
                         className="mt-4"
                     >
@@ -294,13 +297,13 @@ export default function SystemUnitTableSection() {
                             <ComputerDesktopIcon className="w-8 h-8 text-blue-500" />
                         </div>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-4 rounded-xl">
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-sm font-medium text-green-600">Available</div>
                                 <div className="text-2xl font-bold text-green-900">
-                                    {systemUnits.filter(u => u.status === 'available').length}
+                                    {systemUnits?.data?.filter(u => u.status === 'available').length}
                                 </div>
                             </div>
                             <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
@@ -308,13 +311,13 @@ export default function SystemUnitTableSection() {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-yellow-50 to-amber-100 p-4 rounded-xl">
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-sm font-medium text-yellow-600">Assigned</div>
                                 <div className="text-2xl font-bold text-yellow-900">
-                                    {systemUnits.filter(u => u.status === 'assigned').length}
+                                    {systemUnits?.data?.filter(u => u.status === 'assigned').length}
                                 </div>
                             </div>
                             <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
@@ -322,13 +325,13 @@ export default function SystemUnitTableSection() {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-4 rounded-xl">
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-sm font-medium text-purple-600">Custom Built</div>
                                 <div className="text-2xl font-bold text-purple-900">
-                                    {systemUnits.filter(u => u.unit_type === 'custom_built').length}
+                                    {systemUnits?.data?.filter(u => u.unit_type === 'custom_built').length}
                                 </div>
                             </div>
                             <CpuChipIcon className="w-8 h-8 text-purple-500" />
@@ -376,76 +379,88 @@ export default function SystemUnitTableSection() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between items-center mb-4">
-                <div className="text-sm text-gray-600">
-                    Showing {filteredUnits.length} of {systemUnits.length} system units
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                        <PrinterIcon className='h-4 w-4 mr-1'/>
-                        Print
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={openScannerModal}>
-                        <CameraIcon className='h-4 w-4 mr-1'/>
-                        Scan QR
-                    </Button>
-                    <Button variant="success" size="sm">
-                        <ArrowDownCircleIcon className='h-4 w-4 mr-1'/>
-                        Export
-                    </Button>
-                    <Button variant="primary" size="sm" onClick={fetchSystemUnits}>
-                        Refresh
-                    </Button>
-                </div>
-            </div>
+            <ActionButtonSection />
 
             {/* Table */}
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-300 border rounded-lg">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-900"
+                            >
                                 System Info
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Type
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 CPU
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 RAM
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Storage
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Operating System
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Status
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Location
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Station / Assignment
                             </th>
-                            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Actions
                             </th>
                         </tr>
                     </thead>
+
                     <tbody className="divide-y divide-gray-200 bg-white">
                         {filteredUnits.length === 0 ? (
                             <tr>
                                 <td colSpan="10" className="px-6 py-8 text-center text-gray-500">
-                                    {systemUnits.length === 0 ? 'No system units found.' : 'No units match the current filters.'}
+                                    {systemUnits.length === 0
+                                        ? 'No system units found.'
+                                        : 'No units match the current filters.'}
                                 </td>
                             </tr>
                         ) : (
                             filteredUnits.map((unit) => {
-                                const specs = formatSpecifications(unit)
+                                const specs = formatSpecifications(unit);
                                 return (
                                     <tr key={unit.id} className="hover:bg-gray-50">
                                         <td className="py-4 pr-3 pl-4 text-sm">
@@ -454,7 +469,9 @@ export default function SystemUnitTableSection() {
                                                 <div className="text-gray-500">
                                                     SN: {unit.serial_number}
                                                     {unit.brand && unit.model && (
-                                                        <span className="ml-2">{unit.brand} {unit.model}</span>
+                                                        <span className="ml-2">
+                                                            {unit.brand} {unit.model}
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>
@@ -483,8 +500,13 @@ export default function SystemUnitTableSection() {
                                         <td className="px-3 py-4 text-sm text-gray-500">
                                             {unit.station ? (
                                                 <div>
-                                                    <div className="font-medium text-gray-900">{unit.station.name}</div>
-                                                    <div className="text-xs text-gray-500">{unit.station.type} - {unit.assigned_to || 'Unassigned user'}</div>
+                                                    <div className="font-medium text-gray-900">
+                                                        {unit.station.name}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        {unit.station.type} -{' '}
+                                                        {unit.assigned_to || 'Unassigned user'}
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <div className="text-gray-400">
@@ -507,7 +529,9 @@ export default function SystemUnitTableSection() {
                                                     type="button"
                                                     variant="success"
                                                     size="sm"
-                                                    onClick={() => window.open(`/system-units/${unit.id}/qr-image`, '_blank')}
+                                                    onClick={() =>
+                                                        window.open(`/system-units/${unit.id}/qr-image`, '_blank')
+                                                    }
                                                     title="View QR Code"
                                                 >
                                                     <QrCodeIcon className="h-4 w-4" />
@@ -516,7 +540,12 @@ export default function SystemUnitTableSection() {
                                                     type="button"
                                                     variant="secondary"
                                                     size="sm"
-                                                    onClick={() => window.open(`/system-units/${unit.id}/qr-image?download=1`, '_blank')}
+                                                    onClick={() =>
+                                                        window.open(
+                                                            `/system-units/${unit.id}/qr-image?download=1`,
+                                                            '_blank'
+                                                        )
+                                                    }
                                                     title="Download QR Code"
                                                 >
                                                     <ArrowDownCircleIcon className="h-4 w-4" />
@@ -555,12 +584,16 @@ export default function SystemUnitTableSection() {
                                             </div>
                                         </td>
                                     </tr>
-                                )
+                                );
                             })
                         )}
                     </tbody>
+
+                    <PaginationSection systemUnit={true} />
                 </table>
+
             </div>
+
 
             {/* Details Modal */}
             <Modal isOpen={detailsModalOpen} onClose={closeDetailsModal}>
@@ -571,7 +604,7 @@ export default function SystemUnitTableSection() {
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                     System Unit Details - {selectedUnit.system_name}
                                 </h3>
-                                
+
                                 <div className="space-y-6">
                                     {/* Basic Information */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -589,7 +622,7 @@ export default function SystemUnitTableSection() {
                                                 <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
                                             </div>
                                         </div>
-                                        
+
                                         <div>
                                             <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
                                             <div className="space-y-2 text-sm">
@@ -621,7 +654,7 @@ export default function SystemUnitTableSection() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     {/* Specifications/Components */}
                                     <div>
                                         <h4 className="font-medium text-gray-900 mb-3">
@@ -662,7 +695,7 @@ export default function SystemUnitTableSection() {
                                             )}
                                         </div>
                                     </div>
-                                    
+
                                     {/* Description and Notes */}
                                     {(selectedUnit.description || selectedUnit.notes) && (
                                         <div>
@@ -680,7 +713,7 @@ export default function SystemUnitTableSection() {
                                             )}
                                         </div>
                                     )}
-                                    
+
                                     {/* QR Code Section */}
                                     <div>
                                         <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
@@ -714,7 +747,7 @@ export default function SystemUnitTableSection() {
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="flex justify-end mt-6">
                                     <Button
                                         type="button"
@@ -741,7 +774,7 @@ export default function SystemUnitTableSection() {
                         <p className="text-sm text-gray-600 mb-4">
                             {selectedUnit.system_name} (SN: {selectedUnit.serial_number})
                         </p>
-                        
+
                         <form onSubmit={handleAssignment} className="space-y-4">
                             {selectedUnit.status !== 'assigned' && (
                                 <div>
@@ -756,7 +789,7 @@ export default function SystemUnitTableSection() {
                                     />
                                 </div>
                             )}
-                            
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Notes (Optional)
@@ -769,7 +802,7 @@ export default function SystemUnitTableSection() {
                                     onChange={(e) => setAssignmentData(prev => ({ ...prev, notes: e.target.value }))}
                                 />
                             </div>
-                            
+
                             <div className="flex justify-end gap-2 pt-4">
                                 <Button
                                     type="button"
@@ -793,7 +826,7 @@ export default function SystemUnitTableSection() {
             </Modal>
 
             {/* QR Scanner Modal */}
-            <QrScanner 
+            <QrScanner
                 isOpen={scannerModalOpen}
                 onClose={closeScannerModal}
                 onScan={handleQrScan}

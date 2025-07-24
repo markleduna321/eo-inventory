@@ -16,17 +16,18 @@ use Endroid\QrCode\Writer\PngWriter;
 
 class SystemUnitController extends Controller
 {
-    /**
-     * Display a listing of system units.
-     */
-    public function index(): JsonResponse
+
+    public function index(Request $request): JsonResponse
     {
+        $perPage = $request->input('per_page', 10);
+
         $systemUnits = SystemUnit::with(['partItems.part', 'station'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate($perPage);
 
         return response()->json($systemUnits);
     }
+
 
     /**
      * Store a newly created system unit.
@@ -50,10 +51,10 @@ class SystemUnitController extends Controller
             'purchase_date' => 'nullable|date',
             'warranty_expiry' => 'nullable|date',
             'notes' => 'nullable|string',
-            
+
             // For pre-built units
             'specifications' => 'nullable|array',
-            
+
             // For custom-built units
             'components' => 'nullable|array',
             'components.*.part_item_id' => 'exists:part_items,id',
@@ -148,13 +149,13 @@ class SystemUnitController extends Controller
     {
         $parts = Part::with(['items' => function ($query) {
             $query->where('status', 'available')
-                  ->whereDoesntHave('systemUnits');
+                ->whereDoesntHave('systemUnits');
         }])
-        ->whereHas('items', function ($query) {
-            $query->where('status', 'available')
-                  ->whereDoesntHave('systemUnits');
-        })
-        ->get();
+            ->whereHas('items', function ($query) {
+                $query->where('status', 'available')
+                    ->whereDoesntHave('systemUnits');
+            })
+            ->get();
 
         return response()->json($parts);
     }
@@ -209,7 +210,7 @@ class SystemUnitController extends Controller
     {
         $qrCodeUrl = $systemUnit->getQrCodeUrl();
         $download = request()->get('download', false);
-        
+
         $result = Builder::create()
             ->writer(new PngWriter())
             ->writerOptions([])
