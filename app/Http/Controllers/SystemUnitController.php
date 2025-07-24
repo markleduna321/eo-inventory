@@ -19,14 +19,13 @@ class SystemUnitController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->input('per_page', 10);
-
         $systemUnits = SystemUnit::with(['partItems.part', 'station'])
             ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+            ->get();
 
         return response()->json($systemUnits);
     }
+
 
 
     /**
