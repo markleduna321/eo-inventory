@@ -171,19 +171,33 @@ export default function SystemUnitTableSection() {
     }
 
     // Filter system units
-    const filteredUnits = systemUnits?.data?.filter(unit => {
-        const matchesSearch = !searchTerm ||
-            unit.system_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            unit.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (unit.brand && unit.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredUnits = Array.isArray(systemUnits?.data)
+      ? systemUnits.data.filter(unit => {
+          const matchesSearch = !searchTerm ||
+              unit.system_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              unit.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              (unit.brand && unit.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+              (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const matchesStatus = !statusFilter || unit.status === statusFilter;
-        const matchesType = !typeFilter || unit.unit_type === typeFilter;
-        const matchesLocation = !locationFilter || unit.location === locationFilter;
+          const matchesStatus = !statusFilter || unit.status === statusFilter;
+          const matchesType = !typeFilter || unit.unit_type === typeFilter;
+          const matchesLocation = !locationFilter || unit.location === locationFilter;
 
-        return matchesSearch && matchesStatus && matchesType && matchesLocation;
-    }) || [];
+          return matchesSearch && matchesStatus && matchesType && matchesLocation;
+      }) : Array.isArray(systemUnits)
+        ? systemUnits.filter(unit => {
+            const matchesSearch = !searchTerm ||
+                unit.system_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                unit.serial_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (unit.brand && unit.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (unit.model && unit.model.toLowerCase().includes(searchTerm.toLowerCase()));
+
+            const matchesStatus = !statusFilter || unit.status === statusFilter;
+            const matchesType = !typeFilter || unit.unit_type === typeFilter;
+            const matchesLocation = !locationFilter || unit.location === locationFilter;
+
+            return matchesSearch && matchesStatus && matchesType && matchesLocation;
+        }) : [];
 
     console.log('systemUnits', systemUnits)
     const formatSpecifications = (unit) => {
