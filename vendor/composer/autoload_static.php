@@ -566,6 +566,16 @@ class ComposerStaticInit6d380db77c9088096810ebaa54d0435d
     );
 
     public static $classMap = array (
+        'App\\Console\\Commands\\CheckAssetStatuses' => __DIR__ . '/../..' . '/app/Console/Commands/CheckAssetStatuses.php',
+        'App\\Console\\Commands\\CheckIndexes' => __DIR__ . '/../..' . '/app/Console/Commands/CheckIndexes.php',
+        'App\\Console\\Commands\\CheckPeripherals' => __DIR__ . '/../..' . '/app/Console/Commands/CheckPeripherals.php',
+        'App\\Console\\Commands\\CheckStationAssets' => __DIR__ . '/../..' . '/app/Console/Commands/CheckStationAssets.php',
+        'App\\Console\\Commands\\CheckStationData' => __DIR__ . '/../..' . '/app/Console/Commands/CheckStationData.php',
+        'App\\Console\\Commands\\FixPeripheralStock' => __DIR__ . '/../..' . '/app/Console/Commands/FixPeripheralStock.php',
+        'App\\Console\\Commands\\ListStations' => __DIR__ . '/../..' . '/app/Console/Commands/ListStations.php',
+        'App\\Console\\Commands\\TestPeripheralAssignment' => __DIR__ . '/../..' . '/app/Console/Commands/TestPeripheralAssignment.php',
+        'App\\Console\\Commands\\TestPeripheralFlow' => __DIR__ . '/../..' . '/app/Console/Commands/TestPeripheralFlow.php',
+        'App\\Console\\Commands\\TestUnbindFlow' => __DIR__ . '/../..' . '/app/Console/Commands/TestUnbindFlow.php',
         'App\\Console\\Kernel' => __DIR__ . '/../..' . '/app/Console/Kernel.php',
         'App\\Exceptions\\Handler' => __DIR__ . '/../..' . '/app/Exceptions/Handler.php',
         'App\\Http\\Controllers\\Api\\RoleController' => __DIR__ . '/../..' . '/app/Http/Controllers/Api/RoleController.php',
@@ -579,6 +589,7 @@ class ComposerStaticInit6d380db77c9088096810ebaa54d0435d
         'App\\Http\\Controllers\\Auth\\RegisteredUserController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/RegisteredUserController.php',
         'App\\Http\\Controllers\\Auth\\VerifyEmailController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/VerifyEmailController.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
+        'App\\Http\\Controllers\\DashboardController' => __DIR__ . '/../..' . '/app/Http/Controllers/DashboardController.php',
         'App\\Http\\Controllers\\DeviceController' => __DIR__ . '/../..' . '/app/Http/Controllers/DeviceController.php',
         'App\\Http\\Controllers\\LocationController' => __DIR__ . '/../..' . '/app/Http/Controllers/LocationController.php',
         'App\\Http\\Controllers\\MonitorController' => __DIR__ . '/../..' . '/app/Http/Controllers/MonitorController.php',
