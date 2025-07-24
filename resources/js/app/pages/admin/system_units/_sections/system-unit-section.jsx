@@ -10,6 +10,9 @@ import PaginationSection from './pagination-section'
 import ActionButtonSection from './action-button-section'
 
 export default function SystemUnitTableSection() {
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [systemUnits, setSystemUnits] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -199,6 +202,10 @@ export default function SystemUnitTableSection() {
             return matchesSearch && matchesStatus && matchesType && matchesLocation;
         }) : [];
 
+    // Pagination logic
+    const totalPages = Math.ceil(filteredUnits.length / itemsPerPage);
+    const paginatedUnits = filteredUnits.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     console.log('systemUnits', systemUnits)
     const formatSpecifications = (unit) => {
         if (unit.unit_type === 'pre_built') {
@@ -306,7 +313,13 @@ export default function SystemUnitTableSection() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <div className="text-sm font-medium text-blue-600">Total Systems</div>
-                                <div className="text-2xl font-bold text-blue-900">{systemUnits.length}</div>
+                                <div className="text-2xl font-bold text-blue-900">{
+                                  Array.isArray(systemUnits?.data)
+                                    ? systemUnits.data.length
+                                    : Array.isArray(systemUnits)
+                                      ? systemUnits.length
+                                      : 0
+                                }</div>
                             </div>
                             <ComputerDesktopIcon className="w-8 h-8 text-blue-500" />
                         </div>
@@ -464,7 +477,7 @@ export default function SystemUnitTableSection() {
                     </thead>
 
                     <tbody className="divide-y divide-gray-200 bg-white">
-                        {filteredUnits.length === 0 ? (
+                        {paginatedUnits.length === 0 ? (
                             <tr>
                                 <td colSpan="10" className="px-6 py-8 text-center text-gray-500">
                                     {systemUnits.length === 0
@@ -473,7 +486,27 @@ export default function SystemUnitTableSection() {
                                 </td>
                             </tr>
                         ) : (
-                            filteredUnits.map((unit) => {
+                            paginatedUnits.map((unit) => {
+            {/* Pagination Controls */}
+            <div className="flex justify-end items-center mt-4">
+                <nav className="inline-flex -space-x-px" aria-label="Pagination">
+                    <button
+                        className={`relative inline-flex items-center px-2 py-1 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </button>
+                    <span className="px-4 py-1 text-sm text-gray-700">Page {currentPage} of {totalPages}</span>
+                    <button
+                        className={`relative inline-flex items-center px-2 py-1 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 ${currentPage === totalPages || totalPages === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages || totalPages === 0}
+                    >
+                        Next
+                    </button>
+                </nav>
+            </div>
                                 const specs = formatSpecifications(unit);
                                 return (
                                     <tr key={unit.id} className="hover:bg-gray-50">
