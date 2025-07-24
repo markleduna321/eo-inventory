@@ -13,10 +13,12 @@ import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDeskto
 import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 import { setCurrentStation, clearCurrentStation } from '@/app/redux/slices/stationSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
+import { useLocationRefresh } from '@/app/hooks/useLocationRefresh'
 
 export default function StationsTableSection() {
     const dispatch = useDispatch()
     const { stations, availableMonitors, availableSystemUnits, availablePeripherals, locations, loading, error } = useSelector(state => state.stations)
+    const { refreshLocations } = useLocationRefresh()
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
@@ -170,12 +172,20 @@ export default function StationsTableSection() {
                 id: editFormData.id, 
                 data: editFormData 
             })).unwrap()
-            
+
             setAlert({
                 show: true,
                 type: 'success',
                 message: 'Station updated successfully!'
             })
+
+            // Refresh stations and available assets to update UI
+            await dispatch(fetchStations())
+            await dispatch(fetchAvailableMonitors())
+            await dispatch(fetchAvailableSystemUnits())
+            await dispatch(fetchAvailablePeripherals())
+            dispatch(fetchStationLocations())
+            refreshLocations()
             handleCloseEdit()
         } catch (error) {
             console.error('Update error:', error)
@@ -203,6 +213,9 @@ export default function StationsTableSection() {
                 type: 'success',
                 message: 'Station deleted successfully!'
             })
+            // Refresh locations to update capacity counts
+            dispatch(fetchStationLocations())
+            refreshLocations()
         } catch (error) {
             setAlert({
                 show: true,
@@ -515,13 +528,25 @@ export default function StationsTableSection() {
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 <div className="flex items-center">
                                                     <ComputerDesktopIcon className="w-4 h-4 mr-1" />
-                                                    <span>{station.monitors_count || 0} monitors</span>
+                                                    <span>{
+                                                        Array.isArray(station.station_assets)
+                                                            ? station.station_assets.filter(a => a.asset_type === 'monitor' && a.unassigned_at === null).length
+                                                            : (station.monitors_count || 0)
+                                                    } monitors</span>
                                                 </div>
                                                 <div className="flex items-center text-xs text-gray-400">
-                                                    <span>{station.system_units_count || 0} system units</span>
+                                                    <span>{
+                                                        Array.isArray(station.station_assets)
+                                                            ? station.station_assets.filter(a => a.asset_type === 'system_unit' && a.unassigned_at === null).length
+                                                            : (station.system_units_count || 0)
+                                                    } system units</span>
                                                 </div>
                                                 <div className="text-xs text-gray-400">
-                                                    {station.assets_count || 0} total assets
+                                                    {
+                                                        Array.isArray(station.station_assets)
+                                                            ? station.station_assets.filter(a => a.unassigned_at === null).length
+                                                            : (station.assets_count || 0)
+                                                    } total assets
                                                 </div>
                                             </td>
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">

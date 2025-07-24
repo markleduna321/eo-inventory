@@ -107,6 +107,9 @@ class SystemUnitController extends Controller
     {
         $validated = $request->validate([
             'system_name' => 'sometimes|string|max:255',
+            'unit_type' => 'sometimes|in:pre_built,custom_built',
+            'brand' => 'nullable|string|max:255',
+            'model' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'operating_system' => 'nullable|string|max:255',
             'status' => 'sometimes|in:available,assigned,maintenance,retired',

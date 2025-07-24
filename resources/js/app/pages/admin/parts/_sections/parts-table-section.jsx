@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
+import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
+import Alert from '@/app/pages/components/alert'
 import InputTextComponent from '@/app/pages/components/input-text-component'
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { ChevronDownIcon, ChevronUpIcon, EyeIcon, PlusIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline'
 
 export default function PartsTableSection() {
     const [parts, setParts] = useState([])
@@ -40,6 +42,20 @@ export default function PartsTableSection() {
         items: []
     })
 
+    // Delete Modal
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [deleteId, setDeleteId] = useState(null)
+
+    // Alert state
+    const [alert, setAlert] = useState({
+        show: false,
+        type: '',
+        message: ''
+    })
+
+    // Current user state
+    const [currentUser, setCurrentUser] = useState('')
+
     const fetchParts = async () => {
         try {
             const response = await fetch('/api/parts', {
@@ -56,8 +72,26 @@ export default function PartsTableSection() {
         }
     }
 
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await fetch('/api/user', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Accept': 'application/json'
+                }
+            })
+            if (response.ok) {
+                const user = await response.json()
+                setCurrentUser(user.name)
+            }
+        } catch (error) {
+            console.error('Failed to fetch current user:', error)
+        }
+    }
+
     useEffect(() => {
         fetchParts()
+        fetchCurrentUser()
     }, [])
 
     const openDetailsModal = async (part) => {
@@ -111,6 +145,50 @@ export default function PartsTableSection() {
         })
     }
 
+    const handleDelete = (partId) => {
+        setDeleteId(partId)
+        setIsDeleteModalOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        try {
+            const response = await fetch(`/api/parts/${deleteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                }
+            })
+            
+            if (response.ok) {
+                fetchParts() // Refresh the parts list
+                setAlert({
+                    show: true,
+                    type: 'success',
+                    message: 'Part deleted successfully!'
+                })
+                setIsDeleteModalOpen(false)
+                setDeleteId(null)
+            } else {
+                const errorData = await response.json()
+                console.error('Failed to delete part:', errorData)
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Failed to delete part. Please try again.'
+                })
+            }
+        } catch (error) {
+            console.error('Error deleting part:', error)
+            setAlert({
+                show: true,
+                type: 'error',
+                message: 'An error occurred while deleting the part.'
+            })
+        }
+    }
+
     const handleStockSubmit = async (e) => {
         e.preventDefault()
         
@@ -128,14 +206,14 @@ export default function PartsTableSection() {
                     supplier: stockFormData.supplier,
                     delivery_date: stockFormData.delivery_date,
                     notes: stockFormData.notes,
-                    received_by: 'current_user', // You might want to get this from auth user
+                    received_by: currentUser, // You might want to get this from auth user
                     items: stockFormData.items
                 }
                 : {
                     quantity: actualQuantity,
                     reason: 'manual', // You might want to add a reason field
                     notes: stockFormData.notes,
-                    removed_by: 'current_user' // You might want to get this from auth user
+                    removed_by: currentUser // You might want to get this from auth user
                 }
                 
             const response = await fetch(endpoint, {
@@ -151,15 +229,27 @@ export default function PartsTableSection() {
             if (response.ok) {
                 closeStockModal()
                 fetchParts() // Refresh the parts list
-                alert(`Stock ${stockAction === 'add' ? 'added' : 'removed'} successfully!`)
+                setAlert({
+                    show: true,
+                    type: 'success',
+                    message: `Stock ${stockAction === 'add' ? 'added' : 'removed'} successfully!`
+                })
             } else {
                 const errorData = await response.json()
                 console.error('Failed to update stock:', errorData)
-                alert('Failed to update stock. Please try again.')
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Failed to update stock. Please try again.'
+                })
             }
         } catch (error) {
             console.error('Error updating stock:', error)
-            alert('An error occurred while updating stock.')
+            setAlert({
+                show: true,
+                type: 'error',
+                message: 'An error occurred while updating stock.'
+            })
         }
     }
 
@@ -349,6 +439,15 @@ export default function PartsTableSection() {
 
     return (
         <div className="space-y-6">
+            {/* Alert */}
+            {alert.show && (
+                <Alert
+                    type={alert.type}
+                    message={alert.message}
+                    onClose={() => setAlert({ show: false, type: '', message: '' })}
+                />
+            )}
+            
             {/* Header with Export Button */}
             <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-gray-900">Parts Inventory</h2>
@@ -673,19 +772,30 @@ export default function PartsTableSection() {
                                                 <div className="flex gap-2">
                                                     <Button
                                                         type="button"
-                                                        variant="outline"
-                                                        size="xs"
+                                                        variant="primary"
+                                                        size="sm"
                                                         onClick={() => openDetailsModal(part)}
+                                                        title="View Details"
                                                     >
-                                                        View
+                                                        <EyeIcon className="h-4 w-4" />
                                                     </Button>
                                                     <Button
                                                         type="button"
-                                                        variant="primary"
-                                                        size="xs"
+                                                        variant="success"
+                                                        size="sm"
                                                         onClick={() => openStockModal(part)}
+                                                        title="Manage Stock"
                                                     >
-                                                        Stock
+                                                        <PlusIcon className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="danger"
+                                                        size="sm"
+                                                        onClick={() => handleDelete(part.id)}
+                                                        title="Delete"
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </td>
@@ -1165,6 +1275,15 @@ export default function PartsTableSection() {
                     </div>
                 )}
             </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <DeleteConfirmationModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Part"
+                message="Are you sure you want to delete this part? This action cannot be undone."
+            />
         </div>
     )
 }

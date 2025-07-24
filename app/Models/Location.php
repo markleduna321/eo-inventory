@@ -30,7 +30,13 @@ class Location extends Model
         'current_items' => 'integer'
     ];
 
-    // Relationships - Using string matching for now since foreign keys may not be set up
+    // Relationships
+    public function stations()
+    {
+        return $this->hasMany(Station::class);
+    }
+
+    // Using string matching for now since foreign keys may not be set up
     public function devices()
     {
         return $this->hasMany(Device::class)->where('location', $this->name);

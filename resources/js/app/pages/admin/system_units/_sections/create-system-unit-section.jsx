@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { usePage } from '@inertiajs/react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 
 export default function CreateSystemUnitSection() {
+    const { auth } = usePage().props
     const [isModalOpen, setModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [availableParts, setAvailableParts] = useState([])
@@ -19,13 +21,12 @@ export default function CreateSystemUnitSection() {
         status: 'available',
         location: '',
         assigned_to: '',
-        received_by: 'current_user',
+        received_by: auth?.user?.name || '',
         purchase_price: '',
         supplier: '',
         purchase_date: new Date().toISOString().split('T')[0],
         warranty_expiry: '',
         notes: '',
-        
         // For pre-built units
         specifications: {
             cpu: '',
@@ -36,7 +37,6 @@ export default function CreateSystemUnitSection() {
             psu: '',
             case: ''
         },
-        
         // For custom-built units
         components: []
     })
@@ -59,7 +59,7 @@ export default function CreateSystemUnitSection() {
             status: 'available',
             location: '',
             assigned_to: '',
-            received_by: 'current_user',
+            received_by: auth?.user?.name || '',
             purchase_price: '',
             supplier: '',
             purchase_date: new Date().toISOString().split('T')[0],
@@ -78,6 +78,50 @@ export default function CreateSystemUnitSection() {
         })
     }
 
+    const fetchCurrentUser = async () => {
+        try {
+            // Get CSRF token safely
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            
+            const headers = {
+                'Accept': 'application/json'
+            };
+
+            // Only add CSRF token if it exists
+            if (csrfToken) {
+                headers['X-CSRF-TOKEN'] = csrfToken;
+            }
+
+            const response = await fetch('/current-user', {
+                headers: headers,
+                credentials: 'same-origin'
+            })
+            if (response.ok) {
+                const user = await response.json()
+                setCurrentUser(user)
+                // Update received_by in form data
+                setFormData(prev => ({
+                    ...prev,
+                    received_by: user.name || ''
+                }))
+            } else if (response.status === 401) {
+                console.warn('User not authenticated, received_by will be empty')
+                // Set a default value or leave it empty
+                setFormData(prev => ({
+                    ...prev,
+                    received_by: 'System User'
+                }))
+            }
+        } catch (error) {
+            console.error('Error fetching current user:', error)
+            // Fallback: set a default value
+            setFormData(prev => ({
+                ...prev,
+                received_by: 'System User'
+            }))
+        }
+    }
+
     const fetchAvailableParts = async () => {
         try {
             const response = await fetch('/api/system-units/available-parts', {
@@ -91,6 +135,11 @@ export default function CreateSystemUnitSection() {
             console.error('Error fetching available parts:', error)
         }
     }
+
+    useEffect(() => {
+        // Fetch current user on component mount
+        fetchCurrentUser()
+    }, [])
 
     useEffect(() => {
         if (isModalOpen && formData.unit_type === 'custom_built') {
@@ -561,6 +610,15 @@ export default function CreateSystemUnitSection() {
                                     onChange={(e) => handleInputChange('notes', e.target.value)}
                                 />
                             </div>
+
+                            {/* Hidden field for received_by (controlled) */}
+                            <InputTextComponent
+                                id="received_by"
+                                name="received_by"
+                                type="hidden"
+                                value={formData.received_by}
+                                onChange={e => setFormData(prev => ({ ...prev, received_by: e.target.value }))}
+                            />
                         </form>
                     </div>
 

@@ -1,1 +1,0 @@
-import{j as r}from"./app-Ck2JE5eQ.js";import t from"./layout-DDfHIhuk.js";import"./ChevronDownIcon-DB6fAHc4.js";import"./transition-DZrQD4Ti.js";import"./XMarkIcon-DSqm5RXl.js";import"./UserCircleIcon-Bt0LGjEL.js";import"./ComputerDesktopIcon-BG4f-HR3.js";import"./MapPinIcon-Bgy7VQRy.js";function a(){return r.jsx(t,{children:"AdminProductsPage"})}export{a as default};

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
+import { usePage } from '@inertiajs/react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 
 export default function CreatePartsSection() {
+    const { auth } = usePage().props
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [partTypes, setPartTypes] = useState([])
@@ -22,7 +24,7 @@ export default function CreatePartsSection() {
         invoice_number: '',
         delivery_date: new Date().toISOString().split('T')[0],
         delivery_notes: '',
-        received_by: 'current_user',
+        received_by: auth?.user?.name || '',
         // For individual items
         items: []
     })
@@ -73,7 +75,7 @@ export default function CreatePartsSection() {
             invoice_number: '',
             delivery_date: new Date().toISOString().split('T')[0],
             delivery_notes: '',
-            received_by: 'current_user',
+            received_by: auth?.user?.name || '',
             items: []
         })
         setSpecFields([])
@@ -272,6 +274,14 @@ export default function CreatePartsSection() {
                     {/* Scrollable Content */}
                     <div className="flex-1 overflow-y-auto px-4 sm:px-6">
                         <form id="create-part-form" className="space-y-4 py-4" onSubmit={handleSubmit}>
+                            {/* Hidden received_by field */}
+                            <InputTextComponent
+                                type="hidden"
+                                id="received_by"
+                                name="received_by"
+                                value={formData.received_by}
+                                readOnly
+                            />
                                     {/* Basic Information */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>

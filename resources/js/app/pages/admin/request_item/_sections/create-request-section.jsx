@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import SelectComponent from '@/app/pages/components/input-select'
@@ -6,6 +6,28 @@ import InputTextComponent from '@/app/pages/components/input-text-component'
 
 export default function CreateRequestSection() {
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [currentUser, setCurrentUser] = useState('')
+
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await fetch('/api/user', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Accept': 'application/json'
+                }
+            })
+            if (response.ok) {
+                const user = await response.json()
+                setCurrentUser(user.name)
+            }
+        } catch (error) {
+            console.error('Failed to fetch current user:', error)
+        }
+    }
+
+    useEffect(() => {
+        fetchCurrentUser()
+    }, [])
 
     const openModal = () => setIsModalOpen(true)
     const closeModal = () => setIsModalOpen(false)
@@ -205,7 +227,7 @@ export default function CreateRequestSection() {
                                     </div>
 
                                     {/* Hidden field for created_by - will be set to current user */}
-                                    <input type="hidden" name="created_by" value="current_user" />
+                                    <input type="hidden" name="created_by" value={currentUser} />
                                 </form>
                             </div>
 
