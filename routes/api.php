@@ -9,6 +9,7 @@ use App\Http\Controllers\StationController;
 use App\Http\Controllers\PeripheralController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\SystemUnitController;
+use App\Http\Controllers\SystemUnitStatsController;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,7 @@ Route::post('parts/{part}/items/{item}/return', [PartController::class, 'returnI
 Route::apiResource('parts', PartController::class);
 
 // System Unit management routes
+Route::get('system-units/stats', [SystemUnitStatsController::class, 'index']);
 Route::get('system-units/available-parts', [SystemUnitController::class, 'getAvailableParts']);
 Route::get('system-units/with-qr', [SystemUnitController::class, 'indexWithQr']);
 Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCode']);

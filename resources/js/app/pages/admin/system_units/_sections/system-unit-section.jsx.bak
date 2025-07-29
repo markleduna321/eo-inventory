@@ -17,11 +17,11 @@ export default function SystemUnitTableSection() {
     // Modal states
     const [selectedUnit, setSelectedUnit] = useState(null)
     const [detailsModalOpen, setDetailsModalOpen] = useState(false)
-    const [editModalOpen, setEditModalOpen] = useState(false) // Added edit modal state
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [scannerModalOpen, setScannerModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
+    const [activeTab, setActiveTab] = useState('details') // 'details' or 'edit'
     
     // Edit form state
     const [editForm, setEditForm] = useState({
@@ -108,11 +108,7 @@ export default function SystemUnitTableSection() {
     const openDetailsModal = (unit) => {
         setSelectedUnit(unit)
         setDetailsModalOpen(true)
-    }
-    
-    const handleEditClick = (unit) => {
-        setSelectedUnit(unit)
-        setEditModalOpen(true)
+        setActiveTab('details')
         
         // Initialize edit form with current unit values
         setEditForm({
@@ -132,11 +128,7 @@ export default function SystemUnitTableSection() {
     const closeDetailsModal = () => {
         setSelectedUnit(null)
         setDetailsModalOpen(false)
-    }
-    
-    const closeEditModal = () => {
-        setSelectedUnit(null)
-        setEditModalOpen(false)
+        setActiveTab('details') // Reset to details tab on close
     }
     
     const handleEditSubmit = async (e) => {
@@ -180,8 +172,8 @@ export default function SystemUnitTableSection() {
                 // Show success message
                 alert('System unit updated successfully!');
                 
-                // Close the edit modal
-                setEditModalOpen(false)
+                // Switch back to details tab
+                setActiveTab('details')
             } else {
                 const errorData = await response.json()
                 console.error('Failed to update system unit:', errorData)
@@ -191,6 +183,7 @@ export default function SystemUnitTableSection() {
             console.error('Error updating system unit:', err)
             alert('Error updating system unit: ' + err.message)
         }
+    }
     }
 
     const openAssignModal = (unit) => {
@@ -703,15 +696,6 @@ export default function SystemUnitTableSection() {
                                                 )}
                                                 <Button
                                                     type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => handleEditClick(unit)}
-                                                    title="Edit Unit"
-                                                >
-                                                    <PencilIcon className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
                                                     variant="danger"
                                                     size="sm"
                                                     onClick={() => handleDeleteClick(unit.id)}
@@ -743,22 +727,49 @@ export default function SystemUnitTableSection() {
                                     System Unit Details - {selectedUnit.system_name}
                                 </h3>
                                 
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">ID:</span> #{selectedUnit.id}</div>
-                                                <div><span className="font-medium">Serial Number:</span> {selectedUnit.serial_number}</div>
-                                                <div><span className="font-medium">System Name:</span> {selectedUnit.system_name}</div>
-                                                <div><span className="font-medium">Type:</span> {getUnitTypeBadge(selectedUnit.unit_type)}</div>
-                                                {selectedUnit.brand && <div><span className="font-medium">Brand:</span> {selectedUnit.brand}</div>}
-                                                {selectedUnit.model && <div><span className="font-medium">Model:</span> {selectedUnit.model}</div>}
-                                                <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
-                                                <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
-                                                <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
+                                {/* Tab Navigation */}
+                                <div className="border-b border-gray-200 mb-4">
+                                    <nav className="-mb-px flex space-x-8">
+                                        <button
+                                            className={`${
+                                                activeTab === 'details'
+                                                    ? 'border-blue-500 text-blue-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                                            onClick={() => setActiveTab('details')}
+                                        >
+                                            Details
+                                        </button>
+                                        <button
+                                            className={`${
+                                                activeTab === 'edit'
+                                                    ? 'border-blue-500 text-blue-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
+                                            onClick={() => setActiveTab('edit')}
+                                        >
+                                            Edit
+                                        </button>
+                                    </nav>
+                                </div>
+                                
+                                {activeTab === 'details' && (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    <div><span className="font-medium">ID:</span> #{selectedUnit.id}</div>
+                                                    <div><span className="font-medium">Serial Number:</span> {selectedUnit.serial_number}</div>
+                                                    <div><span className="font-medium">System Name:</span> {selectedUnit.system_name}</div>
+                                                    <div><span className="font-medium">Type:</span> {getUnitTypeBadge(selectedUnit.unit_type)}</div>
+                                                    {selectedUnit.brand && <div><span className="font-medium">Brand:</span> {selectedUnit.brand}</div>}
+                                                    {selectedUnit.model && <div><span className="font-medium">Model:</span> {selectedUnit.model}</div>}
+                                                    <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
+                                                    <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
+                                                    <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
+                                                </div>
                                             </div>
-                                        </div>
 
                                         <div>
                                             <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
@@ -895,134 +906,6 @@ export default function SystemUnitTableSection() {
                                         Close
                                     </Button>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </Modal>
-
-            {/* Edit Modal */}
-            <Modal isOpen={editModalOpen} onClose={closeEditModal}>
-                {selectedUnit && (
-                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div className="sm:flex sm:items-start">
-                            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    Edit System Unit - {selectedUnit.system_name}
-                                </h3>
-                                
-                                <form onSubmit={handleEditSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="system_name" className="block text-sm font-medium text-gray-700">System Name</label>
-                                            <InputTextComponent
-                                                id="system_name"
-                                                value={editForm.system_name}
-                                                onChange={(e) => setEditForm({...editForm, system_name: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="serial_number" className="block text-sm font-medium text-gray-700">Serial Number</label>
-                                            <InputTextComponent
-                                                id="serial_number"
-                                                value={editForm.serial_number}
-                                                onChange={(e) => setEditForm({...editForm, serial_number: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand</label>
-                                            <InputTextComponent
-                                                id="brand"
-                                                value={editForm.brand}
-                                                onChange={(e) => setEditForm({...editForm, brand: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="model" className="block text-sm font-medium text-gray-700">Model</label>
-                                            <InputTextComponent
-                                                id="model"
-                                                value={editForm.model}
-                                                onChange={(e) => setEditForm({...editForm, model: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="operating_system" className="block text-sm font-medium text-gray-700">Operating System</label>
-                                            <InputTextComponent
-                                                id="operating_system"
-                                                value={editForm.operating_system}
-                                                onChange={(e) => setEditForm({...editForm, operating_system: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
-                                            <SelectComponent
-                                                id="status"
-                                                value={editForm.status}
-                                                onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                                                options={[
-                                                    { value: 'available', label: 'Available' },
-                                                    { value: 'assigned', label: 'Assigned' }
-                                                ]}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location</label>
-                                            <InputTextComponent
-                                                id="location"
-                                                value={editForm.location}
-                                                onChange={(e) => setEditForm({...editForm, location: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-
-                                        <div className="col-span-2">
-                                            <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-                                            <textarea
-                                                id="description"
-                                                rows={3}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                                value={editForm.description || ''}
-                                                onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                                            />
-                                        </div>
-
-                                        <div className="col-span-2">
-                                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes</label>
-                                            <textarea
-                                                id="notes"
-                                                rows={2}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                                value={editForm.notes || ''}
-                                                onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="pt-4 flex justify-end space-x-3">
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={closeEditModal}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            variant="primary"
-                                        >
-                                            Save Changes
-                                        </Button>
-                                    </div>
-                                </form>
                             </div>
                         </div>
                     </div>
