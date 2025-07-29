@@ -15,6 +15,8 @@ export default function DeviceTableSection() {
     const [editingDevice, setEditingDevice] = useState(null)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
+    const [viewingDevice, setViewingDevice] = useState(null)
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
 
     // Filter configuration
     const searchableFields = ['serial_number', 'device_type', 'brand', 'model', 'operating_system', 'issued_to', 'received_by']
@@ -65,6 +67,16 @@ export default function DeviceTableSection() {
     useEffect(() => {
         dispatch(get_devices_thunk())
     }, [dispatch])
+
+    const handleViewDetails = (device) => {
+        setViewingDevice(device)
+        setIsDetailsModalOpen(true)
+    }
+
+    const handleCloseDetails = () => {
+        setViewingDevice(null)
+        setIsDetailsModalOpen(false)
+    }
 
     const handleEdit = (device) => {
         setEditingDevice(device)
@@ -193,6 +205,9 @@ export default function DeviceTableSection() {
                                         Status
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Price
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                         Issued To
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -206,7 +221,7 @@ export default function DeviceTableSection() {
                             <tbody className="divide-y divide-gray-200 bg-white">
                                 {filteredData.length === 0 ? (
                                     <tr>
-                                        <td colSpan="9" className="text-center py-8 text-gray-500">
+                                        <td colSpan="10" className="text-center py-8 text-gray-500">
                                             {filterStats.isFiltered ? 'No devices match your search criteria' : 'No devices found'}
                                         </td>
                                     </tr>
@@ -232,6 +247,9 @@ export default function DeviceTableSection() {
                                                 {getStatusBadge(device.status)}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.price ? `$${parseFloat(device.price).toFixed(2)}` : '-'}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {device.issued_to || 'Not Issued'}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
@@ -239,6 +257,15 @@ export default function DeviceTableSection() {
                                             </td>
                                             <td className="relative py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
                                                 <div className="flex gap-2 justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="info"
+                                                        size="sm"
+                                                        onClick={() => handleViewDetails(device)}
+                                                        title="View Details"
+                                                    >
+                                                        <EyeIcon className="h-4 w-4" />
+                                                    </Button>
                                                     <Button
                                                         type="button"
                                                         variant="primary"
@@ -274,6 +301,115 @@ export default function DeviceTableSection() {
                     editDevice={editingDevice} 
                     onClose={handleCloseEdit}
                 />
+            )}
+
+            {/* View Details Modal */}
+            {isDetailsModalOpen && viewingDevice && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                    <div className="relative top-20 mx-auto p-5 border shadow-lg rounded-md bg-white max-w-2xl">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-medium text-gray-900">Device Details</h3>
+                            <button
+                                type="button"
+                                onClick={handleCloseDetails}
+                                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+                            >
+                                <span className="sr-only">Close</span>
+                                <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="mt-2 bg-gray-50 p-4 rounded-md">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Serial Number</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.serial_number || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Device Type</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.device_type || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Brand</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.brand || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Model</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.model || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Operating System</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.operating_system || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Status</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.status || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Issued To</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.issued_to || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Received By</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.received_by || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Price</p>
+                                    <p className="mt-1 text-sm text-gray-900">${parseFloat(viewingDevice.price || 0).toFixed(2)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Purchase Date</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.purchase_date || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">Warranty Expiry</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.warranty_expiry || 'N/A'}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">Specifications</h4>
+                                <div className="bg-white p-3 rounded-md shadow-sm">
+                                    {viewingDevice.specifications ? (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-500">CPU</p>
+                                                <p className="mt-1 text-sm text-gray-900">{viewingDevice.specifications.cpu || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-500">RAM</p>
+                                                <p className="mt-1 text-sm text-gray-900">{viewingDevice.specifications.ram || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-500">Storage</p>
+                                                <p className="mt-1 text-sm text-gray-900">{viewingDevice.specifications.storage || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-500">GPU</p>
+                                                <p className="mt-1 text-sm text-gray-900">{viewingDevice.specifications.gpu || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-500">No specifications available</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="md"
+                                    onClick={handleCloseDetails}
+                                >
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Delete Confirmation Modal */}

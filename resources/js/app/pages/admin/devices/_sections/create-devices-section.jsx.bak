@@ -40,6 +40,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
 
   const openModal = () => setModalOpen(true);
   const closeModal = () => {
+    const closeModal = () => {
     setModalOpen(false);
     setFormData({
       serial_number: '',
@@ -69,40 +70,18 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
   // Pre-fill form when editing
   useEffect(() => {
     if (editDevice) {
-      // Ensure specifications is an object
-      let specs = editDevice.specifications;
-      
-      // Handle string JSON that might need parsing
-      if (typeof specs === 'string') {
-        try {
-          specs = JSON.parse(specs);
-        } catch (e) {
-          specs = {
-            cpu: '',
-            ram: '',
-            storage: '',
-            gpu: '',
-          };
-        }
-      }
-      
-      // If specs is null or undefined, use default
-      if (!specs) {
-        specs = {
-          cpu: '',
-          ram: '',
-          storage: '',
-          gpu: '',
-        };
-      }
-      
       setFormData({
         serial_number: editDevice.serial_number || '',
         device_type: editDevice.device_type || '',
         brand: editDevice.brand || '',
         model: editDevice.model || '',
         operating_system: editDevice.operating_system || '',
-        specifications: specs,
+        specifications: editDevice.specifications || {
+          cpu: '',
+          ram: '',
+          storage: '',
+          gpu: '',
+        },
         price: editDevice.price || '',
         purchase_date: editDevice.purchase_date || '',
         warranty_expiry: editDevice.warranty_expiry || '',
@@ -124,32 +103,8 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
 
   // Handle form errors
   useEffect(() => {
-    if (error) {
-      console.log('Error received:', error);
-      try {
-        if (typeof error === 'object' && error !== null) {
-          if (error.errors) {
-            // Handle validation errors object
-            setErrors(error.errors);
-          } else if (error.message) {
-            // Handle error object with message
-            setErrors({ general: [error.message] });
-          } else {
-            // Handle other objects by safely stringifying
-            const errorMsg = JSON.stringify(error);
-            setErrors({ general: [errorMsg] });
-          }
-        } else if (typeof error === 'string') {
-          // Handle string error
-          setErrors({ general: [error] });
-        } else {
-          // Fallback for any other type
-          setErrors({ general: ['An unknown error occurred'] });
-        }
-      } catch (e) {
-        // Safety net in case of JSON circular reference or other stringification errors
-        setErrors({ general: ['An error occurred while processing the response'] });
-      }
+    if (error && error.errors) {
+      setErrors(error.errors);
     }
   }, [error]);
 
@@ -177,65 +132,23 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
-        [name]: null
+        [name]: undefined
       }));
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrors({});
     
-    // Make a safe copy of formData to avoid any reference issues
-    const safeData = {...formData};
-    
-    // Format date fields correctly - handle empty strings and convert to proper format
-    if (!safeData.purchase_date || safeData.purchase_date === '') {
-      safeData.purchase_date = null;
-    }
-    
-    if (!safeData.warranty_expiry || safeData.warranty_expiry === '') {
-      safeData.warranty_expiry = null;
-    }
-    
-    // Ensure specifications is properly formatted
-    if (safeData.specifications) {
-      // Clean up empty specification values
-      const cleanedSpecs = {};
-      Object.entries(safeData.specifications).forEach(([key, value]) => {
-        // Only keep non-empty values
-        if (value && value.trim() !== '') {
-          cleanedSpecs[key] = value.trim();
-        }
-      });
-      
-      // If all specs are empty, send an empty object instead of null
-      safeData.specifications = Object.keys(cleanedSpecs).length > 0 
-        ? cleanedSpecs 
-        : {};
+    if (editDevice) {
+      dispatch(update_device_thunk({ id: editDevice.id, deviceData: formData }));
     } else {
-      safeData.specifications = {};
-    }
-    
-    try {
-      if (editDevice) {
-        // Update existing device - fixed to match thunk expectation
-        dispatch(update_device_thunk({
-          id: editDevice.id,
-          deviceData: safeData
-        }));
-      } else {
-        // Create new device
-        dispatch(create_device_thunk(safeData));
-      }
-    } catch (error) {
-      console.error('Error in form submission:', error);
-      setErrors({ general: ['An unexpected error occurred while submitting the form'] });
+      dispatch(create_device_thunk(formData));
     }
   };
 
-  // Define options for select inputs
   const deviceType = [
-    { value: 'Desktop', label: 'Desktop' },
     { value: 'Laptop', label: 'Laptop' },
     { value: 'MAC', label: 'MAC' },
     { value: 'Mobile Phone', label: 'Mobile Phone' },
@@ -274,14 +187,14 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
         </Button>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} width='w-2/5'>
-        <form onSubmit={handleSubmit} className="w-full">
-          <div className="space-y-4">
-            <div className='mb-2 text-2xl sticky top-0 bg-white pt-2 pb-2 z-10 border-b border-gray-200'>
+      <Modal isOpen={isModalOpen} onClose={closeModal} width='w-1/4'>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <div className=' mb-4 text-2xl'>
               <b>{editDevice ? 'Edit Device' : 'Add a new device'}</b>
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="serial_number" labelText="Serial Number"/>
               <InputTextComponent
                 id="serial_number"
@@ -298,7 +211,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="device_type" labelText="Device Type"/>
               <SelectComponent
                 id="device_type"
@@ -315,7 +228,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="brand" labelText="Brand"/>
               <SelectComponent
                 id="brand"
@@ -332,15 +245,15 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="model" labelText="Model"/>
               <InputTextComponent
                 id="model"
                 name="model" 
                 type="text"
                 value={formData.model}
-                onChange={handleInputChange}
                 required
+                onChange={handleInputChange}
                 />
               {errors.model && (
                 <div className="text-red-500 text-sm mt-1">
@@ -349,7 +262,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="operating_system" labelText="Operating System"/>
               <InputTextComponent
                 id="operating_system"
@@ -365,6 +278,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
             
+            {/* Specifications Section */}
             <div className="mb-3 border rounded-md p-3">
               <h3 className="font-semibold mb-2">Device Specifications</h3>
               
@@ -418,7 +332,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
             </div>
             
             {/* Price field */}
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="price" labelText="Price"/>
               <InputTextComponent
                 id="price"
@@ -438,7 +352,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
             </div>
 
             {/* Purchase Date field */}
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="purchase_date" labelText="Purchase Date"/>
               <InputTextComponent
                 id="purchase_date"
@@ -455,7 +369,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
             </div>
 
             {/* Warranty Expiry field */}
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="warranty_expiry" labelText="Warranty Expiry"/>
               <InputTextComponent
                 id="warranty_expiry"
@@ -471,7 +385,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="status" labelText="Status"/>
               <SelectComponent
                 id="status"
@@ -488,7 +402,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               )}
             </div>
 
-            <div className='mb-3'>
+            <div className=' mb-3'>
               <InputLabelComponent htmlFor="issued_to" labelText="Issued To (Optional)"/>
               <InputTextComponent
                 id="issued_to"
@@ -513,38 +427,30 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               />
 
             {/* General Error Message */}
-            {error && (
+            {error && error.message && (
               <div className="mb-3 text-red-500 text-sm">
-                {typeof error === 'string' 
-                  ? error 
-                  : typeof error === 'object' && error !== null && error.message 
-                    ? error.message 
-                    : errors.general && Array.isArray(errors.general) 
-                      ? errors.general[0] 
-                      : 'An error occurred while saving the device.'}
+                {error.message}
               </div>
             )}
 
-            {/* Buttons - Sticky at bottom */}
-            <div className='sticky bottom-0 bg-white pt-4 border-t border-gray-200 mt-6'>
-              <div className='flex justify-end gap-2'>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  size='md'
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save'}
-                </Button>
+            {/* Buttons */}
+            <div className='flex float-end gap-2 '>
+              <Button
+                type='submit'
+                variant='primary'
+                size='md'
+                disabled={loading}
+              >
+                {loading ? 'Saving...' : 'Save'}
+              </Button>
 
-                <Button
-                  type='button'
-                  variant='danger'
-                  size='md'
-                  onClick={closeModal}>
-                  Cancel
-                </Button>
-              </div>
+              <Button
+                type='button'
+                variant='danger'
+                size='md'
+                onClick={closeModal}>
+                Cancel
+              </Button>
             </div>
           </div>
         </form>

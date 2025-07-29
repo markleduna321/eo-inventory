@@ -84,7 +84,19 @@ const devicesSlice = createSlice({
             })
             .addCase(update_device_thunk.rejected, (state, action) => {
                 state.loading = false;
-                state.error = action.payload;
+                // Handle the error safely, ensuring it's always a primitive value or simple object with string values
+                if (action.payload) {
+                    if (typeof action.payload === 'string') {
+                        state.error = action.payload;
+                    } else if (typeof action.payload === 'object' && action.payload !== null) {
+                        // If it's an object, extract just the message or convert to string
+                        state.error = action.payload.message || JSON.stringify(action.payload);
+                    } else {
+                        state.error = 'Failed to update device';
+                    }
+                } else {
+                    state.error = 'Failed to update device';
+                }
                 state.success = false;
             })
             
