@@ -294,16 +294,24 @@ class PartController extends Controller
     }
 
     /**
-     * Get all items for a specific part.
+     * Get all items of a specific part
      */
     public function getItems(Part $part)
     {
-        $items = $part->items()
-            ->with(['delivery'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
+        $items = $part->items()->get();
         return response()->json($items);
+    }
+    
+    /**
+     * Get the delivery history of a specific part
+     */
+    public function deliveryHistory(Part $part)
+    {
+        $deliveries = $part->deliveries()
+            ->orderBy('delivery_date', 'desc')
+            ->get();
+            
+        return response()->json($deliveries);
     }
 
     /**

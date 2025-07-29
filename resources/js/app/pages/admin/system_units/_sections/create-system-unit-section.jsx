@@ -10,6 +10,22 @@ export default function CreateSystemUnitSection() {
     const [isModalOpen, setModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [availableParts, setAvailableParts] = useState([])
+    const [currentUser, setCurrentUser] = useState({ name: '' })
+    
+    // Get stored username if available (same approach as parts component)
+    const storedUser = localStorage.getItem('userName') || '';
+    const initialUsername = storedUser || auth?.user?.name || 'System User';
+    
+    // If we found a username and it wasn't in localStorage yet, store it
+    if (!storedUser && auth?.user?.name) {
+        localStorage.setItem('userName', auth.user.name);
+    }
+    
+    // Initialize currentUser state
+    useEffect(() => {
+        setCurrentUser({ name: initialUsername });
+    }, [initialUsername]);
+    
     const [formData, setFormData] = useState({
         unit_type: 'pre_built',
         system_name: '',
@@ -21,7 +37,7 @@ export default function CreateSystemUnitSection() {
         status: 'available',
         location: '',
         assigned_to: '',
-        received_by: auth?.user?.name || '',
+        received_by: initialUsername,
         purchase_price: '',
         supplier: '',
         purchase_date: new Date().toISOString().split('T')[0],
@@ -78,47 +94,22 @@ export default function CreateSystemUnitSection() {
         })
     }
 
-    const fetchCurrentUser = async () => {
-        try {
-            // Get CSRF token safely
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            
-            const headers = {
-                'Accept': 'application/json'
-            };
-
-            // Only add CSRF token if it exists
-            if (csrfToken) {
-                headers['X-CSRF-TOKEN'] = csrfToken;
-            }
-
-            const response = await fetch('/current-user', {
-                headers: headers,
-                credentials: 'same-origin'
-            })
-            if (response.ok) {
-                const user = await response.json()
-                setCurrentUser(user)
-                // Update received_by in form data
-                setFormData(prev => ({
-                    ...prev,
-                    received_by: user.name || ''
-                }))
-            } else if (response.status === 401) {
-                console.warn('User not authenticated, received_by will be empty')
-                // Set a default value or leave it empty
-                setFormData(prev => ({
-                    ...prev,
-                    received_by: 'System User'
-                }))
-            }
-        } catch (error) {
-            console.error('Error fetching current user:', error)
-            // Fallback: set a default value
-            setFormData(prev => ({
-                ...prev,
-                received_by: 'System User'
-            }))
+    // We don't need a separate fetchCurrentUser anymore since we're handling
+    // the user data at component initialization and storing it in state
+    const fetchCurrentUser = () => {
+        // This is now redundant but kept for compatibility
+        // The username is already set during component initialization
+        const username = localStorage.getItem('userName') || auth?.user?.name || 'System User';
+        
+        setCurrentUser({ name: username });
+        setFormData(prev => ({
+            ...prev,
+            received_by: username
+        }));
+        
+        // If we have auth data and it's not in localStorage, save it for future use
+        if (auth?.user?.name && !localStorage.getItem('userName')) {
+            localStorage.setItem('userName', auth.user.name);
         }
     }
 
@@ -624,25 +615,30 @@ export default function CreateSystemUnitSection() {
 
                     {/* Fixed Footer */}
                     <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="danger"
-                                size="md"
-                                onClick={closeModal}
-                                disabled={loading}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="primary"
-                                size="md"
-                                disabled={loading}
-                                form="create-system-unit-form"
-                            >
-                                {loading ? 'Saving...' : 'Save System Unit'}
-                            </Button>
+                        <div className="flex justify-between items-center">
+                            <div className="text-sm text-gray-600">
+                                <span className="font-medium">Received by:</span> {formData.received_by || 'System User'}
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="md"
+                                    onClick={closeModal}
+                                    disabled={loading}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="md"
+                                    disabled={loading}
+                                    form="create-system-unit-form"
+                                >
+                                    {loading ? 'Saving...' : 'Save System Unit'}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -65,6 +65,7 @@ Route::apiResource('peripherals', PeripheralController::class);
 // Parts management routes
 Route::get('parts/types', [PartController::class, 'getPartTypes']);
 Route::get('parts/{part}/items', [PartController::class, 'getItems']);
+Route::get('parts/{part}/delivery-history', [PartController::class, 'deliveryHistory']);
 Route::post('parts/{part}/add-stock', [PartController::class, 'addStock']);
 Route::post('parts/{part}/remove-stock', [PartController::class, 'removeStock']);
 Route::post('parts/{part}/items/{item}/assign', [PartController::class, 'assignItem']);

@@ -29,6 +29,18 @@ export default function PartsTableSection() {
     const [detailsModalOpen, setDetailsModalOpen] = useState(false)
     const [selectedPart, setSelectedPart] = useState(null)
     const [partItems, setPartItems] = useState([])
+    const [deliveryHistory, setDeliveryHistory] = useState([])
+    const [activeTab, setActiveTab] = useState('details') // 'details', 'edit', or 'history'
+    const [editForm, setEditForm] = useState({
+        type: '',
+        brand: '',
+        model: '',
+        description: '',
+        specifications: {},
+        location: '',
+        unit_price: '',
+        notes: ''
+    })
     
     // Stock Modal
     const [stockModalOpen, setStockModalOpen] = useState(false)
@@ -72,44 +84,72 @@ export default function PartsTableSection() {
         }
     }
 
-    const fetchCurrentUser = async () => {
-        try {
-            const response = await fetch('/api/user', {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    'Accept': 'application/json'
-                }
-            })
-            if (response.ok) {
-                const user = await response.json()
-                setCurrentUser(user.name)
-            }
-        } catch (error) {
-            console.error('Failed to fetch current user:', error)
+    const getCurrentUser = () => {
+        // Get current user from localStorage or document
+        // This approach prevents the API call that was causing the 401 error
+        const storedUser = localStorage.getItem('userName') || '';
+        if (storedUser) {
+            setCurrentUser(storedUser);
+        } else if (window.Laravel && window.Laravel.user) {
+            // Check if Laravel puts user in window object (common pattern)
+            setCurrentUser(window.Laravel.user.name);
+            // Save for future use
+            localStorage.setItem('userName', window.Laravel.user.name);
+        } else {
+            // Default user name when authentication info isn't available
+            // This prevents null/undefined issues in your code
+            setCurrentUser('System User');
         }
     }
 
     useEffect(() => {
         fetchParts()
-        fetchCurrentUser()
+        getCurrentUser()
     }, [])
 
     const openDetailsModal = async (part) => {
         setSelectedPart(part)
         setDetailsModalOpen(true)
+        setActiveTab('details')
+        
+        // Initialize edit form with part data
+        setEditForm({
+            type: part.type || '',
+            brand: part.brand || '',
+            model: part.model || '',
+            description: part.description || '',
+            specifications: part.specifications || {},
+            location: part.location || '',
+            unit_price: part.unit_price || '',
+            notes: part.notes || ''
+        })
         
         // Fetch individual items for this part
         try {
-            const response = await fetch(`/api/parts/${part.id}/items`, {
+            const itemsResponse = await fetch(`/api/parts/${part.id}/items`, {
                 headers: { 'Accept': 'application/json' }
             })
-            if (response.ok) {
-                const items = await response.json()
+            if (itemsResponse.ok) {
+                const items = await itemsResponse.json()
                 setPartItems(items)
+            } else {
+                setPartItems([])
+            }
+            
+            // Fetch delivery history
+            const historyResponse = await fetch(`/api/parts/${part.id}/delivery-history`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            if (historyResponse.ok) {
+                const history = await historyResponse.json()
+                setDeliveryHistory(history)
+            } else {
+                setDeliveryHistory([])
             }
         } catch (error) {
-            console.error('Error fetching part items:', error)
+            console.error('Error fetching part data:', error)
             setPartItems([])
+            setDeliveryHistory([])
         }
     }
 
@@ -117,6 +157,18 @@ export default function PartsTableSection() {
         setDetailsModalOpen(false)
         setSelectedPart(null)
         setPartItems([])
+        setDeliveryHistory([])
+        setActiveTab('details')
+        setEditForm({
+            type: '',
+            brand: '',
+            model: '',
+            description: '',
+            specifications: {},
+            location: '',
+            unit_price: '',
+            notes: ''
+        })
     }
 
     const openStockModal = (part) => {
@@ -185,6 +237,64 @@ export default function PartsTableSection() {
                 show: true,
                 type: 'error',
                 message: 'An error occurred while deleting the part.'
+            })
+        }
+    }
+    
+    // Handle edit part submission
+    const handleEditSubmit = async (e) => {
+        e.preventDefault()
+        
+        if (!selectedPart) return
+        
+        try {
+            const response = await fetch(`/api/parts/${selectedPart.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                body: JSON.stringify(editForm)
+            })
+            
+            if (response.ok) {
+                const updatedPart = await response.json()
+                
+                // Update the part in the parts list
+                setParts(prev => prev.map(part => 
+                    part.id === updatedPart.id ? updatedPart : part
+                ))
+                
+                // Update the selectedPart
+                setSelectedPart(updatedPart)
+                
+                // Show success message
+                setAlert({
+                    show: true,
+                    type: 'success',
+                    message: 'Part updated successfully!'
+                })
+                
+                // Switch back to details tab
+                setActiveTab('details')
+            } else {
+                const errorData = await response.json()
+                console.error('Failed to update part:', errorData)
+                
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Failed to update part. Please try again.'
+                })
+            }
+        } catch (error) {
+            console.error('Error updating part:', error)
+            
+            setAlert({
+                show: true,
+                type: 'error',
+                message: 'An error occurred while updating the part.'
             })
         }
     }
@@ -936,16 +1046,59 @@ export default function PartsTableSection() {
                 </div>
             )}
             
-            {/* Details Modal */}
+            {/* Details/Edit/History Modal */}
             <Modal isOpen={detailsModalOpen} onClose={closeDetailsModal}>
                 {selectedPart && (
-                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div className="sm:flex sm:items-start">
-                            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    Part Details - {selectedPart.brand} {selectedPart.model}
-                                </h3>
-                                
+                    <div className="bg-white">
+                        {/* Header */}
+                        <div className="px-4 pt-5 pb-3 sm:px-6">
+                            <h3 className="text-lg font-semibold text-gray-900">
+                                {selectedPart.brand} {selectedPart.model}
+                            </h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                View details and delivery history, or edit part information
+                            </p>
+
+                            {/* Tab Navigation */}
+                            <div className="mt-4 border-b border-gray-200">
+                                <nav className="-mb-px flex space-x-8">
+                                    <button
+                                        onClick={() => setActiveTab('details')}
+                                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                            activeTab === 'details'
+                                                ? 'border-indigo-500 text-indigo-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        Details
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('edit')}
+                                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                            activeTab === 'edit'
+                                                ? 'border-indigo-500 text-indigo-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('history')}
+                                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                            activeTab === 'history'
+                                                ? 'border-indigo-500 text-indigo-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        Delivery History
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="px-4 pb-5 sm:px-6">
+                            {activeTab === 'details' && (
                                 <div className="space-y-4">
                                     {/* Basic Information */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1030,7 +1183,141 @@ export default function PartsTableSection() {
                                         )}
                                     </div>
                                 </div>
-                                
+                            )}
+                            
+                            {activeTab === 'edit' && (
+                                <form onSubmit={handleEditSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <InputTextComponent
+                                            label="Type"
+                                            id="type"
+                                            name="type"
+                                            value={editForm.type || ''}
+                                            onChange={(e) => setEditForm({...editForm, type: e.target.value})}
+                                            required
+                                        />
+                                        <InputTextComponent
+                                            label="Brand"
+                                            id="brand"
+                                            name="brand"
+                                            value={editForm.brand || ''}
+                                            onChange={(e) => setEditForm({...editForm, brand: e.target.value})}
+                                            required
+                                        />
+                                        <InputTextComponent
+                                            label="Model"
+                                            id="model"
+                                            name="model"
+                                            value={editForm.model || ''}
+                                            onChange={(e) => setEditForm({...editForm, model: e.target.value})}
+                                            required
+                                        />
+                                        <InputTextComponent
+                                            label="Location"
+                                            id="location"
+                                            name="location"
+                                            value={editForm.location || ''}
+                                            onChange={(e) => setEditForm({...editForm, location: e.target.value})}
+                                            required
+                                        />
+                                        <InputTextComponent
+                                            label="Unit Price ($)"
+                                            id="unit_price"
+                                            name="unit_price"
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.unit_price || ''}
+                                            onChange={(e) => setEditForm({...editForm, unit_price: e.target.value})}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <InputTextComponent
+                                            label="Description"
+                                            id="description"
+                                            name="description"
+                                            value={editForm.description || ''}
+                                            onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                                            multiline={true}
+                                            rows={3}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <InputTextComponent
+                                            label="Notes"
+                                            id="notes"
+                                            name="notes"
+                                            value={editForm.notes || ''}
+                                            onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                                            multiline={true}
+                                            rows={2}
+                                        />
+                                    </div>
+                                    
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <Button type="button" variant="secondary" onClick={() => setActiveTab('details')}>
+                                            Cancel
+                                        </Button>
+                                        <Button type="submit" variant="primary">
+                                            Update Part
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
+                            
+                            {activeTab === 'history' && (
+                                <div className="max-h-96 overflow-y-auto">
+                                    {deliveryHistory.length === 0 ? (
+                                        <p className="text-gray-500 text-center py-8">No delivery history found</p>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {deliveryHistory.map((delivery, index) => (
+                                                <div key={delivery.id || index} className="border rounded-lg p-4 bg-gray-50">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        <div>
+                                                            <h4 className="font-medium text-gray-900 mb-2">Delivery Details</h4>
+                                                            <div className="space-y-1 text-sm">
+                                                                <div><strong>Date:</strong> {new Date(delivery.delivery_date).toLocaleDateString()}</div>
+                                                                <div><strong>Quantity:</strong> {delivery.quantity_delivered}</div>
+                                                                <div><strong>Unit Price:</strong> ${delivery.unit_price ? parseFloat(delivery.unit_price).toFixed(2) : 'N/A'}</div>
+                                                                <div><strong>Total Value:</strong> ${delivery.unit_price ? (parseFloat(delivery.unit_price) * delivery.quantity_delivered).toFixed(2) : 'N/A'}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-medium text-gray-900 mb-2">Purchase Info</h4>
+                                                            <div className="space-y-1 text-sm">
+                                                                <div><strong>Supplier:</strong> {delivery.supplier || 'N/A'}</div>
+                                                                <div><strong>PO Number:</strong> {delivery.purchase_order || 'N/A'}</div>
+                                                                <div><strong>Invoice:</strong> {delivery.invoice_number || 'N/A'}</div>
+                                                                <div><strong>Received By:</strong> {delivery.received_by}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {delivery.notes && (
+                                                        <div className="mt-3">
+                                                            <h4 className="font-medium text-gray-900 mb-1">Notes</h4>
+                                                            <p className="text-sm text-gray-600">{delivery.notes}</p>
+                                                        </div>
+                                                    )}
+                                                    <div className="mt-3 flex items-center justify-between">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                            delivery.delivery_status === 'received' 
+                                                                ? 'bg-green-100 text-green-800' 
+                                                                : 'bg-gray-100 text-gray-800'
+                                                        }`}>
+                                                            {delivery.delivery_status || 'received'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Footer */}
+                            {activeTab !== 'edit' && (
                                 <div className="flex justify-end mt-6">
                                     <Button
                                         type="button"
@@ -1041,7 +1328,7 @@ export default function PartsTableSection() {
                                         Close
                                     </Button>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 )}
