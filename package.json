@@ -28,8 +28,10 @@
         "@reduxjs/toolkit": "^2.3.0",
         "@zxing/browser": "^0.1.5",
         "@zxing/library": "^0.21.3",
+        "chart.js": "^4.5.0",
         "date-fns": "^4.1.0",
         "mui": "^0.0.1",
+        "react-chartjs-2": "^5.3.0",
         "react-redux": "^9.1.2"
     }
 }
