@@ -26,6 +26,11 @@ export default function StationsTableSection() {
     const [editLoading, setEditLoading] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    
+    // Search state for the edit form
+    const [editMonitorSearch, setEditMonitorSearch] = useState("")
+    const [editSystemUnitSearch, setEditSystemUnitSearch] = useState("")
+    const [editPeripheralSearch, setEditPeripheralSearch] = useState("")
 
     // Filter configuration
     const searchableFields = ['name', 'code', 'type', 'department', 'assigned_user', 'location_name']
@@ -159,6 +164,9 @@ export default function StationsTableSection() {
         setEditFormData({})
         setEditErrors({})
         setEditLoading(false)
+        setEditMonitorSearch("")
+        setEditSystemUnitSearch("")
+        setEditPeripheralSearch("")
         dispatch(clearCurrentStation())
     }
 
@@ -238,21 +246,45 @@ export default function StationsTableSection() {
     }
 
     const handleMonitorSelection = (monitorId) => {
-        setEditFormData(prev => ({
-            ...prev,
-            assigned_monitors: prev.assigned_monitors.includes(monitorId)
-                ? prev.assigned_monitors.filter(id => id !== monitorId)
-                : [...prev.assigned_monitors, monitorId]
-        }))
+        setEditFormData(prev => {
+            const isAlreadyAssigned = prev.assigned_monitors.includes(monitorId);
+            
+            // If already assigned, remove it (unbind)
+            if (isAlreadyAssigned) {
+                return {
+                    ...prev,
+                    assigned_monitors: prev.assigned_monitors.filter(id => id !== monitorId)
+                };
+            } 
+            // If not assigned, add it (bind)
+            else {
+                return {
+                    ...prev,
+                    assigned_monitors: [...prev.assigned_monitors, monitorId]
+                };
+            }
+        });
     }
 
     const handleSystemUnitSelection = (systemUnitId) => {
-        setEditFormData(prev => ({
-            ...prev,
-            assigned_system_units: prev.assigned_system_units.includes(systemUnitId)
-                ? [] // If already selected, deselect it (clear array)
-                : [systemUnitId] // If not selected, select only this one (replace array)
-        }))
+        setEditFormData(prev => {
+            const isAlreadyAssigned = prev.assigned_system_units.includes(systemUnitId);
+            
+            // If already selected, deselect it (unbind)
+            if (isAlreadyAssigned) {
+                return {
+                    ...prev,
+                    assigned_system_units: []
+                };
+            } 
+            // If not selected, select only this one (bind)
+            else {
+                return {
+                    ...prev,
+                    assigned_system_units: [systemUnitId]
+                };
+            }
+        });
     }
 
     const handlePeripheralSelection = (peripheralId) => {
@@ -307,22 +339,28 @@ export default function StationsTableSection() {
     // Get all available monitors (including currently assigned ones for editing)
     const allAvailableMonitors = [
         ...availableMonitors,
-        ...(editFormData.monitors || []),
-        ...(editFormData.station_assets || [])
-            .filter(asset => asset.asset_type === 'monitor')
+        ...((editFormData.monitors || []).filter(m => m && m.id)),
+        ...((editFormData.station_assets || [])
+            .filter(asset => asset && asset.asset_type === 'monitor' && asset.monitor)
             .map(asset => asset.monitor)
-            .filter(Boolean)
-    ]
+            .filter(Boolean))
+    ].filter((monitor, index, self) => 
+        // Remove duplicates by ID
+        monitor && monitor.id && index === self.findIndex(m => m.id === monitor.id)
+    )
 
     // Get all available system units (including currently assigned ones for editing)  
     const allAvailableSystemUnits = [
         ...availableSystemUnits,
-        ...(editFormData.system_units || []),
-        ...(editFormData.station_assets || [])
-            .filter(asset => asset.asset_type === 'system_unit')
+        ...((editFormData.system_units || []).filter(su => su && su.id)),
+        ...((editFormData.station_assets || [])
+            .filter(asset => asset && asset.asset_type === 'system_unit' && asset.system_unit)
             .map(asset => asset.system_unit)
-            .filter(Boolean)
-    ]
+            .filter(Boolean))
+    ].filter((systemUnit, index, self) => 
+        // Remove duplicates by ID
+        systemUnit && systemUnit.id && index === self.findIndex(su => su.id === systemUnit.id)
+    )
 
     // Get all available peripherals (including currently assigned ones for editing)  
     const allAvailablePeripherals = [
@@ -408,6 +446,39 @@ export default function StationsTableSection() {
     const assignedMonitorDetails = getAssignedMonitorDetails(editFormData.assigned_monitors || []);
     const assignedSystemUnitDetails = getAssignedSystemUnitDetails(editFormData.assigned_system_units || []);
     const assignedPeripheralDetails = getAssignedPeripheralDetails(editFormData.assigned_peripherals || []);
+
+    // Filter monitors, system units and peripherals based on search
+    const filteredEditMonitors = allAvailableMonitors
+        .filter(monitor => !(editFormData.assigned_monitors || []).includes(monitor.id))
+        .filter(monitor => {
+            const q = editMonitorSearch.toLowerCase();
+            return !q || 
+                monitor.brand?.toLowerCase().includes(q) ||
+                monitor.model?.toLowerCase().includes(q) ||
+                monitor.serial_number?.toLowerCase().includes(q) ||
+                String(monitor.size).includes(q);
+        });
+        
+    const filteredEditSystemUnits = allAvailableSystemUnits
+        .filter(systemUnit => !(editFormData.assigned_system_units || []).includes(systemUnit.id))
+        .filter(systemUnit => {
+            const q = editSystemUnitSearch.toLowerCase();
+            return !q ||
+                systemUnit.brand?.toLowerCase().includes(q) ||
+                systemUnit.model?.toLowerCase().includes(q) ||
+                systemUnit.serial_number?.toLowerCase().includes(q);
+        });
+        
+    const filteredEditPeripherals = allAvailablePeripherals
+        .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
+        .filter(peripheral => {
+            const q = editPeripheralSearch.toLowerCase();
+            return !q ||
+                peripheral.type?.toLowerCase().includes(q) ||
+                peripheral.brand?.toLowerCase().includes(q) ||
+                peripheral.model?.toLowerCase().includes(q) ||
+                peripheral.serial_number?.toLowerCase().includes(q);
+        });
 
     console.log('Assigned monitor details:', assignedMonitorDetails);
     console.log('Assigned system unit details:', assignedSystemUnitDetails);
@@ -830,31 +901,39 @@ export default function StationsTableSection() {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">
                                             Assign Additional Monitors
                                         </label>
+                                        <div className="mb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Search monitors by brand, model, serial number..."
+                                                value={editMonitorSearch}
+                                                onChange={(e) => setEditMonitorSearch(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                            />
+                                        </div>
                                         <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                                            {allAvailableMonitors.filter(monitor => 
-                                                !(editFormData.assigned_monitors || []).includes(monitor.id)
-                                            ).length > 0 ? (
-                                                allAvailableMonitors
-                                                    .filter(monitor => !(editFormData.assigned_monitors || []).includes(monitor.id))
-                                                    .map(monitor => (
-                                                        <div key={monitor.id} className="flex items-center mb-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`edit-monitor-${monitor.id}`}
-                                                                checked={false}
-                                                                onChange={() => handleMonitorSelection(monitor.id)}
-                                                                className="mr-2"
-                                                            />
-                                                            <label htmlFor={`edit-monitor-${monitor.id}`} className="text-sm">
-                                                                {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
-                                                            </label>
-                                                        </div>
-                                                    ))
+                                            {filteredEditMonitors.length > 0 ? (
+                                                filteredEditMonitors.map(monitor => (
+                                                    <div key={monitor.id} className="flex items-center mb-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`edit-monitor-${monitor.id}`}
+                                                            checked={false}
+                                                            onChange={() => handleMonitorSelection(monitor.id)}
+                                                            className="mr-2"
+                                                        />
+                                                        <label htmlFor={`edit-monitor-${monitor.id}`} className="text-sm">
+                                                            {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
+                                                        </label>
+                                                    </div>
+                                                ))
                                             ) : (
                                                 <p className="text-sm text-gray-500">
-                                                    {allAvailableMonitors.length === 0 
-                                                        ? 'No available monitors' 
-                                                        : 'All available monitors are already assigned to this station'
+                                                    {editMonitorSearch 
+                                                        ? 'No monitors match your search criteria' 
+                                                        : (allAvailableMonitors.length === 0 
+                                                            ? 'No available monitors' 
+                                                            : 'All available monitors are already assigned to this station'
+                                                        )
                                                     }
                                                 </p>
                                             )}
@@ -872,6 +951,15 @@ export default function StationsTableSection() {
                                                 : 'Select a system unit to assign to this station'
                                             }
                                         </div>
+                                        <div className="mb-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Search system units by brand, model, serial number..."
+                                                value={editSystemUnitSearch}
+                                                onChange={(e) => setEditSystemUnitSearch(e.target.value)}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                            />
+                                        </div>
                                         <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
                                             <>
                                                 <div className="flex items-center mb-2">
@@ -887,30 +975,29 @@ export default function StationsTableSection() {
                                                         No System Unit
                                                     </label>
                                                 </div>
-                                                {allAvailableSystemUnits
-                                                    .filter(systemUnit => !(editFormData.assigned_system_units || []).includes(systemUnit.id))
-                                                    .map(systemUnit => (
-                                                        <div key={systemUnit.id} className="flex items-center mb-2">
-                                                            <input
-                                                                type="radio"
-                                                                id={`edit-system-unit-${systemUnit.id}`}
-                                                                name="edit-system-unit-selection"
-                                                                checked={false}
-                                                                onChange={() => handleSystemUnitSelection(systemUnit.id)}
-                                                                className="mr-2"
-                                                            />
-                                                            <label htmlFor={`edit-system-unit-${systemUnit.id}`} className="text-sm">
-                                                                {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                {allAvailableSystemUnits
-                                                    .filter(systemUnit => !(editFormData.assigned_system_units || []).includes(systemUnit.id))
-                                                    .length === 0 && (
+                                                {filteredEditSystemUnits.map(systemUnit => (
+                                                    <div key={systemUnit.id} className="flex items-center mb-2">
+                                                        <input
+                                                            type="radio"
+                                                            id={`edit-system-unit-${systemUnit.id}`}
+                                                            name="edit-system-unit-selection"
+                                                            checked={false}
+                                                            onChange={() => handleSystemUnitSelection(systemUnit.id)}
+                                                            className="mr-2"
+                                                        />
+                                                        <label htmlFor={`edit-system-unit-${systemUnit.id}`} className="text-sm">
+                                                            {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                                {filteredEditSystemUnits.length === 0 && (
                                                     <p className="text-sm text-gray-500">
-                                                        {allAvailableSystemUnits.length === 0 
-                                                            ? 'No available system units' 
-                                                            : 'No additional system units available'
+                                                        {editSystemUnitSearch 
+                                                            ? 'No system units match your search criteria' 
+                                                            : (allAvailableSystemUnits.length === 0 
+                                                                ? 'No available system units' 
+                                                                : 'No additional system units available'
+                                                            )
                                                         }
                                                     </p>
                                                 )}
@@ -949,30 +1036,38 @@ export default function StationsTableSection() {
                                                 )}
                                                 
                                                 <h5 className="text-sm font-medium text-gray-700 mb-2">Available Peripherals:</h5>
-                                                {allAvailablePeripherals
-                                                    .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
-                                                    .map(peripheral => (
-                                                        <div key={peripheral.id} className="flex items-center mb-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                id={`edit-peripheral-${peripheral.id}`}
-                                                                name="edit-peripheral-selection"
-                                                                checked={false}
-                                                                onChange={() => handlePeripheralSelection(peripheral.id)}
-                                                                className="mr-2"
-                                                            />
-                                                            <label htmlFor={`edit-peripheral-${peripheral.id}`} className="text-sm">
-                                                                {peripheral.type} - {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
-                                                            </label>
-                                                        </div>
-                                                    ))}
-                                                {allAvailablePeripherals
-                                                    .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
-                                                    .length === 0 && (
+                                                <div className="mb-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Search peripherals by type, brand, model, serial number..."
+                                                        value={editPeripheralSearch}
+                                                        onChange={(e) => setEditPeripheralSearch(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                    />
+                                                </div>
+                                                {filteredEditPeripherals.map(peripheral => (
+                                                    <div key={peripheral.id} className="flex items-center mb-2">
+                                                        <input
+                                                            type="checkbox"
+                                                            id={`edit-peripheral-${peripheral.id}`}
+                                                            name="edit-peripheral-selection"
+                                                            checked={false}
+                                                            onChange={() => handlePeripheralSelection(peripheral.id)}
+                                                            className="mr-2"
+                                                        />
+                                                        <label htmlFor={`edit-peripheral-${peripheral.id}`} className="text-sm">
+                                                            {peripheral.type} - {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                                {filteredEditPeripherals.length === 0 && (
                                                     <p className="text-sm text-gray-500">
-                                                        {allAvailablePeripherals.length === 0 
-                                                            ? 'No available peripherals' 
-                                                            : 'No additional peripherals available'
+                                                        {editPeripheralSearch
+                                                            ? 'No peripherals match your search criteria'
+                                                            : (allAvailablePeripherals.length === 0 
+                                                                ? 'No available peripherals' 
+                                                                : 'No additional peripherals available'
+                                                            )
                                                         }
                                                     </p>
                                                 )}
