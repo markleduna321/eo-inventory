@@ -26,6 +26,10 @@ export default function MonitorTableSection() {
     const [editLoading, setEditLoading] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10 // Number of items to display per page
 
     // Filter configuration
     const searchableFields = ['serial_number', 'brand', 'model', 'size', 'resolution', 'location', 'received_by', 'notes', 'deployment_status', 'station_name']
@@ -162,6 +166,22 @@ export default function MonitorTableSection() {
     useEffect(() => {
         dispatch(fetchMonitors())
     }, [dispatch])
+    
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const paginatedMonitors = filteredData.slice(startIndex, endIndex)
+    
+    // Pagination handler
+    const handlePageChange = (page) => {
+        setCurrentPage(page)
+    }
+    
+    // Reset to first page when filters change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [searchTerm, filters])
 
     const handleEdit = (monitor) => {
         setEditFormData({
@@ -394,7 +414,7 @@ export default function MonitorTableSection() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredData.map((monitor) => (
+                                    paginatedMonitors.map((monitor) => (
                                         <tr key={monitor.id}>
                                             <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-gray-900 sm:pl-6">
                                                 {monitor.serial_number}
@@ -450,9 +470,136 @@ export default function MonitorTableSection() {
                                         </tr>
                                     ))
                                 )}
-            {/* ...pagination controls removed... */}
                             </tbody>
                         </table>
+                        
+                        {/* Pagination */}
+                        {filteredData.length > itemsPerPage && (
+                            <div className="bg-white px-4 py-4 border-t border-gray-200 sm:px-6">
+                                {/* Mobile Pagination */}
+                                <div className="flex-1 flex justify-between items-center sm:hidden">
+                                    <button
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                            currentPage === 1
+                                                ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100'
+                                        }`}
+                                    >
+                                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                        Previous
+                                    </button>
+                                    
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-sm text-gray-700 font-medium">
+                                            Page {currentPage} of {totalPages}
+                                        </span>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className={`relative inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                            currentPage === totalPages
+                                                ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400 active:bg-gray-100'
+                                        }`}
+                                    >
+                                        Next
+                                        <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                {/* Desktop Pagination */}
+                                <div className="hidden sm:flex sm:items-center sm:justify-between">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-1 text-sm text-gray-600">
+                                            <span>Showing</span>
+                                            <span className="font-semibold text-indigo-600">{startIndex + 1}</span>
+                                            <span>to</span>
+                                            <span className="font-semibold text-indigo-600">{Math.min(endIndex, filteredData.length)}</span>
+                                            <span>of</span>
+                                            <span className="font-semibold text-indigo-600">{filteredData.length}</span>
+                                            <span>results</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <nav className="flex items-center space-x-1" aria-label="Pagination">
+                                        {/* Previous Button */}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                                currentPage === 1
+                                                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700'
+                                            }`}
+                                        >
+                                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                            Previous
+                                        </button>
+                                        
+                                        {/* Page Numbers */}
+                                        <div className="flex items-center space-x-1">
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                                                const isCurrentPage = currentPage === page
+                                                const isNearCurrentPage = Math.abs(page - currentPage) <= 2
+                                                const isFirstOrLast = page === 1 || page === totalPages
+                                                
+                                                // Show ellipsis logic
+                                                if (!isNearCurrentPage && !isFirstOrLast) {
+                                                    if (page === currentPage - 3 || page === currentPage + 3) {
+                                                        return (
+                                                            <span key={page} className="px-2 py-1 text-gray-500">
+                                                                ...
+                                                            </span>
+                                                        )
+                                                    }
+                                                    return null
+                                                }
+                                                
+                                                return (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => handlePageChange(page)}
+                                                        className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 transform hover:scale-105 ${
+                                                            isCurrentPage
+                                                                ? 'z-10 bg-indigo-600 text-white shadow-lg border border-indigo-600'
+                                                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700'
+                                                        }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                        
+                                        {/* Next Button */}
+                                        <button
+                                            onClick={() => handlePageChange(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                                currentPage === totalPages
+                                                    ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700'
+                                            }`}
+                                        >
+                                            Next
+                                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </nav>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
