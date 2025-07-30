@@ -164,9 +164,13 @@
                 <div class="border border-gray-200 rounded-lg p-4">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="font-medium text-gray-900">{{ $peripheral->device_type }}</h3>
-                            <p class="text-sm text-gray-500">{{ $peripheral->brand }} {{ $peripheral->model }}</p>
-                            <p class="text-sm text-gray-600">S/N: {{ $peripheral->serial_number }}</p>
+                            <h3 class="font-medium text-gray-900">{{ $peripheral->brand }} {{ $peripheral->model }}</h3>
+                            <div class="flex items-center mt-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 mr-2">
+                                    {{ ucfirst($peripheral->type ?? $peripheral->device_type) }}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">S/N: {{ $peripheral->serial_number }}</p>
                         </div>
                         <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
                             {{ $peripheral->status }}

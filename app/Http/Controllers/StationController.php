@@ -272,9 +272,12 @@ class StationController extends Controller
      */
     public function getAvailableMonitors()
     {
-        $monitors = Monitor::whereDoesntHave('stationAssignment')
-            ->orWhereHas('stationAssignment', function ($query) {
-                $query->whereNotNull('unassigned_at');
+        $monitors = Monitor::where('status', 'working') // Only select monitors with 'working' status
+            ->where(function($query) {
+                $query->whereDoesntHave('stationAssignment')
+                      ->orWhereHas('stationAssignment', function ($q) {
+                          $q->whereNotNull('unassigned_at');
+                      });
             })
             ->orderBy('brand')
             ->orderBy('model')
@@ -288,8 +291,10 @@ class StationController extends Controller
      */
     public function getAvailableSystemUnits()
     {
-        $systemUnits = SystemUnit::where('status', 'available')
-            ->whereDoesntHave('stationAssignment')
+        $systemUnits = SystemUnit::where(function($query) {
+                $query->where('status', 'available')
+                      ->whereDoesntHave('stationAssignment');
+            })
             ->orWhere(function($query) {
                 $query->where('status', 'available')
                       ->whereHas('stationAssignment', function ($subQuery) {

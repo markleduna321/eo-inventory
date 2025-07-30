@@ -386,10 +386,29 @@ export default function CreateStationsSection() {
                                                     checked={formData.assigned_monitors.includes(monitor.id)}
                                                     onChange={() => handleMonitorSelection(monitor.id)}
                                                     className="mr-2"
+                                                    disabled={monitor.status?.toUpperCase() === 'NOT_WORKING' || monitor.deployment_status === 'Out of Service'}
                                                 />
-                                                <label htmlFor={`monitor-${monitor.id}`} className="text-sm">
-                                                    {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
-                                                </label>
+                                                <div className="flex flex-col">
+                                                    <label htmlFor={`monitor-${monitor.id}`} className={`text-sm ${monitor.status?.toUpperCase() === 'NOT_WORKING' || monitor.deployment_status === 'Out of Service' ? 'text-gray-500' : ''}`}>
+                                                        {monitor.brand} {monitor.model} ({monitor.size}") - {monitor.serial_number}
+                                                    </label>
+                                                    <div className="flex items-center mt-1">
+                                                        <span className={`text-xs px-1.5 py-0.5 rounded-full mr-2 ${
+                                                            monitor.status?.toUpperCase() === 'NOT_WORKING' 
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : 'bg-green-100 text-green-800'
+                                                        }`}>
+                                                            {monitor.status?.toUpperCase() || 'WORKING'}
+                                                        </span>
+                                                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                                            monitor.deployment_status === 'Out of Service' 
+                                                                ? 'bg-orange-100 text-orange-800'
+                                                                : 'bg-blue-100 text-blue-800'
+                                                        }`}>
+                                                            {monitor.deployment_status || 'AVAILABLE'}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))
                                     ) : (
@@ -434,10 +453,29 @@ export default function CreateStationsSection() {
                                                         checked={formData.assigned_system_units.includes(systemUnit.id)}
                                                         onChange={() => handleSystemUnitSelection(systemUnit.id)}
                                                         className="mr-2"
+                                                        disabled={systemUnit.status?.toUpperCase() === 'NOT_WORKING' || systemUnit.deployment_status === 'Out of Service'}
                                                     />
-                                                    <label htmlFor={`system-unit-${systemUnit.id}`} className="text-sm">
-                                                        {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
-                                                    </label>
+                                                    <div className="flex flex-col">
+                                                        <label htmlFor={`system-unit-${systemUnit.id}`} className={`text-sm ${systemUnit.status?.toUpperCase() === 'NOT_WORKING' || systemUnit.deployment_status === 'Out of Service' ? 'text-gray-500' : ''}`}>
+                                                            {systemUnit.brand} {systemUnit.model} - {systemUnit.serial_number}
+                                                        </label>
+                                                        <div className="flex items-center mt-1">
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded-full mr-2 ${
+                                                                systemUnit.status?.toUpperCase() === 'NOT_WORKING' 
+                                                                    ? 'bg-red-100 text-red-800'
+                                                                    : 'bg-green-100 text-green-800'
+                                                            }`}>
+                                                                {systemUnit.status?.toUpperCase() || 'WORKING'}
+                                                            </span>
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                                                systemUnit.deployment_status === 'Out of Service' 
+                                                                    ? 'bg-orange-100 text-orange-800'
+                                                                    : 'bg-blue-100 text-blue-800'
+                                                            }`}>
+                                                                {systemUnit.deployment_status || 'AVAILABLE'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </>
