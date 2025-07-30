@@ -131,7 +131,6 @@ export default function CreateStationsSection() {
     const stationTypes = [
         { label: 'Select Station Type', value: '' },
         { label: 'Employee Workstation', value: 'employee' },
-        { label: 'Team Lead Workstation', value: 'team_lead' },
         { label: 'Manager Workstation', value: 'manager' },
         { label: 'Executive Workstation', value: 'executive' },
         { label: 'Hot Desk', value: 'hotdesk' },

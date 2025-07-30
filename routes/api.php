@@ -6,6 +6,7 @@ use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\StationController;
+use App\Http\Controllers\StationHistoryController;
 use App\Http\Controllers\PeripheralController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\SystemUnitController;
@@ -54,6 +55,7 @@ Route::get('stations/qr/{qrCode}', [StationController::class, 'showByQrCode']);
 Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
 Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);
 Route::post('stations/{station}/assign-peripherals', [StationController::class, 'assignPeripherals']);
+Route::get('stations/{station}/history', [StationHistoryController::class, 'index']);
 Route::apiResource('stations', StationController::class);
 
 // Peripheral management routes

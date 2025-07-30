@@ -9,9 +9,11 @@ import SelectComponent from '@/app/pages/components/input-select'
 import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
+import UnbindAssetModal from '@/app/components/UnbindAssetModal'
 import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDesktopIcon, QrCodeIcon } from '@heroicons/react/24/outline'
 import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 import { setCurrentStation, clearCurrentStation } from '@/app/redux/slices/stationSlice'
+import StationHistory from '@/app/components/stations/station-history'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 import { useLocationRefresh } from '@/app/hooks/useLocationRefresh'
 
@@ -23,9 +25,14 @@ export default function StationsTableSection() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
     const [editErrors, setEditErrors] = useState({})
+    const [activeTab, setActiveTab] = useState('details')
     const [editLoading, setEditLoading] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    
+    // Unbind modal state
+    const [isUnbindModalOpen, setIsUnbindModalOpen] = useState(false)
+    const [unbindAsset, setUnbindAsset] = useState({ type: '', id: null, name: '' })
     
     // Search state for the edit form
     const [editMonitorSearch, setEditMonitorSearch] = useState("")
@@ -129,9 +136,9 @@ export default function StationsTableSection() {
         
         setEditFormData({
             ...station,
-            assigned_monitors: assignedMonitors,
-            assigned_system_units: assignedSystemUnits,
-            assigned_peripherals: assignedPeripherals
+            assigned_monitors: assignedMonitors || [],
+            assigned_system_units: assignedSystemUnits || [],
+            assigned_peripherals: assignedPeripherals || []
         })
         setIsEditModalOpen(true)
         setEditErrors({})
@@ -176,11 +183,27 @@ export default function StationsTableSection() {
         console.log('Form submitted', editFormData)
         setEditLoading(true)
         setEditErrors({})
+        
+        // Clean up the edit form data before submission
+        const cleanedFormData = {...editFormData};
+        
+        // Ensure arrays are not empty which causes validation issues
+        if (cleanedFormData.assigned_monitors && cleanedFormData.assigned_monitors.length === 0) {
+            delete cleanedFormData.assigned_monitors;
+        }
+        
+        if (cleanedFormData.assigned_system_units && cleanedFormData.assigned_system_units.length === 0) {
+            delete cleanedFormData.assigned_system_units;
+        }
+        
+        if (cleanedFormData.assigned_peripherals && cleanedFormData.assigned_peripherals.length === 0) {
+            delete cleanedFormData.assigned_peripherals;
+        }
 
         try {
             await dispatch(updateStation({ 
                 id: editFormData.id, 
-                data: editFormData 
+                data: cleanedFormData 
             })).unwrap()
 
             setAlert({
@@ -199,12 +222,33 @@ export default function StationsTableSection() {
             handleCloseEdit()
         } catch (error) {
             console.error('Update error:', error)
-            setEditErrors({ general: error })
-            setAlert({
-                show: true,
-                type: 'error',
-                message: error
-            })
+            
+            // Check for validation errors
+            if (error.response && error.response.data && error.response.data.errors) {
+                setEditErrors(error.response.data.errors);
+                const errorMessages = Object.values(error.response.data.errors).flat().join(', ');
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: `Validation error: ${errorMessages}`
+                });
+            } else if (error.response && error.response.data && error.response.data.message) {
+                // API returned an error message
+                setEditErrors({ general: error.response.data.message });
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: error.response.data.message
+                });
+            } else {
+                // Generic error
+                setEditErrors({ general: error.message || 'An error occurred during update' });
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: error.message || 'An error occurred during update'
+                });
+            }
         } finally {
             setEditLoading(false)
         }
@@ -246,57 +290,283 @@ export default function StationsTableSection() {
         }
     }
 
-    const handleMonitorSelection = (monitorId) => {
-        setEditFormData(prev => {
-            const isAlreadyAssigned = prev.assigned_monitors.includes(monitorId);
+    const handleMonitorSelection = (monitor) => {
+        console.log('Monitor selection called with:', monitor);
+        console.log('Current editFormData.assigned_monitors:', editFormData.assigned_monitors);
+        
+        // Handle both cases: when monitor is an object or just an ID
+        let monitorId;
+        
+        if (typeof monitor === 'object' && monitor !== null) {
+            monitorId = parseInt(monitor.id, 10);
+        } else {
+            // If monitor is directly the ID
+            monitorId = parseInt(monitor, 10);
+        }
+        
+        const assignedMonitors = Array.isArray(editFormData.assigned_monitors) ? editFormData.assigned_monitors : [];
+        
+        // Check if this monitor is already assigned to the station
+        const isAlreadyAssigned = assignedMonitors.includes(monitorId);
+        
+        console.log('Is monitor already assigned?', isAlreadyAssigned);
+        
+        // If already assigned, show unbind modal
+        if (isAlreadyAssigned) {
+            // Find the monitor details if we only have the ID
+            let monitorName = '';
             
-            // If already assigned, remove it (unbind)
-            if (isAlreadyAssigned) {
-                return {
-                    ...prev,
-                    assigned_monitors: prev.assigned_monitors.filter(id => id !== monitorId)
-                };
-            } 
-            // If not assigned, add it (bind)
-            else {
-                return {
-                    ...prev,
-                    assigned_monitors: [...prev.assigned_monitors, monitorId]
-                };
+            if (typeof monitor === 'object' && monitor !== null) {
+                monitorName = monitor.name || `Monitor #${monitorId}`;
+            } else {
+                // Look up the monitor in available monitors
+                const foundMonitor = availableMonitors.find(m => parseInt(m.id, 10) === monitorId);
+                monitorName = foundMonitor ? foundMonitor.name : `Monitor #${monitorId}`;
             }
-        });
+            
+            setUnbindAsset({
+                type: 'monitor',
+                id: monitorId,
+                name: monitorName
+            });
+            setIsUnbindModalOpen(true);
+        } 
+        // If not assigned, add it (bind)
+        else {
+            setEditFormData(prev => ({
+                ...prev,
+                assigned_monitors: [...(prev.assigned_monitors || []), monitorId]
+            }));
+        }
     }
 
-    const handleSystemUnitSelection = (systemUnitId) => {
-        setEditFormData(prev => {
-            const isAlreadyAssigned = prev.assigned_system_units.includes(systemUnitId);
+    const handleSystemUnitSelection = (systemUnit) => {
+        console.log('System unit selection called with:', systemUnit);
+        console.log('Current editFormData.assigned_system_units:', editFormData.assigned_system_units);
+        console.log('Current editFormData.system_units:', editFormData.system_units);
+        
+        // Handle both cases: when systemUnit is an object or just an ID
+        let systemUnitId;
+        
+        if (typeof systemUnit === 'object' && systemUnit !== null) {
+            systemUnitId = parseInt(systemUnit.id, 10);
+        } else {
+            // If systemUnit is directly the ID
+            systemUnitId = parseInt(systemUnit, 10);
+        }
+        
+        // Check if this system unit is already assigned to the station
+        // We're looking only at the assigned_system_units array for the current form state
+        // The system_units array is the full relationship data and shouldn't be used for checking assignment status
+        const isAlreadyAssigned = 
+            Array.isArray(editFormData.assigned_system_units) && 
+            editFormData.assigned_system_units.includes(systemUnitId);
+        
+        console.log('Is system unit already assigned?', isAlreadyAssigned);
+        
+        // If already selected, show unbind modal
+        if (isAlreadyAssigned) {
+            console.log('Setting unbind asset for system unit:', systemUnit);
             
-            // If already selected, deselect it (unbind)
-            if (isAlreadyAssigned) {
-                return {
+            // Find the system unit details if we only have the ID
+            let systemUnitName = '';
+            
+            if (typeof systemUnit === 'object' && systemUnit !== null) {
+                systemUnitName = systemUnit.name || systemUnit.system_name || `System Unit #${systemUnitId}`;
+            } else {
+                // Look up the system unit in available system units
+                const foundSystemUnit = availableSystemUnits.find(su => parseInt(su.id, 10) === systemUnitId);
+                systemUnitName = foundSystemUnit ? (foundSystemUnit.system_name || foundSystemUnit.name) : `System Unit #${systemUnitId}`;
+            }
+            
+            setUnbindAsset({
+                type: 'system_unit', // This must match the controller's expected values
+                id: systemUnitId,
+                name: systemUnitName
+            });
+            setIsUnbindModalOpen(true);
+        } 
+        // If not selected, select only this one (bind)
+        else {
+            setEditFormData(prev => ({
+                ...prev,
+                assigned_system_units: [systemUnitId]
+            }));
+        }
+    }
+
+    const handlePeripheralSelection = (peripheral) => {
+        console.log('Peripheral selection called with:', peripheral);
+        console.log('Current editFormData.assigned_peripherals:', editFormData.assigned_peripherals);
+        
+        // Handle both cases: when peripheral is an object or just an ID
+        let peripheralId;
+        
+        if (typeof peripheral === 'object' && peripheral !== null) {
+            peripheralId = parseInt(peripheral.id, 10);
+        } else {
+            // If peripheral is directly the ID
+            peripheralId = parseInt(peripheral, 10);
+        }
+        
+        const assignedPeripherals = Array.isArray(editFormData.assigned_peripherals) ? editFormData.assigned_peripherals : [];
+        
+        // Check if this peripheral is already assigned to the station
+        const isAlreadyAssigned = assignedPeripherals.includes(peripheralId);
+        
+        console.log('Is peripheral already assigned?', isAlreadyAssigned);
+        
+        // If already assigned, show unbind modal
+        if (isAlreadyAssigned) {
+            // Find the peripheral details if we only have the ID
+            let peripheralName = '';
+            
+            if (typeof peripheral === 'object' && peripheral !== null) {
+                peripheralName = peripheral.name || `${peripheral.type || 'Peripheral'} #${peripheralId}`;
+            } else {
+                // Look up the peripheral in available peripherals
+                const foundPeripheral = availablePeripherals.find(p => parseInt(p.id, 10) === peripheralId);
+                peripheralName = foundPeripheral ? foundPeripheral.name : `Peripheral #${peripheralId}`;
+            }
+            
+            setUnbindAsset({
+                type: 'peripheral',
+                id: peripheralId,
+                name: peripheralName
+            });
+            setIsUnbindModalOpen(true);
+        } 
+        // If not assigned, add it (bind)
+        else {
+            setEditFormData(prev => ({
+                ...prev,
+                assigned_peripherals: [...(prev.assigned_peripherals || []), peripheralId]
+            }));
+        }
+    }
+
+    const handleUnbindConfirm = async (assetType, assetId, reason, notes) => {
+        try {
+            // Debug information
+            console.log('Starting unbind with these parameters:');
+            console.log('Asset type:', assetType);
+            console.log('Asset ID:', assetId);
+            console.log('Reason:', reason);
+            console.log('Notes:', notes);
+            console.log('Station ID:', editFormData.id);
+            
+            // We should use the provided assetId directly, as it comes from the unbindAsset object
+            // that we set when opening the modal
+            let actualAssetId = parseInt(assetId, 10);
+            
+            console.log(`Using asset ID for ${assetType}: ${actualAssetId}`);
+            
+            // The backend controller expects EXACTLY these values in the validation rule:
+            // 'asset_type' => 'required|in:monitor,system_unit,peripheral',
+            // Ensure we're using the exact string values expected by the backend
+            // DO NOT modify the assetType value - it must be one of the three exact strings
+            
+            console.log(`Sending API request with asset_type: ${assetType}`);
+            
+            const requestData = {
+                asset_type: assetType, // Use the exact string as provided - must be monitor, system_unit, or peripheral
+                asset_id: actualAssetId, // Now always using the parsed integer ID
+                unbind_reason: reason,
+                notes: notes
+            };
+            
+            console.log('Request payload:', requestData);
+            
+            const response = await axios.post(`/api/stations/${editFormData.id}/unassign-asset`, requestData);
+            
+            // Update local state after successful API call
+            if (assetType === 'monitor') {
+                setEditFormData(prev => ({
+                    ...prev,
+                    assigned_monitors: prev.assigned_monitors.filter(id => id !== assetId)
+                }));
+            } else if (assetType === 'system_unit') {
+                setEditFormData(prev => ({
                     ...prev,
                     assigned_system_units: []
-                };
-            } 
-            // If not selected, select only this one (bind)
-            else {
-                return {
+                }));
+            } else if (assetType === 'peripheral') {
+                setEditFormData(prev => ({
                     ...prev,
-                    assigned_system_units: [systemUnitId]
-                };
+                    assigned_peripherals: prev.assigned_peripherals.filter(id => id !== assetId)
+                }));
             }
-        });
-    }
-
-    const handlePeripheralSelection = (peripheralId) => {
-        setEditFormData(prev => ({
-            ...prev,
-            assigned_peripherals: prev.assigned_peripherals.includes(peripheralId)
-                ? prev.assigned_peripherals.filter(id => id !== peripheralId)
-                : [...prev.assigned_peripherals, peripheralId]
-        }))
-    }
-
+            
+            // Close the modal
+            setIsUnbindModalOpen(false);
+            
+            // Show success message
+            setAlert({
+                show: true,
+                type: 'success',
+                message: `Successfully unbound ${assetType.replace('_', ' ')} with reason: ${reason}`
+            });
+            
+            // Hide alert after 3 seconds
+            setTimeout(() => {
+                setAlert({ show: false, type: '', message: '' });
+            }, 3000);
+            
+        } catch (error) {
+            console.error('Error unbinding asset:', error);
+            
+            // Log detailed error information
+            if (error.response) {
+                console.log('Error response status:', error.response.status);
+                console.log('Error response data:', error.response.data);
+                
+                if (error.response.data && error.response.data.errors) {
+                    console.log('Validation errors:', error.response.data.errors);
+                }
+                
+                // Print the full error object for debugging
+                console.log('Full error object:', JSON.stringify(error.response, null, 2));
+            }
+            
+            // Show a more specific error message if available
+            let errorMessage = 'There was an error unbinding the asset.';
+            
+            if (error.response && error.response.data && error.response.data.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.response && error.response.data && error.response.data.errors) {
+                // Get all validation errors and join them
+                const validationErrors = Object.values(error.response.data.errors).flat().join(', ');
+                errorMessage = `Validation error: ${validationErrors}`;
+            } else if (error.response && error.response.status === 400) {
+                errorMessage = 'Invalid request (400). Make sure the asset exists and can be unbound.';
+                
+                // Add more specific debugging for asset type issues
+                console.log('Asset type check:', assetType);
+                if (assetType !== 'monitor' && assetType !== 'system_unit' && assetType !== 'peripheral') {
+                    errorMessage += ` Invalid asset type: "${assetType}" - must be one of: monitor, system_unit, peripheral`;
+                }
+                
+                // Add specific message for system unit issues
+                if (assetType === 'system_unit') {
+                    console.log('System unit data check:');
+                    console.log('- assetId:', assetId);
+                    console.log('- actualAssetId:', actualAssetId);
+                    console.log('- system_units:', editFormData.system_units);
+                    
+                    if (!actualAssetId || actualAssetId === 0) {
+                        errorMessage += ' No valid system unit ID found.';
+                    }
+                }
+            }
+            
+            setAlert({
+                show: true,
+                type: 'error',
+                message: errorMessage
+            });
+        }
+    };
+    
     const getStatusBadge = (status) => {
         const statusClasses = {
             'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
@@ -696,8 +966,29 @@ export default function StationsTableSection() {
                                 Edit Station
                             </h3>
                             
+                            {/* Tabs */}
+                            <div className="border-b border-gray-200 mb-4">
+                                <nav className="-mb-px flex space-x-8">
+                                    <button
+                                        type="button"
+                                        className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${!activeTab || activeTab === 'details' ? 'border-indigo-500 text-indigo-600' : ''}`}
+                                        onClick={() => setActiveTab('details')}
+                                    >
+                                        Details
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'history' ? 'border-indigo-500 text-indigo-600' : ''}`}
+                                        onClick={() => setActiveTab('history')}
+                                    >
+                                        History
+                                    </button>
+                                </nav>
+                            </div>
+                            
                             <div className="mt-2">
-                                <form onSubmit={handleEditSubmit} className="space-y-6">
+                                {(!activeTab || activeTab === 'details') && (
+                                    <form onSubmit={handleEditSubmit} className="space-y-6">
                                     {editErrors.general && (
                                         <Alert type="error" message={editErrors.general} />
                                     )}
@@ -833,7 +1124,7 @@ export default function StationsTableSection() {
                                                                 type="button"
                                                                 variant="secondary"
                                                                 size="sm"
-                                                                onClick={() => handleMonitorSelection(monitor.id)}
+                                                                onClick={() => handleMonitorSelection(monitor)}
                                                                 className="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                                                             >
                                                                 Unbind
@@ -858,7 +1149,7 @@ export default function StationsTableSection() {
                                                                 type="button"
                                                                 variant="secondary"
                                                                 size="sm"
-                                                                onClick={() => handleSystemUnitSelection(systemUnit.id)}
+                                                                onClick={() => handleSystemUnitSelection(systemUnit)}
                                                                 className="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                                                             >
                                                                 Unbind
@@ -883,7 +1174,7 @@ export default function StationsTableSection() {
                                                                 type="button"
                                                                 variant="secondary"
                                                                 size="sm"
-                                                                onClick={() => handlePeripheralSelection(peripheral.id)}
+                                                                onClick={() => handlePeripheralSelection(peripheral)}
                                                                 className="text-xs px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border-red-200"
                                                             >
                                                                 Unbind
@@ -1240,12 +1531,32 @@ export default function StationsTableSection() {
                                         </Button>
                                     </div>
                                 </form>
+                                )}
+                                
+                                {activeTab === 'history' && (
+                                    <div className="py-4">
+                                        <h4 className="text-base font-medium text-gray-900 mb-4">Station History</h4>
+                                        <div className="bg-gray-50 rounded-lg p-4">
+                                            <StationHistory stationId={editFormData.id} />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </Modal>
 
+            {/* Unbind Asset Modal */}
+            <UnbindAssetModal
+                isOpen={isUnbindModalOpen}
+                onClose={() => setIsUnbindModalOpen(false)}
+                assetType={unbindAsset.type}
+                assetId={unbindAsset.id}
+                assetName={unbindAsset.name}
+                onConfirm={handleUnbindConfirm}
+            />
+            
             {/* Delete Confirmation Modal */}
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}

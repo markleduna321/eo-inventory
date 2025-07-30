@@ -8,6 +8,7 @@ use App\Models\Monitor;
 use App\Models\SystemUnit;
 use App\Models\Peripheral;
 use App\Models\StationAsset;
+use App\Models\StationHistory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
@@ -400,12 +401,23 @@ class StationController extends Controller
     public function unassignAsset(Request $request, Station $station)
     {
         $validated = $request->validate([
-            'asset_type' => 'required|in:monitor,system_unit',
-            'asset_id' => 'required|integer'
+            'asset_type' => 'required|in:monitor,system_unit,peripheral',
+            'asset_id' => 'required|integer',
+            'unbind_reason' => 'nullable|in:' . implode(',', [
+                StationHistory::REASON_DAMAGED,
+                StationHistory::REASON_FOR_REPAIR,
+                StationHistory::REASON_REPLACE_NEW
+            ]),
+            'notes' => 'nullable|string|max:255'
         ]);
 
         try {
-            $assignment = $station->unassignAsset($validated['asset_type'], $validated['asset_id']);
+            $assignment = $station->unassignAsset(
+                $validated['asset_type'], 
+                $validated['asset_id'], 
+                $request->input('unbind_reason'), 
+                $request->input('notes')
+            );
             
             return response()->json([
                 'message' => 'Asset unassigned successfully',

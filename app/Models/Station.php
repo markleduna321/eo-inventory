@@ -142,11 +142,27 @@ class Station extends Model
 
         // Update asset location based on asset type
         $this->updateAssetLocation($assetType, $assetId);
+        
+        // Get asset details for history
+        $asset = $this->getAssetModel($assetType, $assetId);
+        if ($asset) {
+            $assetName = $assetType === 'system_unit' ? 
+                $asset->system_name : 
+                $asset->brand . ' ' . $asset->model;
+                
+            // Record history entry for binding
+            $this->recordHistory(StationHistory::ACTION_BIND, [
+                'asset_type' => $assetType,
+                'asset_id' => $assetId,
+                'asset_name' => $assetName,
+                'asset_serial' => $asset->serial_number
+            ]);
+        }
 
         return $assignment;
     }
 
-    public function unassignAsset($assetType, $assetId)
+    public function unassignAsset($assetType, $assetId, $reason = null, $notes = null)
     {
         $assignment = $this->stationAssets()
             ->where('asset_type', $assetType)
@@ -156,8 +172,36 @@ class Station extends Model
 
         if ($assignment) {
             $assignment->update(['unassigned_at' => now()]);
-            // Clear asset location
-            $this->clearAssetLocation($assetType, $assetId);
+            
+            // Get asset details before clearing location
+            $assetModel = $this->getAssetModel($assetType, $assetId);
+            $assetName = null;
+            $assetSerial = null;
+            
+            if ($assetModel) {
+                $assetName = $assetType === 'system_unit' ? 
+                    $assetModel->system_name : 
+                    $assetModel->brand . ' ' . $assetModel->model;
+                $assetSerial = $assetModel->serial_number;
+            }
+            
+            // Record history entry for unbinding
+            $this->recordHistory(StationHistory::ACTION_UNBIND, [
+                'asset_type' => $assetType,
+                'asset_id' => $assetId,
+                'asset_name' => $assetName,
+                'asset_serial' => $assetSerial,
+                'unbind_reason' => $reason,
+                'notes' => $notes
+            ]);
+            
+            // Update asset status based on unbind reason
+            if ($reason) {
+                $this->updateAssetStatusByReason($assetType, $assetId, $reason);
+            } else {
+                // Default behavior if no reason provided
+                $this->clearAssetLocation($assetType, $assetId);
+            }
         }
 
         return $assignment;
@@ -204,6 +248,110 @@ class Station extends Model
                         $asset->deployStock(1);
                     }
                 }
+                break;
+        }
+    }
+
+    /**
+     * Get the asset model object based on type and ID
+     * 
+     * @param string $assetType
+     * @param int $assetId
+     * @return mixed
+     */
+    private function getAssetModel($assetType, $assetId)
+    {
+        switch ($assetType) {
+            case 'monitor':
+                return Monitor::find($assetId);
+            case 'system_unit':
+                return SystemUnit::find($assetId);
+            case 'peripheral':
+                return Peripheral::find($assetId);
+            default:
+                return null;
+        }
+    }
+    
+    /**
+     * Update asset status based on unbinding reason
+     * 
+     * @param string $assetType
+     * @param int $assetId
+     * @param string $reason
+     * @return void
+     */
+    private function updateAssetStatusByReason($assetType, $assetId, $reason)
+    {
+        $asset = $this->getAssetModel($assetType, $assetId);
+        
+        if (!$asset) {
+            return;
+        }
+        
+        switch ($reason) {
+            case StationHistory::REASON_DAMAGED:
+                // Update status to damaged
+                switch ($assetType) {
+                    case 'monitor':
+                        $asset->update([
+                            'location' => 'Storage',
+                            'station_id' => null,
+                            'status' => 'not_working', // Use lowercase to match the enum in monitors table
+                            'deployment_status' => 'Out of Service'
+                        ]);
+                        break;
+                    case 'system_unit':
+                        $asset->update([
+                            'location' => 'Storage',
+                            'station_id' => null,
+                            'status' => 'retired', // Use 'retired' for damaged items
+                            'deployment_status' => 'Out of Service'
+                        ]);
+                        break;
+                    case 'peripheral':
+                        $asset->update([
+                            'status' => 'not_working' // Use lowercase to match other models
+                        ]);
+                        break;
+                }
+                break;
+                
+            case StationHistory::REASON_FOR_REPAIR:
+                // Update status to indicate for repair
+                switch ($assetType) {
+                    case 'monitor':
+                        $asset->update([
+                            'location' => 'Service Center',
+                            'station_id' => null,
+                            'status' => 'under_repair', // Use 'under_repair' for repair reason
+                            'deployment_status' => 'Out of Service'
+                        ]);
+                        break;
+                    case 'system_unit':
+                        $asset->update([
+                            'location' => 'Service Center', // Make sure this value exists in your application's locations
+                            'station_id' => null,
+                            'status' => 'maintenance', // Use valid status from enum: available, assigned, maintenance, retired
+                            'deployment_status' => 'Out of Service'
+                        ]);
+                        break;
+                    case 'peripheral':
+                        $asset->update([
+                            'status' => 'under_repair' // Use under_repair for repair reason
+                        ]);
+                        break;
+                }
+                break;
+                
+            case StationHistory::REASON_REPLACE_NEW:
+                // Keep the current status but mark as unassigned
+                $this->clearAssetLocation($assetType, $assetId);
+                break;
+                
+            default:
+                // Default behavior
+                $this->clearAssetLocation($assetType, $assetId);
                 break;
         }
     }
@@ -286,5 +434,56 @@ class Station extends Model
                 $station->qr_code = 'ST-' . Str::upper(Str::random(8));
             }
         });
+        
+        static::created(function ($station) {
+            // Record creation history
+            $station->recordHistory(StationHistory::ACTION_CREATE, [
+                'notes' => 'Station created'
+            ]);
+        });
+        
+        static::updated(function ($station) {
+            // Record update history when important fields change
+            $dirtyAttributes = $station->getDirty();
+            
+            // Only record history for significant changes, not every update
+            $significantAttributes = array_intersect_key($dirtyAttributes, array_flip([
+                'name', 'type', 'department', 'location_id', 'assigned_user', 'status'
+            ]));
+            
+            if (count($significantAttributes) > 0) {
+                $station->recordHistory(StationHistory::ACTION_UPDATE, [
+                    'notes' => 'Station information updated'
+                ]);
+            }
+        });
+    }
+
+    /**
+     * Get the station history records.
+     */
+    public function history()
+    {
+        return $this->hasMany(StationHistory::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Record a station history entry.
+     * 
+     * @param string $actionType
+     * @param array $data
+     * @return StationHistory
+     */
+    public function recordHistory($actionType, $data = [])
+    {
+        $userId = auth()->id() ?? null;
+        
+        $historyData = array_merge([
+            'station_id' => $this->id,
+            'action_type' => $actionType,
+            'user_id' => $userId
+        ], $data);
+        
+        return StationHistory::create($historyData);
     }
 }
