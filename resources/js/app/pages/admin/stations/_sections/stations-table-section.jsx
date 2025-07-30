@@ -31,6 +31,7 @@ export default function StationsTableSection() {
     const [editMonitorSearch, setEditMonitorSearch] = useState("")
     const [editSystemUnitSearch, setEditSystemUnitSearch] = useState("")
     const [editPeripheralSearch, setEditPeripheralSearch] = useState("")
+    const [editPeripheralTypeFilter, setEditPeripheralTypeFilter] = useState("all")
 
     // Filter configuration
     const searchableFields = ['name', 'code', 'type', 'department', 'assigned_user', 'location_name']
@@ -364,13 +365,16 @@ export default function StationsTableSection() {
 
     // Get all available peripherals (including currently assigned ones for editing)  
     const allAvailablePeripherals = [
-        ...availablePeripherals,
+        ...(availablePeripherals && availablePeripherals.all ? availablePeripherals.all : []),
         ...(editFormData.peripherals || []),
-        ...(editFormData.station_assets || [])
-            .filter(asset => asset.asset_type === 'peripheral')
+        ...((editFormData.station_assets || [])
+            .filter(asset => asset && asset.asset_type === 'peripheral' && asset.peripheral)
             .map(asset => asset.peripheral)
-            .filter(Boolean)
-    ]
+            .filter(Boolean))
+    ].filter((peripheral, index, self) => 
+        // Remove duplicates by ID
+        peripheral && peripheral.id && index === self.findIndex(p => p.id === peripheral.id)
+    )
 
     console.log('Available peripherals from Redux:', availablePeripherals)
     console.log('Edit form peripherals:', editFormData.peripherals)
@@ -423,8 +427,10 @@ export default function StationsTableSection() {
     // Get assigned peripheral details
     const getAssignedPeripheralDetails = (peripheralIds) => {
         return peripheralIds.map(id => {
-            // First try to find in availablePeripherals
-            let peripheral = availablePeripherals.find(p => p.id === id);
+            // First try to find in availablePeripherals.all array
+            let peripheral = availablePeripherals && availablePeripherals.all ? 
+                availablePeripherals.all.find(p => p.id === id) : null;
+                
             if (!peripheral) {
                 // Then try to find in all stations' peripherals
                 for (const station of stations) {
@@ -435,7 +441,7 @@ export default function StationsTableSection() {
                 }
             }
             // If still not found, try allAvailablePeripherals
-            if (!peripheral) {
+            if (!peripheral && Array.isArray(allAvailablePeripherals)) {
                 peripheral = allAvailablePeripherals.find(p => p.id === id);
             }
             return peripheral;
@@ -469,16 +475,18 @@ export default function StationsTableSection() {
                 systemUnit.serial_number?.toLowerCase().includes(q);
         });
         
-    const filteredEditPeripherals = allAvailablePeripherals
-        .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
-        .filter(peripheral => {
-            const q = editPeripheralSearch.toLowerCase();
-            return !q ||
-                peripheral.type?.toLowerCase().includes(q) ||
-                peripheral.brand?.toLowerCase().includes(q) ||
-                peripheral.model?.toLowerCase().includes(q) ||
-                peripheral.serial_number?.toLowerCase().includes(q);
-        });
+    const filteredEditPeripherals = Array.isArray(allAvailablePeripherals) ? 
+        allAvailablePeripherals
+            .filter(peripheral => !(editFormData.assigned_peripherals || []).includes(peripheral.id))
+            .filter(peripheral => {
+                const q = editPeripheralSearch.toLowerCase();
+                return !q ||
+                    peripheral.type?.toLowerCase().includes(q) ||
+                    peripheral.brand?.toLowerCase().includes(q) ||
+                    peripheral.model?.toLowerCase().includes(q) ||
+                    peripheral.serial_number?.toLowerCase().includes(q);
+            })
+        : [];
 
     console.log('Assigned monitor details:', assignedMonitorDetails);
     console.log('Assigned system unit details:', assignedSystemUnitDetails);
@@ -1015,7 +1023,8 @@ export default function StationsTableSection() {
                                                         <h5 className="text-sm font-medium text-gray-700 mb-2">Currently Selected:</h5>
                                                         <div className="space-y-2">
                                                             {editFormData.assigned_peripherals.map(peripheralId => {
-                                                                const peripheral = allAvailablePeripherals.find(p => p.id === peripheralId);
+                                                                const peripheral = Array.isArray(allAvailablePeripherals) ? 
+                                                                    allAvailablePeripherals.find(p => p.id === peripheralId) : null;
                                                                 return peripheral ? (
                                                                     <div key={peripheralId} className="flex items-center justify-between bg-blue-50 p-2 rounded">
                                                                         <span className="text-sm">
@@ -1035,42 +1044,106 @@ export default function StationsTableSection() {
                                                     </div>
                                                 )}
                                                 
-                                                <h5 className="text-sm font-medium text-gray-700 mb-2">Available Peripherals:</h5>
-                                                <div className="mb-2">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Search peripherals by type, brand, model, serial number..."
-                                                        value={editPeripheralSearch}
-                                                        onChange={(e) => setEditPeripheralSearch(e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                                    />
-                                                </div>
-                                                {filteredEditPeripherals.map(peripheral => (
-                                                    <div key={peripheral.id} className="flex items-center mb-2">
+                                                <div className="flex justify-between mb-3">
+                                                    <h5 className="text-sm font-medium text-gray-700">Available Peripherals:</h5>
+                                                    <div className="flex space-x-2">
+                                                        {availablePeripherals && availablePeripherals.grouped && (
+                                                            <select
+                                                                value={editPeripheralTypeFilter || 'all'}
+                                                                onChange={(e) => setEditPeripheralTypeFilter(e.target.value)}
+                                                                className="text-sm border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                                            >
+                                                                <option value="all">All Types</option>
+                                                                {Object.keys(availablePeripherals.grouped).map(type => (
+                                                                    <option key={type} value={type}>
+                                                                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        )}
                                                         <input
-                                                            type="checkbox"
-                                                            id={`edit-peripheral-${peripheral.id}`}
-                                                            name="edit-peripheral-selection"
-                                                            checked={false}
-                                                            onChange={() => handlePeripheralSelection(peripheral.id)}
-                                                            className="mr-2"
+                                                            type="text"
+                                                            placeholder="Search peripherals..."
+                                                            value={editPeripheralSearch}
+                                                            onChange={(e) => setEditPeripheralSearch(e.target.value)}
+                                                            className="text-sm px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                                                         />
-                                                        <label htmlFor={`edit-peripheral-${peripheral.id}`} className="text-sm">
-                                                            {peripheral.type} - {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
-                                                        </label>
                                                     </div>
-                                                ))}
-                                                {filteredEditPeripherals.length === 0 && (
-                                                    <p className="text-sm text-gray-500">
-                                                        {editPeripheralSearch
-                                                            ? 'No peripherals match your search criteria'
-                                                            : (allAvailablePeripherals.length === 0 
-                                                                ? 'No available peripherals' 
-                                                                : 'No additional peripherals available'
-                                                            )
-                                                        }
-                                                    </p>
-                                                )}
+                                                </div>
+                                                
+                                                <div className="max-h-60 overflow-y-auto border rounded-lg">
+                                                    {availablePeripherals && availablePeripherals.grouped ? (
+                                                        Object.entries(availablePeripherals.grouped)
+                                                            .filter(([type]) => editPeripheralTypeFilter === 'all' || type === editPeripheralTypeFilter)
+                                                            .map(([type, brandModels]) => (
+                                                                <div key={type} className="mb-2">
+                                                                    <h6 className="bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                                                                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                                                                    </h6>
+                                                                    <div>
+                                                                        {Object.entries(brandModels)
+                                                                            .filter(([brandModel]) => 
+                                                                                !editPeripheralSearch || 
+                                                                                brandModel.toLowerCase().includes(editPeripheralSearch.toLowerCase())
+                                                                            )
+                                                                            .map(([brandModel, data]) => {
+                                                                                const isAssigned = (editFormData.assigned_peripherals || []).includes(data.id);
+                                                                                const isDisabled = data.available_stock <= 0 && !isAssigned;
+                                                                                
+                                                                                return (
+                                                                                    <div key={brandModel} className="px-3 py-2 border-b last:border-0">
+                                                                                        <div className="flex justify-between items-center">
+                                                                                            <div>
+                                                                                                <div className="text-sm">{brandModel}</div>
+                                                                                                <div className="text-xs text-gray-500">
+                                                                                                    Available: {data.available_stock} {data.available_stock === 1 ? 'unit' : 'units'}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                className={`text-xs px-2 py-1 rounded ${
+                                                                                                    isAssigned 
+                                                                                                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                                                                        : isDisabled
+                                                                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                                                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                                                                }`}
+                                                                                                onClick={() => handlePeripheralSelection(data.id)}
+                                                                                                disabled={isDisabled}
+                                                                                            >
+                                                                                                {isAssigned ? 'Remove' : 'Add'}
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })
+                                                                        }
+                                                                        {Object.entries(brandModels).filter(([brandModel]) => 
+                                                                            !editPeripheralSearch || 
+                                                                            brandModel.toLowerCase().includes(editPeripheralSearch.toLowerCase())
+                                                                        ).length === 0 && (
+                                                                            <p className="px-3 py-2 text-xs text-gray-500">
+                                                                                No {type} peripherals match your search
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                    ) : (
+                                                        <div className="p-3">
+                                                            <p className="text-sm text-gray-500">Loading peripherals...</p>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {availablePeripherals && availablePeripherals.grouped && 
+                                                     Object.keys(availablePeripherals.grouped)
+                                                        .filter(type => editPeripheralTypeFilter === 'all' || type === editPeripheralTypeFilter)
+                                                        .length === 0 && (
+                                                        <p className="p-3 text-sm text-gray-500">
+                                                            No peripherals available
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </>
                                         </div>
                                     </div>

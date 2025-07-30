@@ -16,6 +16,8 @@ export default function CreateStationsSection() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [errors, setErrors] = useState({})
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    const [editPeripheralTypeFilter, setEditPeripheralTypeFilter] = useState("all")
+    const [editPeripheralSearch, setEditPeripheralSearch] = useState("")
     const [formData, setFormData] = useState({
         name: '',
         code: '',
@@ -58,6 +60,8 @@ export default function CreateStationsSection() {
         })
         setErrors({})
         setAlert({ show: false, type: '', message: '' })
+        setEditPeripheralTypeFilter("all")
+        setEditPeripheralSearch("")
     }
 
     const handleInputChange = (e) => {
@@ -191,6 +195,37 @@ export default function CreateStationsSection() {
             su.serial_number?.toLowerCase().includes(q)
         );
     });
+    
+    // Get all available peripherals from the new structure
+    const allAvailablePeripherals = (() => {
+        try {
+            console.log('Available peripherals structure:', availablePeripherals);
+            
+            if (!availablePeripherals) {
+                console.log('availablePeripherals is null or undefined');
+                return [];
+            }
+            
+            if (Array.isArray(availablePeripherals)) {
+                console.log('availablePeripherals is already an array, using as is');
+                return availablePeripherals;
+            }
+            
+            if (availablePeripherals.all && Array.isArray(availablePeripherals.all)) {
+                console.log('Using availablePeripherals.all array');
+                return availablePeripherals.all;
+            }
+            
+            console.log('No valid peripheral array found, returning empty array');
+            return [];
+        } catch (error) {
+            console.error('Error processing availablePeripherals:', error);
+            return [];
+        }
+    })();
+    
+    console.log('Available peripherals from Redux:', availablePeripherals);
+    console.log('All available peripherals:', allAvailablePeripherals);
 
     return (
         <div>
@@ -416,22 +451,172 @@ export default function CreateStationsSection() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Assign Peripherals (Optional)
                                 </label>
-                                <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                                    {availablePeripherals.length > 0 ? (
-                                        availablePeripherals.map(peripheral => (
-                                            <div key={peripheral.id} className="flex items-center mb-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id={`peripheral-${peripheral.id}`}
-                                                    checked={formData.assigned_peripherals.includes(peripheral.id)}
-                                                    onChange={() => handlePeripheralSelection(peripheral.id)}
-                                                    className="mr-2"
-                                                />
-                                                <label htmlFor={`peripheral-${peripheral.id}`} className="text-sm">
-                                                    {peripheral.type} - {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
-                                                </label>
-                                            </div>
-                                        ))
+                                
+                                {/* Search and Filter Controls */}
+                                <div className="flex mb-4 space-x-2">
+                                    <div className="w-1/2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Filter by Type
+                                        </label>
+                                        <select
+                                            className="border border-gray-300 rounded-md px-3 py-1 w-full"
+                                            value={editPeripheralTypeFilter}
+                                            onChange={(e) => setEditPeripheralTypeFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Types</option>
+                                            {availablePeripherals && availablePeripherals.grouped && 
+                                            Object.keys(availablePeripherals.grouped).map(type => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-1/2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Search
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="border border-gray-300 rounded-md px-3 py-1 w-full"
+                                            placeholder="Search by brand, model, S/N..."
+                                            value={editPeripheralSearch}
+                                            onChange={(e) => setEditPeripheralSearch(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                
+                                {/* Grouped View */}
+                                <div className="max-h-60 overflow-y-auto border border-gray-300 rounded-md p-2">
+                                    {availablePeripherals && availablePeripherals.grouped && 
+                                      Object.keys(availablePeripherals.grouped).length > 0 ? (
+                                        Object.entries(availablePeripherals.grouped)
+                                            .filter(([type]) => editPeripheralTypeFilter === 'all' || type === editPeripheralTypeFilter)
+                                            .map(([type, brandModels]) => {
+                                                let filteredBrandModels = {};
+                                                
+                                                try {
+                                                    // Safety check for brandModels - ensure it's an object
+                                                    if (!brandModels || typeof brandModels !== 'object') {
+                                                        console.error('Invalid brandModels for type:', type, brandModels);
+                                                        return null;
+                                                    }
+
+                                                    // Filter brand models based on search term
+                                                    const q = editPeripheralSearch.toLowerCase();
+                                                    filteredBrandModels = q 
+                                                        ? Object.entries(brandModels).reduce((acc, [brandModel, group]) => {
+                                                            // Check that the group has items
+                                                            const items = group.items;
+                                                            if (!Array.isArray(items)) {
+                                                                console.log('Items is not an array for', brandModel, group);
+                                                                
+                                                                // Try to use the group directly if it's an array
+                                                                if (Array.isArray(group)) {
+                                                                    const filteredItems = group.filter(peripheral => 
+                                                                        peripheral.brand?.toLowerCase().includes(q) ||
+                                                                        peripheral.model?.toLowerCase().includes(q) ||
+                                                                        peripheral.serial_number?.toLowerCase().includes(q) ||
+                                                                        brandModel.toLowerCase().includes(q)
+                                                                    );
+                                                                    
+                                                                    if (filteredItems.length > 0) {
+                                                                        acc[brandModel] = filteredItems;
+                                                                    }
+                                                                }
+                                                                return acc;
+                                                            }
+                                                            
+                                                            const filteredItems = items.filter(peripheral => 
+                                                                peripheral.brand?.toLowerCase().includes(q) ||
+                                                                peripheral.model?.toLowerCase().includes(q) ||
+                                                                peripheral.serial_number?.toLowerCase().includes(q) ||
+                                                                brandModel.toLowerCase().includes(q)
+                                                            );
+                                                            
+                                                            if (filteredItems.length > 0) {
+                                                                acc[brandModel] = {
+                                                                    ...group,
+                                                                    items: filteredItems
+                                                                };
+                                                            }
+                                                            return acc;
+                                                        }, {})
+                                                        : brandModels;
+                                                    
+                                                    // If no matching items after filtering, don't render this type
+                                                    if (Object.keys(filteredBrandModels).length === 0) {
+                                                        return null;
+                                                    }
+                                                } catch (error) {
+                                                    console.error('Error processing peripherals for type:', type, error);
+                                                    return null;
+                                                }
+                                                
+                                                return (
+                                                <div key={type} className="mb-4">
+                                                    <h3 className="text-sm font-medium text-gray-700 mb-1">{type}</h3>
+                                                    <div className="pl-4">
+                                                        {Object.entries(filteredBrandModels).map(([brandModel, items]) => (
+                                                            <div key={brandModel} className="mb-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-sm font-medium text-gray-600">
+                                                                        {brandModel}
+                                                                    </span>
+                                                                    <span className="text-sm text-gray-500">
+                                                                        Available: {
+                                                                            items.available_stock !== undefined ? items.available_stock :
+                                                                            items.items && Array.isArray(items.items) ? items.items.length :
+                                                                            Array.isArray(items) ? items.length : 0
+                                                                        } units
+                                                                    </span>
+                                                                </div>
+                                                                
+                                                                {/* Button to add one of this peripheral type */}
+                                                                <div className="flex justify-end mt-1">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            // Get first available peripheral of this type
+                                                                            const peripheral = items.items && items.items[0] ? 
+                                                                                items.items[0] : (Array.isArray(items) && items[0] ? items[0] : null);
+                                                                                
+                                                                            if (peripheral) {
+                                                                                handlePeripheralSelection(peripheral.id);
+                                                                            }
+                                                                        }}
+                                                                        className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition"
+                                                                        disabled={
+                                                                            (items.available_stock !== undefined && items.available_stock <= 0) ||
+                                                                            (items.items && Array.isArray(items.items) && items.items.length <= 0) ||
+                                                                            (Array.isArray(items) && items.length <= 0)
+                                                                        }
+                                                                    >
+                                                                        Add
+                                                                    </button>
+                                                                </div>
+                                                                
+                                                                {/* Display all individual peripherals if needed 
+                                                                {Array.isArray(items.items || items) && (items.items || items).length > 0 ? (items.items || items).map(peripheral => (
+                                                                    <div key={peripheral.id} className="flex items-center ml-2 mt-1">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            id={`peripheral-${peripheral.id}`}
+                                                                            checked={formData.assigned_peripherals.includes(peripheral.id)}
+                                                                            onChange={() => handlePeripheralSelection(peripheral.id)}
+                                                                            className="mr-2"
+                                                                        />
+                                                                        <label htmlFor={`peripheral-${peripheral.id}`} className="text-sm">
+                                                                            S/N: {peripheral.serial_number || 'N/A'}
+                                                                        </label>
+                                                                    </div>
+                                                                )) : (
+                                                                    <div className="text-xs text-gray-400 ml-2">No items available</div>
+                                                                )}
+                                                                */}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )})
                                     ) : (
                                         <p className="text-sm text-gray-500">No available peripherals</p>
                                     )}

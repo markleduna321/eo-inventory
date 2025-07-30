@@ -310,12 +310,36 @@ class StationController extends Controller
     {
         $peripherals = Peripheral::where('status', 'active')
             ->where('available_stock', '>', 0)  // Only show peripherals with available stock
-            ->orderBy('device_type')
+            ->orderBy('type')
             ->orderBy('brand')
             ->orderBy('model')
             ->get();
 
-        return response()->json($peripherals);
+        // Group peripherals by type and brand/model for better organization
+        $groupedPeripherals = $peripherals->groupBy('type')->map(function($typeGroup) {
+            return $typeGroup->groupBy(function($item) {
+                return $item->brand . ' - ' . $item->model;
+            })->map(function($brandModelGroup) {
+                // For each brand/model group, calculate total available stock
+                $firstItem = $brandModelGroup->first();
+                $totalAvailable = $brandModelGroup->sum('available_stock');
+                
+                return [
+                    'id' => $firstItem->id,
+                    'type' => $firstItem->type,
+                    'brand' => $firstItem->brand,
+                    'model' => $firstItem->model,
+                    'display_name' => $firstItem->brand . ' ' . $firstItem->model,
+                    'available_stock' => $totalAvailable,
+                    'items' => $brandModelGroup
+                ];
+            });
+        });
+
+        return response()->json([
+            'grouped' => $groupedPeripherals,
+            'all' => $peripherals
+        ]);
     }
 
     /**
@@ -461,5 +485,51 @@ class StationController extends Controller
 
         // For web requests, return a view with station data
         return view('stations.qr-view', compact('station'));
+    }
+    
+    /**
+     * Assign multiple peripherals to a station at once
+     */
+    public function assignPeripherals(Request $request, Station $station)
+    {
+        $validated = $request->validate([
+            'peripheral_ids' => 'required|array',
+            'peripheral_ids.*' => 'exists:peripherals,id',
+        ]);
+        
+        $successCount = 0;
+        $errors = [];
+        
+        foreach ($validated['peripheral_ids'] as $peripheralId) {
+            try {
+                $peripheral = Peripheral::findOrFail($peripheralId);
+                
+                // Check if the peripheral has available stock
+                if ($peripheral->available_stock <= 0) {
+                    $errors[] = "Peripheral {$peripheral->brand} {$peripheral->model} is out of stock";
+                    continue;
+                }
+                
+                // Assign peripheral to station
+                $station->assignAsset('peripheral', $peripheralId);
+                $successCount++;
+                
+            } catch (\Exception $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+        
+        if (count($errors) > 0) {
+            return response()->json([
+                'message' => 'Some peripherals could not be assigned',
+                'errors' => $errors,
+                'success_count' => $successCount
+            ], 422);
+        }
+        
+        return response()->json([
+            'message' => 'Peripherals assigned successfully',
+            'success_count' => $successCount
+        ]);
     }
 }

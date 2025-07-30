@@ -53,6 +53,7 @@ Route::get('stations/locations', [StationController::class, 'getLocations']);
 Route::get('stations/qr/{qrCode}', [StationController::class, 'showByQrCode']);
 Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
 Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);
+Route::post('stations/{station}/assign-peripherals', [StationController::class, 'assignPeripherals']);
 Route::apiResource('stations', StationController::class);
 
 // Peripheral management routes

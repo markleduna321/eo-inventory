@@ -189,7 +189,20 @@ class Station extends Model
                 // For peripherals, deploy stock from available to deployed
                 $asset = Peripheral::find($assetId);
                 if ($asset) {
-                    $asset->deployStock(1); // Deploy 1 unit of the peripheral
+                    // Find similar peripherals (same type, brand, model)
+                    $similarPeripheral = Peripheral::where('type', $asset->type)
+                        ->where('brand', $asset->brand)
+                        ->where('model', $asset->model)
+                        ->where('available_stock', '>', 0)
+                        ->orderBy('id')
+                        ->first();
+                        
+                    if ($similarPeripheral) {
+                        $similarPeripheral->deployStock(1); // Deploy 1 unit of the peripheral
+                    } else {
+                        // If no similar peripheral with stock is found, use the original one
+                        $asset->deployStock(1);
+                    }
                 }
                 break;
         }
@@ -221,7 +234,19 @@ class Station extends Model
                 // For peripherals, return stock from deployed to available
                 $asset = Peripheral::find($assetId);
                 if ($asset) {
-                    $asset->returnStock(1); // Return 1 unit of the peripheral
+                    // Find similar peripherals (same type, brand, model)
+                    $similarPeripheral = Peripheral::where('type', $asset->type)
+                        ->where('brand', $asset->brand)
+                        ->where('model', $asset->model)
+                        ->orderBy('id')
+                        ->first();
+                        
+                    if ($similarPeripheral) {
+                        $similarPeripheral->returnStock(1); // Return 1 unit to the peripheral
+                    } else {
+                        // If no similar peripheral is found, use the original one
+                        $asset->returnStock(1);
+                    }
                 }
                 break;
         }
