@@ -67,6 +67,9 @@ export default function AdminDashboardPage() {
       
       // Get the total asset value directly in pesos
       const totalAssetValue = valueResponse.data.formatted_value;
+      
+      // Get asset value breakdown for detailed display
+      const assetBreakdown = valueResponse.data.breakdown;
         
       // Generate some sample alert items (in a real app, these would come from the backend)
       const sampleAlerts = [
@@ -107,6 +110,7 @@ export default function AdminDashboardPage() {
       
       const newDashboardData = {
         totalAssetValue: totalAssetValue,
+        assetBreakdown: assetBreakdown || {},
         recentTransactions: transactionsResponse.data || [],
         stats: statsResponse.data || {},
         alertItems: sampleAlerts,
@@ -340,7 +344,14 @@ export default function AdminDashboardPage() {
                       )}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Asset value based on: Monitors (₱600), Peripherals (₱342,234), System Units (₱0), Parts (₱868)
+                      Asset value breakdown: {!dashboardData.loading && dashboardData.assetBreakdown ? 
+                        `Monitors (₱${dashboardData.assetBreakdown.monitors?.toLocaleString() || 0}), 
+                         Peripherals (₱${dashboardData.assetBreakdown.peripherals?.toLocaleString() || 0}), 
+                         System Units (₱${dashboardData.assetBreakdown.system_units?.toLocaleString() || 0}), 
+                         Parts (₱${dashboardData.assetBreakdown.parts?.toLocaleString() || 0}),
+                         Devices (₱${dashboardData.assetBreakdown.devices?.toLocaleString() || 0})` : 
+                        'Calculating...'
+                      }
                     </p>
                     <div className="ml-2 text-sm text-green-600 flex items-center">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

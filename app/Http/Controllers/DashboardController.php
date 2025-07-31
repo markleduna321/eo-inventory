@@ -9,6 +9,7 @@ use App\Models\Part;
 use App\Models\PartDelivery;
 use App\Models\PeripheralDelivery;
 use App\Models\Station;
+use App\Models\Device;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -134,8 +135,11 @@ class DashboardController extends Controller
         // Include parts inventory value
         $partsValue = (float)(Part::sum(DB::raw('unit_price * total_stock')) ?? 0);
         
+        // Include devices value
+        $devicesValue = (float)(Device::sum('price') ?? 0);
+        
         // Calculate total value as a float
-        $totalValue = (float)$monitorValue + (float)$peripheralValue + (float)$systemUnitValue + (float)$partsValue;
+        $totalValue = (float)$monitorValue + (float)$peripheralValue + (float)$systemUnitValue + (float)$partsValue + (float)$devicesValue;
         
         // Log the values for debugging
         Log::info('Asset Values', [
@@ -143,6 +147,7 @@ class DashboardController extends Controller
             'peripherals' => $peripheralValue, 
             'system_units' => $systemUnitValue,
             'parts' => $partsValue,
+            'devices' => $devicesValue,
             'total' => $totalValue
         ]);
         
@@ -153,7 +158,8 @@ class DashboardController extends Controller
                 'monitors' => $monitorValue,
                 'peripherals' => $peripheralValue,
                 'system_units' => $systemUnitValue,
-                'parts' => $partsValue
+                'parts' => $partsValue,
+                'devices' => $devicesValue
             ]
         ]);
     }
@@ -191,7 +197,13 @@ class DashboardController extends Controller
                 }
             }
             
-            $totalValue = $monitorValue + $systemUnitValue + $peripheralValue;
+            // Include devices value up to this month
+            $devicesValue = Device::where('created_at', '<=', $monthEnd)->sum('price') ?? 0;
+            
+            // Include parts value
+            $partsValue = Part::where('created_at', '<=', $monthEnd)->sum(DB::raw('unit_price * total_stock')) ?? 0;
+            
+            $totalValue = $monitorValue + $systemUnitValue + $peripheralValue + $devicesValue + $partsValue;
             $values[] = $totalValue;
         }
 
