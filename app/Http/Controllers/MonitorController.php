@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Monitor;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 class MonitorController extends Controller
 {
@@ -153,5 +158,70 @@ class MonitorController extends Controller
                 'message' => 'Failed to delete monitor: ' . $e->getMessage()
             ], 500);
         }
+    }
+    
+    /**
+     * Generate QR code for a monitor
+     */
+    public function generateQrCode(Monitor $monitor)
+    {
+        $qrCodeUrl = $monitor->getQrCodeUrl();
+        $download = request()->get('download', false);
+
+        $result = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($qrCodeUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::Medium)
+            ->size(300)
+            ->margin(10)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->build();
+
+        $filename = "monitor_" . $monitor->serial_number . "_qr.png";
+        $disposition = $download ? 'attachment' : 'inline';
+
+        return response($result->getString())
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Disposition', $disposition . '; filename="' . $filename . '"');
+    }
+
+    /**
+     * Display monitor data from QR code scan
+     */
+    public function showByQrCode(string $qrCode)
+    {
+        $monitor = Monitor::where('qr_code', $qrCode)
+            ->with(['station'])
+            ->firstOrFail();
+
+        // If it's an API request, return JSON
+        if (request()->wantsJson() || request()->is('api/*')) {
+            return response()->json([
+                'id' => $monitor->id,
+                'serial_number' => $monitor->serial_number,
+                'brand' => $monitor->brand,
+                'model' => $monitor->model,
+                'size' => $monitor->size,
+                'resolution' => $monitor->resolution,
+                'refresh_rate' => $monitor->refresh_rate,
+                'status' => $monitor->status,
+                'location' => $monitor->location,
+                'received_by' => $monitor->received_by,
+                'notes' => $monitor->notes,
+                'created_at' => $monitor->created_at,
+                'updated_at' => $monitor->updated_at,
+                'station_id' => $monitor->station_id,
+                'deployment_status' => $monitor->deployment_status,
+                'is_deployed' => $monitor->is_deployed,
+                'station_name' => $monitor->station_name,
+                'deployment_info' => $monitor->deployment_info,
+                'qr_code' => $monitor->qr_code
+            ]);
+        }
+
+        // For web view
+        return view('monitor-details', ['monitor' => $monitor]);
     }
 }

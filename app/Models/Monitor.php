@@ -21,6 +21,7 @@ class Monitor extends Model
         'received_by',
         'notes',
         'station_id',
+        'qr_code',
     ];
 
     protected $casts = [
@@ -33,6 +34,43 @@ class Monitor extends Model
         'is_deployed',
         'station_name'
     ];
+    
+    /**
+     * Generate a QR code for the monitor if it doesn't exist
+     */
+    public function generateQrCode(): string
+    {
+        if (!$this->qr_code) {
+            $this->qr_code = 'MON-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
+            $this->save();
+        }
+        
+        return $this->qr_code;
+    }
+    
+    /**
+     * Get the URL for the QR code
+     */
+    public function getQrCodeUrl(): string
+    {
+        $this->generateQrCode();
+        
+        return url("/monitors/qr/{$this->qr_code}");
+    }
+    
+    /**
+     * Boot the model
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($monitor) {
+            if (!$monitor->qr_code) {
+                $monitor->qr_code = 'MON-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(8));
+            }
+        });
+    }
 
     // Relationships
     public function station()

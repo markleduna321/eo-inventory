@@ -8,7 +8,7 @@ import SelectComponent from '@/app/pages/components/input-select'
 import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
-import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, QrCodeIcon } from '@heroicons/react/24/outline'
 import { fetchMonitors, updateMonitor, deleteMonitor } from '@/app/redux/thunks/monitorThunk'
 import { setCurrentMonitor, clearCurrentMonitor } from '@/app/redux/slices/monitorSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
@@ -26,6 +26,8 @@ export default function MonitorTableSection() {
     const [editLoading, setEditLoading] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    const [qrModalOpen, setQrModalOpen] = useState(false)
+    const [currentQrMonitor, setCurrentQrMonitor] = useState(null)
     
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1)
@@ -269,6 +271,21 @@ export default function MonitorTableSection() {
             })
         }
     }
+    
+    const handleShowQrCode = (monitor) => {
+        // Make a request to ensure the QR code is generated before showing modal
+        fetch(`/monitors/${monitor.id}/qr-image`, { method: 'HEAD' })
+            .then(() => {
+                setCurrentQrMonitor(monitor)
+                setQrModalOpen(true)
+            })
+            .catch(error => {
+                console.error('Error checking QR code:', error)
+                // Show modal anyway, our error handling in the image will display a fallback
+                setCurrentQrMonitor(monitor)
+                setQrModalOpen(true)
+            })
+    }
 
     const getStatusBadge = (status) => {
         const statusConfig = {
@@ -449,6 +466,15 @@ export default function MonitorTableSection() {
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 <div className="flex gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="success"
+                                                        size="sm"
+                                                        onClick={() => handleShowQrCode(monitor)}
+                                                        title="View QR Code"
+                                                    >
+                                                        <QrCodeIcon className="h-4 w-4" />
+                                                    </Button>
                                                     <Button
                                                         type="button"
                                                         variant="primary"
@@ -801,6 +827,73 @@ export default function MonitorTableSection() {
                 title="Delete Monitor"
                 message="Are you sure you want to delete this monitor? This action cannot be undone."
             />
+            
+            {/* QR Code Modal */}
+            <Modal
+                isOpen={qrModalOpen}
+                setIsOpen={setQrModalOpen}
+                title="Monitor QR Code"
+            >
+                <div className="p-4">
+                    {currentQrMonitor && (
+                        <div className="flex flex-col items-center space-y-4">
+                            <div className="bg-white p-4 rounded-lg shadow">
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                    {currentQrMonitor.brand} {currentQrMonitor.model} - {currentQrMonitor.size}"
+                                </h3>
+                                <p className="text-sm text-gray-600 mb-1">
+                                    S/N: {currentQrMonitor.serial_number}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                    Resolution: {currentQrMonitor.resolution}
+                                </p>
+                                
+                                <div className="mt-4 flex flex-col items-center justify-center">
+                                    <p className="text-gray-600 mb-2">Scan or share this QR code:</p>
+                                    <div className="border border-gray-300 p-1 rounded bg-white">
+                                        <img 
+                                            src={`/monitors/${currentQrMonitor.id}/qr-image`} 
+                                            alt="QR Code" 
+                                            className="w-64 h-64"
+                                            onError={(e) => {
+                                                console.error('QR code image load error');
+                                                e.target.onerror = null;
+                                                e.target.src = 'data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20version%3D%221.1%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20fill%3D%22%23f8f9fa%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%20alignment-baseline%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20fill%3D%22%236c757d%22%3EQR%20Code%20Unavailable%3C%2Ftext%3E%3C%2Fsvg%3E';
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        QR Code ID: {currentQrMonitor.qr_code || 'Generating...'}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex space-x-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="md"
+                                    onClick={() => {
+                                        // Direct approach for forcing download
+                                        window.location.href = `/monitors/${currentQrMonitor.id}/qr-image?download=1`;
+                                    }}
+                                >
+                                    <ArrowDownCircleIcon className="h-5 w-5 mr-2" />
+                                    Download QR Code
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="md"
+                                    onClick={() => setQrModalOpen(false)}
+                                >
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     )
 }
