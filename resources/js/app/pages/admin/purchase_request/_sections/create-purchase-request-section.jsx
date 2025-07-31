@@ -139,7 +139,7 @@ export default function CreatePurchaseRequestSection() {
                                         </div>
                                         <div>
                                             <label htmlFor="unit_price" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Estimated Unit Price ($) *
+                                                Estimated Unit Price (₱) *
                                             </label>
                                             <InputTextComponent
                                                 id="unit_price"
@@ -153,7 +153,7 @@ export default function CreatePurchaseRequestSection() {
                                         </div>
                                         <div>
                                             <label htmlFor="total_amount" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Total Amount ($)
+                                                Total Amount (₱)
                                             </label>
                                             <InputTextComponent
                                                 id="total_amount"

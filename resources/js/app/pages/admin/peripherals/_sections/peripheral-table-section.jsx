@@ -278,6 +278,22 @@ export default function PeripheralTableSection() {
                 dateRangeLabel="Created Date"
             />
 
+            {/* Currency Notice */}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 my-4 rounded">
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <div className="ml-3">
+                        <p className="text-sm text-blue-800">
+                            All financial values are displayed in Philippine Pesos (₱).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {/* Results Summary */}
             {filterStats.isFiltered && (
                 <div className="text-sm text-gray-600">
@@ -318,7 +334,7 @@ export default function PeripheralTableSection() {
                                         Stock Status
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Unit Price
+                                        Unit Price (₱)
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                         Location
@@ -379,7 +395,7 @@ export default function PeripheralTableSection() {
                                                 {getStockStatusBadge(peripheral.stock_status)}
                                             </td>
                                             <td className="px-3 py-4 text-sm text-gray-500">
-                                                {peripheral.unit_price ? `$${parseFloat(peripheral.unit_price).toFixed(2)}` : 'N/A'}
+                                                {peripheral.unit_price ? `₱${parseFloat(peripheral.unit_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A'}
                                             </td>
                                             <td className="px-3 py-4 text-sm text-gray-500">
                                                 {peripheral.location.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -655,7 +671,7 @@ export default function PeripheralTableSection() {
                                                 required
                                             />
                                             <InputTextComponent
-                                                label="Unit Price"
+                                                label="Unit Price (₱)"
                                                 id="unit_price"
                                                 name="unit_price"
                                                 type="number"
@@ -750,8 +766,8 @@ export default function PeripheralTableSection() {
                                                                 <div className="space-y-1 text-sm">
                                                                     <div><strong>Date:</strong> {new Date(delivery.delivery_date).toLocaleDateString()}</div>
                                                                     <div><strong>Quantity:</strong> {delivery.quantity_delivered}</div>
-                                                                    <div><strong>Unit Price:</strong> ${delivery.unit_price ? parseFloat(delivery.unit_price).toFixed(2) : 'N/A'}</div>
-                                                                    <div><strong>Total Value:</strong> ${delivery.unit_price ? (parseFloat(delivery.unit_price) * delivery.quantity_delivered).toFixed(2) : 'N/A'}</div>
+                                                                    <div><strong>Unit Price:</strong> ₱{delivery.unit_price ? parseFloat(delivery.unit_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</div>
+                                                                    <div><strong>Total Value:</strong> ₱{delivery.unit_price ? (parseFloat(delivery.unit_price) * delivery.quantity_delivered).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</div>
                                                                 </div>
                                                             </div>
                                                             <div>

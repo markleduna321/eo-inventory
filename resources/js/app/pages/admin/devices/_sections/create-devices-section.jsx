@@ -419,7 +419,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
             
             {/* Price field */}
             <div className='mb-3'>
-              <InputLabelComponent htmlFor="price" labelText="Price"/>
+              <InputLabelComponent htmlFor="price" labelText="Price (₱)"/>
               <InputTextComponent
                 id="price"
                 name="price" 

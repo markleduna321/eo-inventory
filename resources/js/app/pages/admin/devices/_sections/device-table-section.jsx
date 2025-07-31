@@ -182,6 +182,22 @@ export default function DeviceTableSection() {
     
     return (
         <div className="mt-8 space-y-4">
+            {/* Currency Notice */}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded">
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <div className="ml-3">
+                        <p className="text-sm text-blue-800">
+                            All financial values are displayed in Philippine Pesos (₱).
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
             {/* Filter Component */}
             <TableFilter
                 searchTerm={searchTerm}
@@ -286,7 +302,7 @@ export default function DeviceTableSection() {
                                                 {getStatusBadge(device.status)}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
-                                                {device.price ? `$${parseFloat(device.price).toFixed(2)}` : '-'}
+                                                {device.price ? `₱${parseFloat(device.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {device.issued_to || 'Not Issued'}
@@ -533,7 +549,7 @@ export default function DeviceTableSection() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Price</p>
-                                    <p className="mt-1 text-sm text-gray-900">${parseFloat(viewingDevice.price || 0).toFixed(2)}</p>
+                                    <p className="mt-1 text-sm text-gray-900">₱{parseFloat(viewingDevice.price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Purchase Date</p>

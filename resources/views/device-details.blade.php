@@ -84,7 +84,7 @@
                     @if($device->price)
                     <div class="flex justify-between">
                         <dt class="text-sm font-medium text-gray-500">Price:</dt>
-                        <dd class="text-sm text-gray-900">${{ number_format($device->price, 2) }}</dd>
+                        <dd class="text-sm text-gray-900">₱{{ number_format($device->price * 56.5, 2) }}</dd>
                     </div>
                     @endif
                     @if($device->purchase_date)

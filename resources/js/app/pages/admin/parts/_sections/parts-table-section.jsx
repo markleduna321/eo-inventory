@@ -549,6 +549,22 @@ export default function PartsTableSection() {
 
     return (
         <div className="space-y-6">
+            {/* Currency Notice */}
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded">
+                <div className="flex">
+                    <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <div className="ml-3">
+                        <p className="text-sm text-blue-800">
+                            All financial values are displayed in Philippine Pesos (₱).
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
             {/* Alert */}
             {alert.show && (
                 <Alert
@@ -876,7 +892,7 @@ export default function PartsTableSection() {
                                                 {formatSpecifications(part.specifications)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                ${parseFloat(part.unit_price || 0).toFixed(2)}
+                                                ₱{parseFloat(part.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 <div className="flex gap-2">
@@ -1111,7 +1127,7 @@ export default function PartsTableSection() {
                                                 <div><span className="font-medium">Model:</span> {selectedPart.model}</div>
                                                 <div><span className="font-medium">Location:</span> {selectedPart.location}</div>
                                                 <div><span className="font-medium">Current Stock:</span> {parseInt(selectedPart.current_stock) || 0}</div>
-                                                <div><span className="font-medium">Unit Price:</span> ${parseFloat(selectedPart.unit_price || 0).toFixed(2)}</div>
+                                                <div><span className="font-medium">Unit Price:</span> ₱{parseFloat(selectedPart.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                             </div>
                                         </div>
                                         
@@ -1171,7 +1187,7 @@ export default function PartsTableSection() {
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-3 py-2 text-sm text-gray-900">{item.assigned_to || 'N/A'}</td>
-                                                                <td className="px-3 py-2 text-sm text-gray-900">${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+                                                                <td className="px-3 py-2 text-sm text-gray-900">₱{parseFloat(item.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                                                 <td className="px-3 py-2 text-sm text-gray-900">{item.supplier || 'N/A'}</td>
                                                             </tr>
                                                         ))}
@@ -1221,7 +1237,7 @@ export default function PartsTableSection() {
                                             required
                                         />
                                         <InputTextComponent
-                                            label="Unit Price ($)"
+                                            label="Unit Price (₱)"
                                             id="unit_price"
                                             name="unit_price"
                                             type="number"
@@ -1280,8 +1296,8 @@ export default function PartsTableSection() {
                                                             <div className="space-y-1 text-sm">
                                                                 <div><strong>Date:</strong> {new Date(delivery.delivery_date).toLocaleDateString()}</div>
                                                                 <div><strong>Quantity:</strong> {delivery.quantity_delivered}</div>
-                                                                <div><strong>Unit Price:</strong> ${delivery.unit_price ? parseFloat(delivery.unit_price).toFixed(2) : 'N/A'}</div>
-                                                                <div><strong>Total Value:</strong> ${delivery.unit_price ? (parseFloat(delivery.unit_price) * delivery.quantity_delivered).toFixed(2) : 'N/A'}</div>
+                                                                <div><strong>Unit Price:</strong> ₱{delivery.unit_price ? parseFloat(delivery.unit_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</div>
+                                                                <div><strong>Total Value:</strong> ₱{delivery.unit_price ? (parseFloat(delivery.unit_price) * delivery.quantity_delivered).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'N/A'}</div>
                                                             </div>
                                                         </div>
                                                         <div>
@@ -1406,7 +1422,7 @@ export default function PartsTableSection() {
                                         {stockAction === 'add' && (
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Unit Price
+                                                    Unit Price (₱)
                                                 </label>
                                                 <InputTextComponent
                                                     type="number"
@@ -1485,7 +1501,7 @@ export default function PartsTableSection() {
                                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                                             <div>
                                                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                                    Unit Price
+                                                                    Unit Price (₱)
                                                                 </label>
                                                                 <InputTextComponent
                                                                     type="number"
