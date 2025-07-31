@@ -12,6 +12,7 @@ use App\Http\Controllers\PartController;
 use App\Http\Controllers\SystemUnitController;
 use App\Http\Controllers\SystemUnitStatsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -92,3 +93,9 @@ Route::get('dashboard/asset-usage', [DashboardController::class, 'getAssetUsage'
 Route::get('dashboard/total-asset-value', [DashboardController::class, 'getTotalAssetValue']);
 Route::get('dashboard/asset-value-per-month', [DashboardController::class, 'getAssetValuePerMonth']);
 Route::get('dashboard/recent-transactions', [DashboardController::class, 'getRecentTransactions']);
+
+// Report routes
+Route::get('reports', [ReportController::class, 'index']);
+Route::get('reports/{type}', [ReportController::class, 'show']);
+Route::get('reports/{type}/export', [ReportController::class, 'export']);
+Route::post('reports/{type}/filter', [ReportController::class, 'filter']);

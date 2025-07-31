@@ -1,7 +1,40 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Button from '@/app/pages/components/button'
+import axios from 'axios'
+import { toast } from 'react-hot-toast'
 
 export default function ReportsHeaderSection() {
+    const [isGenerating, setIsGenerating] = useState(false);
+    
+    const handleGenerateReport = async () => {
+        try {
+            setIsGenerating(true);
+            // Default to asset inventory report
+            const response = await axios.get('/api/reports/asset-inventory');
+            
+            if (response.data) {
+                toast.success('Report generated successfully');
+                // Force page refresh to show the newly generated report
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Failed to generate report:', error);
+            toast.error('Failed to generate report. Please try again.');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+    
+    const handleExportAll = async () => {
+        try {
+            window.open('/api/reports/asset-inventory/export', '_blank');
+            toast.success('Exporting all reports');
+        } catch (error) {
+            console.error('Failed to export reports:', error);
+            toast.error('Failed to export reports. Please try again.');
+        }
+    };
+    
     return (
         <div className='bg-white shadow-md rounded-md p-4'>
             <div className='flex justify-between items-center'>
@@ -14,6 +47,7 @@ export default function ReportsHeaderSection() {
                         type='button'
                         variant='secondary'
                         size='md'
+                        onClick={handleExportAll}
                     >
                         Export All
                     </Button>
@@ -21,8 +55,10 @@ export default function ReportsHeaderSection() {
                         type='button'
                         variant='primary'
                         size='md'
+                        disabled={isGenerating}
+                        onClick={handleGenerateReport}
                     >
-                        Generate Report
+                        {isGenerating ? 'Generating...' : 'Generate Report'}
                     </Button>
                 </div>
             </div>
