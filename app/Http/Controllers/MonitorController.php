@@ -106,7 +106,7 @@ class MonitorController extends Controller
         try {
             $monitor = Monitor::findOrFail($id);
             
-            $validated = $request->validate([
+            $validationRules = [
                 'serial_number' => 'required|string|max:255|unique:monitors,serial_number,' . $id,
                 'brand' => 'required|string|max:255',
                 'model' => 'required|string|max:255',
@@ -114,13 +114,25 @@ class MonitorController extends Controller
                 'resolution' => 'required|string|max:20',
                 'refresh_rate' => 'nullable|integer|min:30|max:500',
                 'status' => 'required|in:working,not_working,under_repair,retired',
-                'location' => 'required|string|max:255',
                 'received_by' => 'required|string|max:255',
                 'notes' => 'nullable|string|max:1000',
                 'price' => 'nullable|numeric|min:0',
-            ]);
+            ];
+            
+            // Make location optional
+            $validationRules['location'] = 'nullable|string|max:255';
+            
+            $validated = $request->validate($validationRules);
 
+            // Only update fields that are present in the validated data
             $monitor->update($validated);
+            
+            // Make sure we're not accidentally nullifying the location
+            if (!$request->has('location') && $monitor->location) {
+                // Restore the original location if it wasn't included in the request
+                $monitor->location = $monitor->getOriginal('location');
+                $monitor->save();
+            }
 
             return response()->json([
                 'success' => true,

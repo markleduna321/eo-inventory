@@ -186,17 +186,18 @@ export default function MonitorTableSection() {
     }, [searchTerm, filters])
 
     const handleEdit = (monitor) => {
+        // Ensure all values are initialized properly
         setEditFormData({
             id: monitor.id,
-            serial_number: monitor.serial_number,
-            brand: monitor.brand,
-            model: monitor.model,
-            size: monitor.size,
-            resolution: monitor.resolution,
+            serial_number: monitor.serial_number || '',
+            brand: monitor.brand || '',
+            model: monitor.model || '',
+            size: monitor.size || '',
+            resolution: monitor.resolution || '',
             refresh_rate: monitor.refresh_rate || '',
-            status: monitor.status,
-            location: monitor.location,
-            received_by: monitor.received_by,
+            status: monitor.status || 'working',
+            location: monitor.location || '',
+            received_by: monitor.received_by || '',
             notes: monitor.notes || '',
             price: monitor.price || ''
         })
@@ -219,7 +220,34 @@ export default function MonitorTableSection() {
 
         try {
             const { id, ...updateData } = editFormData
-            await dispatch(updateMonitor({ id, monitorData: updateData })).unwrap()
+            
+            // Get current monitor data to compare and only send changed fields
+            let currentMonitor = {}
+            
+            // Safely find the current monitor from the Redux state
+            if (monitors && monitors.data && Array.isArray(monitors.data)) {
+                currentMonitor = monitors.data.find(monitor => monitor.id === id) || {}
+            } else if (Array.isArray(monitors)) {
+                currentMonitor = monitors.find(monitor => monitor.id === id) || {}
+            }
+            const changedData = {}
+            
+            // Only include fields that have actually changed
+            Object.keys(updateData).forEach(key => {
+                // For fields that must be included in every request
+                if (['serial_number', 'brand', 'model', 'size', 'resolution', 'status', 'received_by'].includes(key)) {
+                    changedData[key] = updateData[key]
+                } 
+                // For optional fields or fields that can remain unchanged
+                else if ((updateData[key] !== currentMonitor[key] || !currentMonitor) && updateData[key] !== undefined) {
+                    changedData[key] = updateData[key]
+                }
+            })
+            
+            // If we couldn't find the current monitor or no changes were detected,
+            // just use the full updateData to ensure the update works
+            const dataToSend = Object.keys(changedData).length > 0 ? changedData : updateData;
+            await dispatch(updateMonitor({ id, monitorData: dataToSend })).unwrap()
             setAlert({
                 show: true,
                 type: 'success',
@@ -233,7 +261,7 @@ export default function MonitorTableSection() {
             setAlert({
                 show: true,
                 type: 'error',
-                message: error || 'Failed to update monitor'
+                message: error?.message || (typeof error === 'string' ? error : 'Failed to update monitor')
             })
         } finally {
             setEditLoading(false)
@@ -268,7 +296,7 @@ export default function MonitorTableSection() {
             setAlert({
                 show: true,
                 type: 'error',
-                message: error || 'Failed to delete monitor'
+                message: error?.message || (typeof error === 'string' ? error : 'Failed to delete monitor')
             })
         }
     }
@@ -661,6 +689,7 @@ export default function MonitorTableSection() {
                                                 options={brands}
                                                 value={editFormData.brand}
                                                 onChange={handleEditInputChange}
+                                                allowCustomValue={true}
                                                 required
                                             />
                                             {editErrors.brand && <InputError message={editErrors.brand} />}
@@ -762,15 +791,14 @@ export default function MonitorTableSection() {
                                         </div>
                                         <div>
                                             <label htmlFor="edit_location" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Location *
+                                                Location
                                             </label>
                                             <SelectComponent
                                                 id="edit_location"
                                                 name="location"
                                                 options={locations}
-                                                value={editFormData.location}
+                                                value={editFormData.location || ''}
                                                 onChange={handleEditInputChange}
-                                                required
                                             />
                                             {editErrors.location && <InputError message={editErrors.location} />}
                                         </div>

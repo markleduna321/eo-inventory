@@ -80,7 +80,7 @@ export default function CreateMonitorsSection() {
             setAlert({ 
                 show: true, 
                 type: 'error', 
-                message: error || 'Failed to create monitor' 
+                message: error?.message || (typeof error === 'string' ? error : 'Failed to create monitor')
             })
         } finally {
             setLoading(false)
