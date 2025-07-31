@@ -38,6 +38,10 @@ export default function StationsTableSection() {
     const [isUnbindModalOpen, setIsUnbindModalOpen] = useState(false)
     const [unbindAsset, setUnbindAsset] = useState({ type: '', id: null, name: '' })
     
+    // QR code modal state
+    const [isQrModalOpen, setIsQrModalOpen] = useState(false)
+    const [selectedStation, setSelectedStation] = useState(null)
+    
     // Search state for the edit form
     const [editMonitorSearch, setEditMonitorSearch] = useState("")
     const [editSystemUnitSearch, setEditSystemUnitSearch] = useState("")
@@ -93,6 +97,17 @@ export default function StationsTableSection() {
     // Pagination handler
     const handlePageChange = (page) => {
         setCurrentPage(page)
+    }
+    
+    // QR code modal handlers
+    const handleShowQrCode = (station) => {
+        setSelectedStation(station)
+        setIsQrModalOpen(true)
+    }
+    
+    const handleCloseQrModal = () => {
+        setIsQrModalOpen(false)
+        setSelectedStation(null)
     }
 
     // Options for select dropdowns
@@ -922,19 +937,12 @@ export default function StationsTableSection() {
                                                     <Button
                                                         variant="secondary"
                                                         size="sm"
-                                                        onClick={() => window.open(`/stations/${station.id}/qr-image`, '_blank')}
+                                                        onClick={() => handleShowQrCode(station)}
                                                         title="View QR Code"
                                                     >
                                                         <QrCodeIcon className="w-4 h-4" />
                                                     </Button>
-                                                    <Button
-                                                        variant="secondary"
-                                                        size="sm"
-                                                        onClick={() => window.open(`/stations/${station.id}/qr-image?download=1`, '_blank')}
-                                                        title="Download QR Code"
-                                                    >
-                                                        <ArrowDownCircleIcon className="w-4 h-4" />
-                                                    </Button>
+
                                                     <Button
                                                         variant="secondary"
                                                         size="sm"
@@ -1634,7 +1642,7 @@ export default function StationsTableSection() {
                                                                 type="button"
                                                                 variant="secondary"
                                                                 size="sm"
-                                                                onClick={() => window.open(`/stations/${editFormData.id}/qr-image`, '_blank')}
+                                                                onClick={() => handleShowQrCode(editFormData)}
                                                             >
                                                                 <QrCodeIcon className="w-4 h-4 mr-1" />
                                                                 View QR Code
@@ -1708,6 +1716,31 @@ export default function StationsTableSection() {
                 title="Delete Station"
                 message="Are you sure you want to delete this station? This will unassign all assets and cannot be undone."
             />
+
+            {/* QR Code Modal */}
+            <Modal isOpen={isQrModalOpen} onClose={handleCloseQrModal}>
+                <div className="p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Station QR Code</h3>
+                    {selectedStation && (
+                        <div className="flex flex-col items-center">
+                            <img 
+                                src={`/stations/${selectedStation.id}/qr-image`}
+                                alt="QR Code"
+                                className="w-64 h-64 mb-4"
+                            />
+                            <p className="text-sm text-gray-600 mb-4">{selectedStation.name} - {selectedStation.code || 'No Code'}</p>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => window.open(`/stations/${selectedStation.id}/qr-image?download=1`, '_blank')}
+                            >
+                                <ArrowDownCircleIcon className="h-4 w-4 mr-2" />
+                                Download QR Code
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     )
 }

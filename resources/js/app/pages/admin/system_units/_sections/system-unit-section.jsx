@@ -21,6 +21,7 @@ export default function SystemUnitTableSection() {
     const [assignModalOpen, setAssignModalOpen] = useState(false)
     const [scannerModalOpen, setScannerModalOpen] = useState(false)
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [qrModalOpen, setQrModalOpen] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     
     // Edit form state
@@ -141,6 +142,15 @@ export default function SystemUnitTableSection() {
     const closeEditModal = () => {
         setSelectedUnit(null)
         setEditModalOpen(false)
+    }
+    
+    const handleShowQrCode = (unit) => {
+        setSelectedUnit(unit)
+        setQrModalOpen(true)
+    }
+    
+    const handleCloseQrModal = () => {
+        setQrModalOpen(false)
     }
     
     const handleEditSubmit = async (e) => {
@@ -679,26 +689,10 @@ export default function SystemUnitTableSection() {
                                                     type="button"
                                                     variant="success"
                                                     size="sm"
-                                                    onClick={() =>
-                                                        window.open(`/system-units/${unit.id}/qr-image`, '_blank')
-                                                    }
+                                                    onClick={() => handleShowQrCode(unit)}
                                                     title="View QR Code"
                                                 >
                                                     <QrCodeIcon className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        window.open(
-                                                            `/system-units/${unit.id}/qr-image?download=1`,
-                                                            '_blank'
-                                                        )
-                                                    }
-                                                    title="Download QR Code"
-                                                >
-                                                    <ArrowDownCircleIcon className="h-4 w-4" />
                                                 </Button>
                                                 {unit.status === 'available' && (
                                                     <Button
@@ -1010,11 +1004,10 @@ export default function SystemUnitTableSection() {
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image`, '_blank')}
+                                                        onClick={() => handleShowQrCode(selectedUnit)}
                                                         className="flex items-center space-x-2"
                                                     >
                                                         <QrCodeIcon className="h-4 w-4" />
-                                                        <span>View QR</span>
                                                     </Button>
                                                     <Button
                                                         variant="primary"
@@ -1251,6 +1244,31 @@ export default function SystemUnitTableSection() {
                 title="Delete System Unit"
                 message="Are you sure you want to delete this system unit? This action cannot be undone."
             />
+
+            {/* QR Code Modal */}
+            <Modal isOpen={qrModalOpen} onClose={handleCloseQrModal}>
+                <div className="p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">System Unit QR Code</h3>
+                    {selectedUnit && (
+                        <div className="flex flex-col items-center">
+                            <img 
+                                src={`/system-units/${selectedUnit.id}/qr-image`}
+                                alt="QR Code"
+                                className="w-64 h-64 mb-4"
+                            />
+                            <p className="text-sm text-gray-600 mb-4">{selectedUnit.system_name} - {selectedUnit.serial_number}</p>
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image?download=1`, '_blank')}
+                            >
+                                <ArrowDownCircleIcon className="h-4 w-4 mr-2" />
+                                Download QR Code
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     )
 }
