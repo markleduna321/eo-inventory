@@ -6,6 +6,11 @@ use App\Models\Device;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 class DeviceController extends Controller
 {
@@ -180,5 +185,52 @@ class DeviceController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Generate QR code for a device
+     */
+    public function generateQrCode(Device $device)
+    {
+        $qrCodeUrl = $device->getQrCodeUrl();
+        $download = request()->get('download', false);
+
+        $result = Builder::create()
+            ->writer(new PngWriter())
+            ->writerOptions([])
+            ->data($qrCodeUrl)
+            ->encoding(new Encoding('UTF-8'))
+            ->errorCorrectionLevel(ErrorCorrectionLevel::Medium)
+            ->size(300)
+            ->margin(10)
+            ->roundBlockSizeMode(RoundBlockSizeMode::Margin)
+            ->build();
+
+        $filename = "device_" . $device->serial_number . "_qr.png";
+        $disposition = $download ? 'attachment' : 'inline';
+
+        return response($result->getString())
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Disposition', $disposition . '; filename="' . $filename . '"');
+    }
+
+    /**
+     * Display device data from QR code scan
+     */
+    public function showByQrCode(string $qrCode)
+    {
+        $device = Device::where('qr_code', $qrCode)->firstOrFail();
+
+        // If it's an API request, return JSON
+        if (request()->wantsJson() || request()->is('api/*')) {
+            return response()->json([
+                'success' => true,
+                'data' => $device,
+                'message' => 'Device retrieved successfully'
+            ]);
+        }
+
+        // For web view
+        return view('device-details', ['device' => $device]);
     }
 }

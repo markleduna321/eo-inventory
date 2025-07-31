@@ -1,7 +1,8 @@
 import Button from '@/app/pages/components/button'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
+import Modal from '@/app/pages/components/modal'
 import TableFilter from '@/app/pages/components/table-filter'
-import { ArrowDownCircleIcon, PrinterIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { ArrowDownCircleIcon, PrinterIcon, EyeIcon, PencilIcon, TrashIcon, QrCodeIcon } from '@heroicons/react/24/outline'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { get_devices_thunk, delete_device_thunk } from '../_redux/devices-thunk'
@@ -96,6 +97,24 @@ export default function DeviceTableSection() {
     const handleCloseDetails = () => {
         setViewingDevice(null)
         setIsDetailsModalOpen(false)
+    }
+    
+    // QR code functionality
+    const [currentQrDevice, setCurrentQrDevice] = useState(null);
+    const [showQrModal, setShowQrModal] = useState(false);
+    
+    const handleShowQrCode = (device) => {
+        fetch(`/devices/${device.id}/qr-image`, { method: 'HEAD' })
+            .then(() => {
+                setCurrentQrDevice(device);
+                setShowQrModal(true);
+            })
+            .catch(error => {
+                console.error('Error checking QR code:', error);
+                // Still show the modal even if there's an error with the HEAD request
+                setCurrentQrDevice(device);
+                setShowQrModal(true);
+            });
     }
 
     const handleEdit = (device) => {
@@ -285,6 +304,15 @@ export default function DeviceTableSection() {
                                                         title="View Details"
                                                     >
                                                         <EyeIcon className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="success"
+                                                        size="sm"
+                                                        onClick={() => handleShowQrCode(device)}
+                                                        title="View QR Code"
+                                                    >
+                                                        <QrCodeIcon className="h-4 w-4" />
                                                     </Button>
                                                     <Button
                                                         type="button"
@@ -568,6 +596,60 @@ export default function DeviceTableSection() {
                 title="Delete Device"
                 message="Are you sure you want to delete this device? This action cannot be undone."
             />
+            
+            {/* QR Code Modal */}
+            <Modal isOpen={showQrModal} setIsOpen={setShowQrModal} title="Device QR Code">
+                <div className="p-4">
+                    {currentQrDevice && (
+                        <div className="flex flex-col items-center space-y-4">
+                            <div className="bg-white p-4 rounded-lg shadow">
+                                <h3 className="text-lg font-medium text-gray-900 mb-2">{currentQrDevice.brand} {currentQrDevice.model}</h3>
+                                <p className="text-sm text-gray-600 mb-1">S/N: {currentQrDevice.serial_number}</p>
+                                <p className="text-sm text-gray-600">Type: {currentQrDevice.device_type}</p>
+                                
+                                <div className="mt-4 flex flex-col items-center justify-center">
+                                    <p className="text-gray-600 mb-2">Scan or share this QR code:</p>
+                                    <div className="border border-gray-300 p-1 rounded bg-white">
+                                        <img
+                                            src={`/devices/${currentQrDevice.id}/qr-image`} 
+                                            alt="QR Code"
+                                            className="w-64 h-64"
+                                            onError={(e) => {
+                                                console.error("QR code image load error");
+                                                e.target.onerror = null;
+                                                e.target.src = "data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20version%3D%221.1%22%20width%3D%22300%22%20height%3D%22300%22%3E%3Crect%20width%3D%22300%22%20height%3D%22300%22%20fill%3D%22%23f8f9fa%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20font-size%3D%2218%22%20text-anchor%3D%22middle%22%20alignment-baseline%3D%22middle%22%20font-family%3D%22Arial%2C%20sans-serif%22%20fill%3D%22%236c757d%22%3EQR%20Code%20Unavailable%3C%2Ftext%3E%3C%2Fsvg%3E";
+                                            }}
+                                        />
+                                    </div>
+                                    <p className="mt-2 text-xs text-gray-500">QR Code ID: {currentQrDevice.qr_code || "Generating..."}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex space-x-2">
+                                <Button 
+                                    type="button" 
+                                    variant="secondary" 
+                                    size="md" 
+                                    onClick={() => {
+                                        window.location.href = `/devices/${currentQrDevice.id}/qr-image?download=1`;
+                                    }}
+                                >
+                                    <ArrowDownCircleIcon className="h-5 w-5 mr-2" />
+                                    Download QR Code
+                                </Button>
+                                <Button 
+                                    type="button" 
+                                    variant="danger" 
+                                    size="md" 
+                                    onClick={() => setShowQrModal(false)}
+                                >
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </div>
     )
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\SystemUnitController;
 use App\Http\Controllers\MonitorController;
+use App\Http\Controllers\DeviceController;
 use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -142,6 +143,13 @@ Route::get('/monitors/qr/{qrCode}', [MonitorController::class, 'showByQrCode'])
 
 Route::get('/monitors/{monitor}/qr-image', [MonitorController::class, 'generateQrCode'])
     ->name('monitors.qr-image');
+
+// Device QR Code routes (public access for scanning)
+Route::get('/devices/qr/{qrCode}', [DeviceController::class, 'showByQrCode'])
+    ->name('devices.qr-view');
+
+Route::get('/devices/{device}/qr-image', [DeviceController::class, 'generateQrCode'])
+    ->name('devices.qr-image');
 
 Route::middleware('auth:sanctum', 'role:3')->prefix('user')->group(function () {
     Route::get('dashboard', function () {
