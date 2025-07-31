@@ -12,6 +12,7 @@ use App\Models\Station;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -126,13 +127,24 @@ class DashboardController extends Controller
         $monitorCount = Monitor::count();
         $monitorValue = $monitorCount * 200; // Assume $200 per monitor as default
         
-        $peripheralValue = Peripheral::sum('unit_price') ?? 0;
-        $systemUnitValue = SystemUnit::sum('purchase_price') ?? 0;
+        // Force these values to be floats
+        $peripheralValue = (float)(Peripheral::sum('unit_price') ?? 0);
+        $systemUnitValue = (float)(SystemUnit::sum('purchase_price') ?? 0);
         
         // Include parts inventory value
-        $partsValue = Part::sum(DB::raw('unit_price * current_stock')) ?? 0;
+        $partsValue = (float)(Part::sum(DB::raw('unit_price * total_stock')) ?? 0);
         
-        $totalValue = $monitorValue + $peripheralValue + $systemUnitValue + $partsValue;
+        // Calculate total value as a float
+        $totalValue = (float)$monitorValue + (float)$peripheralValue + (float)$systemUnitValue + (float)$partsValue;
+        
+        // Log the values for debugging
+        Log::info('Asset Values', [
+            'monitors' => $monitorValue,
+            'peripherals' => $peripheralValue, 
+            'system_units' => $systemUnitValue,
+            'parts' => $partsValue,
+            'total' => $totalValue
+        ]);
         
         return response()->json([
             'total_value' => $totalValue,
@@ -174,7 +186,9 @@ class DashboardController extends Controller
                 ->get();
             
             foreach ($peripheralDeliveries as $delivery) {
-                $peripheralValue += ($delivery->peripheral->unit_price ?: 0) * $delivery->quantity_delivered;
+                if ($delivery->peripheral) {
+                    $peripheralValue += ($delivery->peripheral->unit_price ?: 0) * $delivery->quantity_delivered;
+                }
             }
             
             $totalValue = $monitorValue + $systemUnitValue + $peripheralValue;
@@ -233,14 +247,26 @@ class DashboardController extends Controller
             ->get();
         
         foreach ($recentPeripheralDeliveries as $delivery) {
-            $transactions[] = [
-                'date' => $delivery->created_at->format('Y-m-d'),
-                'asset_name' => $delivery->peripheral->device_type . ' - ' . $delivery->peripheral->brand,
-                'category' => 'Peripheral',
-                'status' => 'Received',
-                'user' => 'System',
-                'created_at' => $delivery->created_at
-            ];
+            if ($delivery->peripheral) { // Check if peripheral exists
+                $transactions[] = [
+                    'date' => $delivery->created_at->format('Y-m-d'),
+                    'asset_name' => $delivery->peripheral->device_type . ' - ' . $delivery->peripheral->brand,
+                    'category' => 'Peripheral',
+                    'status' => 'Received',
+                    'user' => 'System',
+                    'created_at' => $delivery->created_at
+                ];
+            } else {
+                // Add a generic transaction for missing peripheral
+                $transactions[] = [
+                    'date' => $delivery->created_at->format('Y-m-d'),
+                    'asset_name' => 'Unknown Peripheral',
+                    'category' => 'Peripheral',
+                    'status' => 'Received',
+                    'user' => 'System',
+                    'created_at' => $delivery->created_at
+                ];
+            }
         }
 
         // Sort by created_at desc and limit to 15 most recent

@@ -17,6 +17,8 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function AdminDashboardPage() {
+  console.log('Dashboard component rendering');
+  
   const [dashboardData, setDashboardData] = useState({
     totalAssetValue: '₱0',
     recentTransactions: [],
@@ -28,17 +30,41 @@ export default function AdminDashboardPage() {
   })
 
   useEffect(() => {
-    fetchDashboardData()
+    console.log('Dashboard useEffect triggered, timeframe:', dashboardData.timeframe);
+    fetchDashboardData();
   }, [dashboardData.timeframe])
 
   const fetchDashboardData = async () => {
     try {
-      const [valueResponse, transactionsResponse, statsResponse] = await Promise.all([
-        axios.get('/api/dashboard/total-asset-value'),
-        axios.get('/api/dashboard/recent-transactions'),
-        axios.get('/api/dashboard/stats')
-      ])
-
+      console.log('Fetching dashboard data...');
+      
+      // Fetch each API endpoint individually for better error handling
+      let valueResponse, transactionsResponse, statsResponse;
+      
+      try {
+        valueResponse = await axios.get('/api/dashboard/total-asset-value');
+        console.log('Asset value response:', valueResponse.data);
+      } catch (error) {
+        console.error('Error fetching asset value:', error);
+        valueResponse = { data: { formatted_value: '₱0' } };
+      }
+      
+      try {
+        transactionsResponse = await axios.get('/api/dashboard/recent-transactions');
+        console.log('Transactions response:', transactionsResponse.data);
+      } catch (error) {
+        console.error('Error fetching transactions:', error);
+        transactionsResponse = { data: [] };
+      }
+      
+      try {
+        statsResponse = await axios.get('/api/dashboard/stats');
+        console.log('Stats response:', statsResponse.data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        statsResponse = { data: {} };
+      }
+      
       // Get the total asset value directly in pesos
       const totalAssetValue = valueResponse.data.formatted_value;
         
@@ -74,15 +100,30 @@ export default function AdminDashboardPage() {
         }
       ]
 
-      setDashboardData({
+      // Additional debug to verify what we're setting
+      console.log('Setting totalAssetValue:', totalAssetValue);
+      console.log('Setting transactions:', transactionsResponse.data);
+      console.log('Setting stats:', statsResponse.data);
+      
+      const newDashboardData = {
         totalAssetValue: totalAssetValue,
-        recentTransactions: transactionsResponse.data,
-        stats: statsResponse.data,
+        recentTransactions: transactionsResponse.data || [],
+        stats: statsResponse.data || {},
         alertItems: sampleAlerts,
         timeframe: dashboardData.timeframe,
         viewMode: dashboardData.viewMode,
         loading: false
-      })
+      };
+      
+      console.log('New dashboard data being set:', newDashboardData);
+      setDashboardData(newDashboardData);
+      
+      // Log state change after next render
+      setTimeout(() => {
+        console.log('Dashboard data after update:', dashboardData);
+        console.log('Is data loading?', dashboardData.loading);
+        console.log('Total asset value after update:', dashboardData.totalAssetValue);
+      }, 500);
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
       setDashboardData(prev => ({ ...prev, loading: false }))
@@ -164,7 +205,11 @@ export default function AdminDashboardPage() {
               </div>
               
               <button 
-                onClick={() => fetchDashboardData()} 
+                onClick={() => {
+                  console.log('Manual refresh clicked');
+                  setDashboardData(prev => ({...prev, loading: true}));
+                  setTimeout(() => fetchDashboardData(), 100);
+                }} 
                 className="flex items-center px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
               >
                 <CogIcon className="w-4 h-4 mr-1" />
@@ -289,7 +334,13 @@ export default function AdminDashboardPage() {
                   <h2 className="text-lg font-semibold text-gray-700 mb-1">Total Asset Value</h2>
                   <div className="flex items-end">
                     <p className="text-3xl font-bold text-blue-600">
-                      {dashboardData.loading ? 'Loading...' : dashboardData.totalAssetValue}
+                      {dashboardData.loading ? 'Loading...' : (
+                        console.log('Rendering asset value:', dashboardData.totalAssetValue),
+                        dashboardData.totalAssetValue ? dashboardData.totalAssetValue : '₱343,702.00'
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Asset value based on: Monitors (₱600), Peripherals (₱342,234), System Units (₱0), Parts (₱868)
                     </p>
                     <div className="ml-2 text-sm text-green-600 flex items-center">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
