@@ -3,6 +3,7 @@ import AdminLayout from '../layout'
 import CreateStationsSection from './_sections/create-stations-section'
 import StationsTableSection from './_sections/stations-table-section'
 import { useDispatch, useSelector } from 'react-redux'
+import { Transition } from '@headlessui/react'
 import { 
     ComputerDesktopIcon, 
     UserGroupIcon, 
@@ -21,6 +22,15 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 export default function StationsPage() {
     const dispatch = useDispatch()
     const { stations } = useSelector(state => state.stations)
+    const [showDashboard, setShowDashboard] = useState(() => {
+        const savedState = localStorage.getItem('stationDashboardVisible')
+        return savedState !== null ? JSON.parse(savedState) : true
+    })
+    
+    // Save dashboard visibility state to localStorage
+    useEffect(() => {
+        localStorage.setItem('stationDashboardVisible', JSON.stringify(showDashboard))
+    }, [showDashboard])
     
     useEffect(() => {
         dispatch(fetchStations())
@@ -117,12 +127,42 @@ export default function StationsPage() {
                             <h1 className='text-2xl font-bold text-gray-800'>Workstations</h1>
                             <p className='text-gray-600 mt-1'>Manage employee workstations and desk assignments</p>
                         </div>
-                        <CreateStationsSection />
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setShowDashboard(!showDashboard)}
+                                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                                    showDashboard
+                                        ? 'text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100'
+                                        : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                } shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                                title={showDashboard ? "Hide Dashboard" : "Show Dashboard"}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    {showDashboard ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                                    )}
+                                </svg>
+                                {showDashboard ? "Hide Dashboard" : "Show Dashboard"}
+                            </button>
+                            <CreateStationsSection />
+                        </div>
                     </div>
                 </div>
                 
-                {/* Dashboard Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Transition
+                    show={showDashboard}
+                    enter="transition-opacity duration-300 ease-out"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="transition-opacity duration-200 ease-in"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className={`overflow-hidden ${showDashboard ? 'max-h-[2000px]' : 'max-h-0'} transition-all duration-500 ease-in-out`}>
+                        {/* Dashboard Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
                         <div className="flex items-center justify-between">
                             <div>
@@ -233,6 +273,8 @@ export default function StationsPage() {
                         </div>
                     </div>
                 </div>
+                    </div>
+                </Transition>
                 
                 <StationsTableSection />
             </div>
