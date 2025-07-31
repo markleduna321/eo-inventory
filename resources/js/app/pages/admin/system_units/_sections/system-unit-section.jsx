@@ -130,7 +130,8 @@ export default function SystemUnitTableSection() {
             location: unit.location || '',
             description: unit.description || '',
             notes: unit.notes || '',
-            specifications: unit.specifications || {}
+            specifications: unit.specifications || {},
+            purchase_price: unit.purchase_price || ''
         })
     }
 
@@ -1138,6 +1139,18 @@ export default function SystemUnitTableSection() {
                                                 required
                                             />
                                         </div>
+                                        
+                                        <div>
+                                            <label htmlFor="purchase_price" className="block text-sm font-medium text-gray-700">Price (₱)</label>
+                                            <InputTextComponent
+                                                id="purchase_price"
+                                                type="number"
+                                                step="0.01"
+                                                value={editForm.purchase_price}
+                                                onChange={(e) => setEditForm({...editForm, purchase_price: e.target.value})}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
 
                                         <div className="col-span-2">
                                             <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
@@ -1159,6 +1172,72 @@ export default function SystemUnitTableSection() {
                                                 value={editForm.notes || ''}
                                                 onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
                                             />
+                                        </div>
+                                        
+                                        <div className="col-span-2 mt-4">
+                                            <h4 className="font-medium text-gray-700 mb-2">Specifications</h4>
+                                            <div className="border rounded-md p-3 space-y-3">
+                                                {Object.entries(editForm.specifications || {}).map(([key, value], index) => (
+                                                    <div key={index} className="grid grid-cols-12 gap-2">
+                                                        <div className="col-span-4">
+                                                            <InputTextComponent
+                                                                value={key}
+                                                                onChange={(e) => {
+                                                                    const newSpecs = {...editForm.specifications};
+                                                                    const oldValue = newSpecs[key];
+                                                                    delete newSpecs[key];
+                                                                    newSpecs[e.target.value] = oldValue;
+                                                                    setEditForm({...editForm, specifications: newSpecs});
+                                                                }}
+                                                                placeholder="Key"
+                                                                className="text-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-7">
+                                                            <InputTextComponent
+                                                                value={value}
+                                                                onChange={(e) => {
+                                                                    const newSpecs = {...editForm.specifications};
+                                                                    newSpecs[key] = e.target.value;
+                                                                    setEditForm({...editForm, specifications: newSpecs});
+                                                                }}
+                                                                placeholder="Value"
+                                                                className="text-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="col-span-1 flex items-center justify-center">
+                                                            <button
+                                                                type="button"
+                                                                className="text-red-500 hover:text-red-700"
+                                                                onClick={() => {
+                                                                    const newSpecs = {...editForm.specifications};
+                                                                    delete newSpecs[key];
+                                                                    setEditForm({...editForm, specifications: newSpecs});
+                                                                }}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center px-3 py-1 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none"
+                                                    onClick={() => {
+                                                        const newSpecs = {...editForm.specifications};
+                                                        newSpecs[`Spec ${Object.keys(newSpecs).length + 1}`] = '';
+                                                        setEditForm({...editForm, specifications: newSpecs});
+                                                    }}
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                                    </svg>
+                                                    Add Specification
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                     
