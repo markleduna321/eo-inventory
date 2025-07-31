@@ -124,9 +124,8 @@ class DashboardController extends Controller
      */
     public function getTotalAssetValue()
     {
-        // Monitors don't have purchase_price, so we'll assign a default value or skip
-        $monitorCount = Monitor::count();
-        $monitorValue = $monitorCount * 200; // Assume $200 per monitor as default
+        // Use the price field for monitors, or default to 0 if null
+        $monitorValue = (float)(Monitor::sum('price') ?? 0);
         
         // Force these values to be floats
         $peripheralValue = (float)(Peripheral::sum('unit_price') ?? 0);
@@ -178,10 +177,8 @@ class DashboardController extends Controller
             
             $monthEnd = $date->endOfMonth()->toDateString();
             
-            // Calculate cumulative value up to this month
-            // Monitors don't have purchase_price, estimate at $200 each
-            $monitorCount = Monitor::where('created_at', '<=', $monthEnd)->count();
-            $monitorValue = $monitorCount * 200;
+            // Calculate cumulative value up to this month using actual prices
+            $monitorValue = Monitor::where('created_at', '<=', $monthEnd)->sum('price') ?? 0;
             
             $systemUnitValue = SystemUnit::where('created_at', '<=', $monthEnd)->sum('purchase_price') ?? 0;
             

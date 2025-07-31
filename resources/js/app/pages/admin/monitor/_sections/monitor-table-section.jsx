@@ -197,7 +197,8 @@ export default function MonitorTableSection() {
             status: monitor.status,
             location: monitor.location,
             received_by: monitor.received_by,
-            notes: monitor.notes || ''
+            notes: monitor.notes || '',
+            price: monitor.price || ''
         })
         dispatch(setCurrentMonitor(monitor))
         setIsEditModalOpen(true)
@@ -773,6 +774,25 @@ export default function MonitorTableSection() {
                                             />
                                             {editErrors.location && <InputError message={editErrors.location} />}
                                         </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="edit_price" className="block text-sm font-medium text-gray-700 mb-1">
+                                                Price (₱) (Optional)
+                                            </label>
+                                            <InputTextComponent
+                                                id="edit_price"
+                                                name="price"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={editFormData.price}
+                                                onChange={handleEditInputChange}
+                                            />
+                                            {editErrors.price && <InputError message={editErrors.price} />}
+                                        </div>
+                                        <div></div>
                                     </div>
 
                                     <div>

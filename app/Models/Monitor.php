@@ -22,6 +22,7 @@ class Monitor extends Model
         'notes',
         'station_id',
         'qr_code',
+        'price',
     ];
 
     protected $casts = [

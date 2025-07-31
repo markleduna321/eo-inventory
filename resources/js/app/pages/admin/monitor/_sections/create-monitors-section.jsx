@@ -24,7 +24,8 @@ export default function CreateMonitorsSection() {
         status: 'working',
         location: '',
         received_by: auth.user?.name || '',
-        notes: ''
+        notes: '',
+        price: ''
     })
     const [errors, setErrors] = useState({})
     const [loading, setLoading] = useState(false)
@@ -43,7 +44,8 @@ export default function CreateMonitorsSection() {
             status: 'working',
             location: '',
             received_by: auth.user?.name || '',
-            notes: ''
+            notes: '',
+            price: ''
         })
         setErrors({})
         setAlert({ show: false, type: '', message: '' })
@@ -298,6 +300,25 @@ export default function CreateMonitorsSection() {
                                             />
                                             {errors.location && <InputError message={errors.location} />}
                                         </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+                                                Price (₱) (Optional)
+                                            </label>
+                                            <InputTextComponent
+                                                id="price"
+                                                name="price"
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                                value={formData.price}
+                                                onChange={handleInputChange}
+                                            />
+                                            {errors.price && <InputError message={errors.price} />}
+                                        </div>
+                                        <div></div>
                                     </div>
 
                                     <div>

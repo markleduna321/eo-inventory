@@ -53,6 +53,7 @@ class MonitorController extends Controller
                 'location' => 'required|string|max:255',
                 'received_by' => 'required|string|max:255',
                 'notes' => 'nullable|string|max:1000',
+                'price' => 'nullable|numeric|min:0',
             ]);
 
             $monitor = Monitor::create($validated);
@@ -116,6 +117,7 @@ class MonitorController extends Controller
                 'location' => 'required|string|max:255',
                 'received_by' => 'required|string|max:255',
                 'notes' => 'nullable|string|max:1000',
+                'price' => 'nullable|numeric|min:0',
             ]);
 
             $monitor->update($validated);
