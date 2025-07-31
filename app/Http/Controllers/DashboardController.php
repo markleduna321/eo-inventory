@@ -129,15 +129,19 @@ class DashboardController extends Controller
         $peripheralValue = Peripheral::sum('unit_price') ?? 0;
         $systemUnitValue = SystemUnit::sum('purchase_price') ?? 0;
         
-        $totalValue = $monitorValue + $peripheralValue + $systemUnitValue;
+        // Include parts inventory value
+        $partsValue = Part::sum(DB::raw('unit_price * current_stock')) ?? 0;
+        
+        $totalValue = $monitorValue + $peripheralValue + $systemUnitValue + $partsValue;
         
         return response()->json([
             'total_value' => $totalValue,
-            'formatted_value' => '$' . number_format($totalValue, 2),
+            'formatted_value' => '₱' . number_format($totalValue, 2),
             'breakdown' => [
                 'monitors' => $monitorValue,
                 'peripherals' => $peripheralValue,
-                'system_units' => $systemUnitValue
+                'system_units' => $systemUnitValue,
+                'parts' => $partsValue
             ]
         ]);
     }

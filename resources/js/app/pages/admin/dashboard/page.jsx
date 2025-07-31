@@ -39,11 +39,8 @@ export default function AdminDashboardPage() {
         axios.get('/api/dashboard/stats')
       ])
 
-      // Convert dollar values to peso if needed
+      // Get the total asset value directly in pesos
       const totalAssetValue = valueResponse.data.formatted_value;
-      const pesoCurrency = totalAssetValue.startsWith('$') ? 
-        `₱${parseFloat(totalAssetValue.replace('$', '').replace(/,/g, '')).toLocaleString()}` : 
-        totalAssetValue;
         
       // Generate some sample alert items (in a real app, these would come from the backend)
       const sampleAlerts = [
@@ -78,7 +75,7 @@ export default function AdminDashboardPage() {
       ]
 
       setDashboardData({
-        totalAssetValue: pesoCurrency,
+        totalAssetValue: totalAssetValue,
         recentTransactions: transactionsResponse.data,
         stats: statsResponse.data,
         alertItems: sampleAlerts,
