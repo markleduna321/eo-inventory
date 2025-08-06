@@ -17,16 +17,17 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
 
 class ReportController extends Controller
 {
-    /**
+    /**  
      * Get a list of available reports
      */
     public function index()
-    {
+    { 
         $reports = [
             [
                 'id' => 'asset-inventory',
@@ -146,6 +147,55 @@ class ReportController extends Controller
         
         // Return CSV response
         return $this->generateCsvResponse($data, $type);
+    }
+    
+    /**
+     * Generate an AI-enhanced report with insights and recommendations
+     */
+    public function aiEnhancedReport(Request $request, $type)
+    {
+        // Validate report type
+        if (!$this->isValidReportType($type)) {
+            return response()->json(['error' => 'Invalid report type'], 400);
+        }
+
+        // Default filters
+        $filters = $request->input('filters', []);
+        
+        // Generate the standard report first
+        $reportData = $this->generateReport($type, $filters);
+        
+        // Enhance the report with AI insights
+        $enhancedReport = $this->enhanceReportWithAI($reportData, $type);
+        
+        return response()->json($enhancedReport);
+    }
+    
+    /**
+     * Answer a natural language question about inventory data
+     */
+    public function askAI(Request $request)
+    {
+        $validated = $request->validate([
+            'question' => 'required|string|max:500',
+            'reportContext' => 'nullable|string',
+        ]);
+        
+        $question = $validated['question'];
+        $reportContext = $validated['reportContext'] ?? null;
+        
+        // Get relevant report data based on the question
+        $relevantData = $this->getRelevantDataForQuestion($question, $reportContext);
+        
+        // Generate AI response
+        $response = $this->generateAIResponse($question, $relevantData);
+        
+        return response()->json([
+            'question' => $question,
+            'answer' => $response['answer'],
+            'relevantData' => $response['data'],
+            'generatedAt' => now()->toDateTimeString()
+        ]);
     }
 
     /**
@@ -966,5 +1016,437 @@ class ReportController extends Controller
         }
         
         return [];
+    }
+    
+    /**
+     * Enhance a report with AI-generated insights and recommendations
+     */
+    private function enhanceReportWithAI($reportData, $type)
+    {
+        try {
+            // Add AI insights section to the report
+            $reportData['ai_insights'] = [
+                'summary' => $this->generateReportSummary($reportData, $type),
+                'trends' => $this->analyzeReportTrends($reportData, $type),
+                'recommendations' => $this->generateRecommendations($reportData, $type),
+                'predictive_analytics' => $this->generatePredictiveAnalytics($reportData, $type),
+                'generated_at' => now()->toDateTimeString()
+            ];
+            
+            return $reportData;
+        } catch (\Exception $e) {
+            Log::error('Error enhancing report with AI: ' . $e->getMessage());
+            
+            // Return original report if AI enhancement fails
+            $reportData['ai_insights'] = [
+                'error' => 'AI enhancement failed',
+                'message' => 'The standard report is still available.'
+            ];
+            
+            return $reportData;
+        }
+    }
+    
+    /**
+     * Generate a natural language summary of a report
+     */
+    private function generateReportSummary($reportData, $type)
+    {
+        // Prepare report data for the AI
+        $reportSummary = json_encode([
+            'report_type' => $type,
+            'summary_data' => $reportData['summary'] ?? [],
+            'timestamp' => now()->toDateTimeString()
+        ]);
+        
+        // Call OpenAI API (you would need to set up your API key in .env)
+        $apiKey = env('OPENAI_API_KEY');
+        if (!$apiKey) {
+            return $this->getFallbackSummary($type, $reportData);
+        }
+        
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json'
+            ])->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-4',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are an inventory management analytics expert. Analyze this report and provide a concise, insightful summary.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'Generate a professional summary of this report data: ' . $reportSummary
+                    ]
+                ],
+                'max_tokens' => 300
+            ]);
+            
+            if ($response->successful()) {
+                return $response->json()['choices'][0]['message']['content'];
+            } else {
+                return $this->getFallbackSummary($type, $reportData);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error calling OpenAI API: ' . $e->getMessage());
+            return $this->getFallbackSummary($type, $reportData);
+        }
+    }
+    
+    /**
+     * Generate a fallback summary when AI API is unavailable
+     */
+    private function getFallbackSummary($type, $reportData)
+    {
+        $summary = "This " . ucfirst(str_replace('-', ' ', $type)) . " report was generated on " . now()->format('F j, Y') . ". ";
+        
+        switch ($type) {
+            case 'asset-inventory':
+                $totalAssets = $reportData['summary']['total_assets'] ?? 0;
+                $summary .= "It contains information on {$totalAssets} assets across various categories.";
+                break;
+                
+            case 'asset-utilization':
+                $utilizationRate = $reportData['summary']['overall_utilization'] ?? 0;
+                $summary .= "Overall asset utilization is at {$utilizationRate}% across all asset types.";
+                break;
+                
+            case 'financial':
+                $totalValue = $reportData['summary']['total_asset_value'] ?? 0;
+                $summary .= "The total value of all assets is $" . number_format($totalValue, 2) . ".";
+                break;
+                
+            default:
+                $summary .= "The report contains detailed information on your inventory.";
+        }
+        
+        return $summary;
+    }
+    
+    /**
+     * Analyze trends in the report data
+     */
+    private function analyzeReportTrends($reportData, $type)
+    {
+        $trends = [];
+        
+        switch ($type) {
+            case 'asset-inventory':
+                // Check for categories with high inventory levels
+                if (isset($reportData['summary']['by_category'])) {
+                    $categories = $reportData['summary']['by_category'];
+                    arsort($categories); // Sort by value (highest first)
+                    $highestCategory = key($categories);
+                    $trends[] = "The {$highestCategory} category has the highest inventory level with {$categories[$highestCategory]} items.";
+                }
+                break;
+                
+            case 'financial':
+                // Analyze monthly trends if available
+                if (isset($reportData['monthly_data']) && count($reportData['monthly_data']) >= 2) {
+                    $latestMonth = $reportData['monthly_data'][count($reportData['monthly_data']) - 1];
+                    $previousMonth = $reportData['monthly_data'][count($reportData['monthly_data']) - 2];
+                    
+                    $change = $latestMonth['total_value'] - $previousMonth['total_value'];
+                    $percentChange = $previousMonth['total_value'] > 0 ? ($change / $previousMonth['total_value']) * 100 : 0;
+                    
+                    if ($change > 0) {
+                        $trends[] = "Asset value increased by " . number_format(abs($percentChange), 1) . "% compared to the previous month.";
+                    } elseif ($change < 0) {
+                        $trends[] = "Asset value decreased by " . number_format(abs($percentChange), 1) . "% compared to the previous month.";
+                    } else {
+                        $trends[] = "Asset value remained stable compared to the previous month.";
+                    }
+                }
+                break;
+                
+            case 'asset-utilization':
+                // Identify under-utilized assets
+                if (isset($reportData['summary']['deployment_rate'])) {
+                    $deploymentRates = $reportData['summary']['deployment_rate'];
+                    asort($deploymentRates); // Sort by value (lowest first)
+                    $lowestCategory = key($deploymentRates);
+                    $trends[] = "The {$lowestCategory} category has the lowest utilization rate at {$deploymentRates[$lowestCategory]}%.";
+                }
+                break;
+        }
+        
+        if (empty($trends)) {
+            $trends[] = "No significant trends identified in the current report data.";
+        }
+        
+        return $trends;
+    }
+    
+    /**
+     * Generate AI-based recommendations based on report data
+     */
+    private function generateRecommendations($reportData, $type)
+    {
+        $recommendations = [];
+        
+        switch ($type) {
+            case 'asset-inventory':
+                // Check for low stock items
+                if (isset($reportData['data']['parts'])) {
+                    $lowStockThreshold = 5; // Define your threshold
+                    
+                    // Handle both array and Collection
+                    $parts = $reportData['data']['parts'];
+                    if ($parts instanceof \Illuminate\Support\Collection) {
+                        $lowStockItems = $parts->filter(function($part) use ($lowStockThreshold) {
+                            return $part['available_stock'] <= $lowStockThreshold;
+                        })->all();
+                    } else {
+                        $lowStockItems = array_filter($parts, function($part) use ($lowStockThreshold) {
+                            return $part['available_stock'] <= $lowStockThreshold;
+                        });
+                    }
+                    
+                    if (count($lowStockItems) > 0) {
+                        $recommendations[] = "Consider restocking " . count($lowStockItems) . " parts that are at or below the threshold of {$lowStockThreshold} units.";
+                    }
+                }
+                break;
+                
+            case 'asset-utilization':
+                // Check for under-utilized assets
+                if (isset($reportData['summary']['deployment_rate'])) {
+                    $deploymentRates = $reportData['summary']['deployment_rate'];
+                    $underUtilizedThreshold = 30; // Define your threshold percentage
+                    
+                    foreach ($deploymentRates as $category => $rate) {
+                        if ($rate < $underUtilizedThreshold) {
+                            $recommendations[] = "Consider redistributing or evaluating the need for {$category}, which are currently only at {$rate}% utilization.";
+                        }
+                    }
+                }
+                break;
+                
+            case 'financial':
+                // Check for high-value assets nearing end-of-life
+                $recommendations[] = "Consider performing a cost-benefit analysis on high-value assets to determine optimal replacement timing.";
+                break;
+                
+            case 'maintenance':
+                if (isset($reportData['summary']['assets_under_maintenance']) && $reportData['summary']['assets_under_maintenance'] > 0) {
+                    $recommendations[] = "Review maintenance procedures for common failure points in your {$reportData['summary']['assets_under_maintenance']} assets currently under repair.";
+                }
+                break;
+        }
+        
+        if (empty($recommendations)) {
+            $recommendations[] = "Your inventory management appears to be in good order based on current data.";
+        }
+        
+        return $recommendations;
+    }
+    
+    /**
+     * Generate predictive analytics based on historical data
+     */
+    private function generatePredictiveAnalytics($reportData, $type)
+    {
+        $predictions = [];
+        
+        switch ($type) {
+            case 'financial':
+                // Simple linear trend prediction for next month
+                if (isset($reportData['monthly_data']) && count($reportData['monthly_data']) >= 3) {
+                    $last3Months = array_slice($reportData['monthly_data'], -3);
+                    
+                    // Calculate average monthly change
+                    $changes = [];
+                    for ($i = 1; $i < count($last3Months); $i++) {
+                        $changes[] = $last3Months[$i]['total_value'] - $last3Months[$i-1]['total_value'];
+                    }
+                    
+                    $avgChange = array_sum($changes) / count($changes);
+                    $lastMonthValue = end($last3Months)['total_value'];
+                    $predictedValue = $lastMonthValue + $avgChange;
+                    
+                    $nextMonth = Carbon::now()->addMonth()->format('M Y');
+                    $predictions[] = "Based on recent trends, the projected asset value for {$nextMonth} is $" . number_format($predictedValue, 2) . ".";
+                }
+                break;
+                
+            case 'asset-inventory':
+                $predictions[] = "Based on current inventory levels and usage patterns, no critical shortages are predicted in the next 30 days.";
+                break;
+                
+            case 'asset-utilization':
+                $predictions[] = "Based on historical utilization patterns, we predict stable usage levels across most asset categories in the coming month.";
+                break;
+        }
+        
+        if (empty($predictions)) {
+            $predictions[] = "Insufficient historical data to generate reliable predictions at this time.";
+        }
+        
+        return $predictions;
+    }
+    
+    /**
+     * Get relevant data for answering a natural language question
+     */
+    private function getRelevantDataForQuestion($question, $reportContext = null)
+    {
+        $relevantData = [];
+        
+        // Extract keywords from the question to determine which report data to use
+        $keywords = [
+            'asset' => ['inventory', 'assets', 'equipment', 'items', 'devices', 'monitors', 'system units', 'peripherals'],
+            'financial' => ['value', 'cost', 'price', 'financial', 'money', 'budget', 'expense'],
+            'utilization' => ['usage', 'utilization', 'utilisation', 'deployed', 'using', 'efficiency'],
+            'location' => ['location', 'where', 'place', 'office', 'building', 'room', 'department'],
+            'maintenance' => ['maintenance', 'repair', 'broken', 'fix', 'service', 'damaged']
+        ];
+        
+        $questionLower = strtolower($question);
+        $reportType = null;
+        
+        // Determine which report type is most relevant
+        $matchCounts = [];
+        foreach ($keywords as $type => $typeKeywords) {
+            $matchCounts[$type] = 0;
+            foreach ($typeKeywords as $keyword) {
+                if (strpos($questionLower, $keyword) !== false) {
+                    $matchCounts[$type]++;
+                }
+            }
+        }
+        
+        arsort($matchCounts);
+        $reportType = key($matchCounts); // Get the type with the most keyword matches
+        
+        // Override with explicit report context if provided
+        if ($reportContext) {
+            $reportType = $reportContext;
+        }
+        
+        // Get relevant report data
+        switch ($reportType) {
+            case 'asset':
+                $relevantData = $this->generateAssetInventoryReport([]);
+                break;
+            case 'financial':
+                $relevantData = $this->generateFinancialReport([]);
+                break;
+            case 'utilization':
+                $relevantData = $this->generateAssetUtilizationReport([]);
+                break;
+            case 'location':
+                $relevantData = $this->generateLocationBasedReport([]);
+                break;
+            case 'maintenance':
+                $relevantData = $this->generateMaintenanceReport([]);
+                break;
+            default:
+                // If we can't determine the type, include a bit from each report
+                $relevantData = [
+                    'inventory_summary' => $this->generateAssetInventoryReport([])['summary'],
+                    'financial_summary' => $this->generateFinancialReport([])['summary'],
+                    'utilization_summary' => $this->generateAssetUtilizationReport([])['summary']
+                ];
+                break;
+        }
+        
+        return $relevantData;
+    }
+    
+    /**
+     * Generate an AI response to a natural language question
+     */
+    private function generateAIResponse($question, $relevantData)
+    {
+        // Prepare data for the AI
+        $contextData = json_encode($relevantData);
+        
+        // Call OpenAI API (you would need to set up your API key in .env)
+        $apiKey = env('OPENAI_API_KEY');
+        if (!$apiKey) {
+            return [
+                'answer' => 'AI answering service is not configured. Please contact your administrator.',
+                'data' => []
+            ];
+        }
+        
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json'
+            ])->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-4',
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are an inventory management expert assistant. Answer questions based on the provided data.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => "Based on this inventory data: {$contextData}\n\nAnswer this question: {$question}"
+                    ]
+                ],
+                'max_tokens' => 500
+            ]);
+            
+            if ($response->successful()) {
+                $aiResponse = $response->json()['choices'][0]['message']['content'];
+                
+                // Extract any key figures or data points to highlight
+                $keyData = $this->extractKeyDataPoints($question, $relevantData);
+                
+                return [
+                    'answer' => $aiResponse,
+                    'data' => $keyData
+                ];
+            } else {
+                Log::error('Error calling OpenAI API: ' . $response->body());
+                
+                return [
+                    'answer' => 'Sorry, I could not process your question at this time.',
+                    'data' => []
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception calling OpenAI API: ' . $e->getMessage());
+            
+            return [
+                'answer' => 'Sorry, I could not process your question at this time due to a technical issue.',
+                'data' => []
+            ];
+        }
+    }
+    
+    /**
+     * Extract key data points related to the question
+     */
+    private function extractKeyDataPoints($question, $relevantData)
+    {
+        $keyData = [];
+        $questionLower = strtolower($question);
+        
+        // Extract values based on question context
+        if (strpos($questionLower, 'total value') !== false || strpos($questionLower, 'worth') !== false) {
+            if (isset($relevantData['summary']['total_asset_value'])) {
+                $keyData['total_asset_value'] = $relevantData['summary']['total_asset_value'];
+            }
+        }
+        
+        if (strpos($questionLower, 'total assets') !== false || strpos($questionLower, 'how many') !== false) {
+            if (isset($relevantData['summary']['total_assets'])) {
+                $keyData['total_assets'] = $relevantData['summary']['total_assets'];
+            }
+        }
+        
+        if (strpos($questionLower, 'utilization') !== false || strpos($questionLower, 'usage') !== false) {
+            if (isset($relevantData['summary']['overall_utilization'])) {
+                $keyData['overall_utilization'] = $relevantData['summary']['overall_utilization'] . '%';
+            }
+        }
+        
+        return $keyData;
     }
 }

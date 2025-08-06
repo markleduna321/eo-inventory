@@ -15,6 +15,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 /*
 |--------------------------------------------------------------------------
@@ -99,3 +102,127 @@ Route::get('reports', [ReportController::class, 'index']);
 Route::get('reports/{type}', [ReportController::class, 'show']);
 Route::get('reports/{type}/export', [ReportController::class, 'export']);
 Route::post('reports/{type}/filter', [ReportController::class, 'filter']);
+
+// AI-enhanced report routes - No authentication for testing purposes
+Route::get('reports/{type}/ai-enhanced', [ReportController::class, 'aiEnhancedReport']);
+Route::post('reports/ask-ai', [ReportController::class, 'askAI']);
+
+// Test route for Ask AI with no validation
+Route::post('/test-ask-ai', function (Request $request) {
+    try {
+        // Get the question from request
+        $question = $request->input('question', 'What is the total value of our inventory?');
+        
+        // Log the request details for debugging
+        Log::info('Test Ask AI request received', [
+            'question' => $question,
+            'request_all' => $request->all()
+        ]);
+        
+        // Provide some realistic mock responses based on common questions
+        $mockAnswers = [
+            'total value' => 'The total value of all assets in the inventory is approximately $1,250,000, with monitors accounting for $125,000, system units for $580,000, peripherals for $95,000, parts for $75,000, and devices for $375,000.',
+            'monitor' => 'Based on the current inventory data, the IT department has the highest number of monitors with 42 units, followed by Engineering with 38 units, and Marketing with 27 units.',
+            'minimum stock' => 'There are currently 5 parts that are below the minimum stock level: 2 graphics cards, 1 power supply unit, and 2 network interface cards.',
+            'utilization' => 'The asset utilization rate last month was 78.5%, which is a 3.2% increase from the previous month. Monitors have the highest utilization rate at 87.2%.',
+            'maintenance' => 'There are currently 12 assets scheduled for maintenance in the next 30 days: 5 system units, 3 monitors, and 4 network devices.',
+            'default' => 'Based on the available inventory data, I cannot provide a specific answer to this question. Please try asking about asset values, counts by department, utilization rates, or maintenance schedules.'
+        ];
+        
+        // Determine which mock answer to use based on keywords in the question
+        $answer = $mockAnswers['default'];
+        foreach ($mockAnswers as $keyword => $response) {
+            if (stripos($question, $keyword) !== false) {
+                $answer = $response;
+                break;
+            }
+        }
+        
+        // Create some relevant data points based on the question
+        $relevantData = [];
+        if (stripos($question, 'monitor') !== false) {
+            $relevantData = [
+                'IT_Department' => 42,
+                'Engineering' => 38,
+                'Marketing' => 27,
+                'Sales' => 18,
+                'Finance' => 15
+            ];
+        } elseif (stripos($question, 'total value') !== false) {
+            $relevantData = [
+                'monitors_value' => 125000,
+                'system_units_value' => 580000,
+                'peripherals_value' => 95000,
+                'parts_value' => 75000,
+                'devices_value' => 375000,
+                'total_value' => 1250000
+            ];
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'question' => $question,
+            'answer' => $answer,
+            'relevantData' => $relevantData,
+            'generatedAt' => now()->toDateTimeString()
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Test Ask AI error: ' . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test route for OpenAI API connection
+Route::get('/test-openai', function () {
+    try {
+        $apiKey = config('services.openai.api_key');
+        
+        if (!$apiKey) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'OpenAI API key not found in configuration'
+            ], 500);
+        }
+        
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $apiKey,
+            'Content-Type' => 'application/json'
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'You are a helpful assistant.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => 'Test message - is this API key working?'
+                ]
+            ],
+            'max_tokens' => 50
+        ]);
+        
+        if ($response->successful()) {
+            return response()->json([
+                'status' => 'success',
+                'message' => 'API key is valid',
+                'response' => $response->json()
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'API request failed',
+                'details' => $response->json()
+            ], 500);
+        }
+    } catch (\Exception $e) {
+        Log::error('OpenAI API Test Error: ' . $e->getMessage());
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Exception occurred: ' . $e->getMessage()
+        ], 500);
+    }
+});
