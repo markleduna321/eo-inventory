@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import Button from '@/app/pages/components/button'
 import axios from 'axios'
 import { toast } from 'react-hot-toast'
+import { Link } from '@inertiajs/react'
+import { ChartBarIcon, DocumentTextIcon, ChartPieIcon, CurrencyDollarIcon, MapPinIcon, ClockIcon } from '@heroicons/react/24/outline'
 
 export default function ReportsTableSection() {
     const [reports, setReports] = useState([]);
@@ -13,6 +15,26 @@ export default function ReportsTableSection() {
     useEffect(() => {
         fetchReports();
     }, []);
+    
+    // Get the appropriate icon for each report type
+    const getReportIcon = (type) => {
+        switch (type) {
+            case 'Inventory':
+                return <DocumentTextIcon className="h-8 w-8 text-blue-500" />;
+            case 'Analytics':
+                return <ChartBarIcon className="h-8 w-8 text-purple-500" />;
+            case 'Maintenance':
+                return <ClockIcon className="h-8 w-8 text-orange-500" />;
+            case 'Financial':
+                return <CurrencyDollarIcon className="h-8 w-8 text-emerald-500" />;
+            case 'Location':
+                return <MapPinIcon className="h-8 w-8 text-cyan-500" />;
+            case 'Transaction':
+                return <ChartPieIcon className="h-8 w-8 text-pink-500" />;
+            default:
+                return <DocumentTextIcon className="h-8 w-8 text-gray-500" />;
+        }
+    };
     
     const fetchReports = async () => {
         try {
@@ -151,19 +173,19 @@ export default function ReportsTableSection() {
     };
 
     return (
-        <div className='bg-white shadow-md rounded-md mt-4 p-4'>
-            <div className='flex justify-between items-center mb-4'>
-                <h2 className='text-xl font-semibold text-gray-800'>Available Reports</h2>
+        <div className='bg-white shadow-md rounded-md mt-4 p-6'>
+            <div className='flex justify-between items-center mb-6'>
+                <h2 className='text-2xl font-semibold text-gray-800'>Available Reports</h2>
                 <div className='flex gap-2'>
                     <input
                         type="text"
                         placeholder="Search reports..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <select 
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         value={typeFilter}
                         onChange={(e) => setTypeFilter(e.target.value)}
                     >
@@ -183,106 +205,112 @@ export default function ReportsTableSection() {
                     <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500'></div>
                 </div>
             ) : (
-                <div className='overflow-x-auto'>
-                    <table className='w-full border-collapse'>
-                        <thead>
-                            <tr className='border-b border-gray-200'>
-                                <th className='text-left py-3 px-4 font-semibold text-gray-700'>Report Name</th>
-                                <th className='text-left py-3 px-4 font-semibold text-gray-700'>Type</th>
-                                <th className='text-left py-3 px-4 font-semibold text-gray-700'>Last Generated</th>
-                                <th className='text-left py-3 px-4 font-semibold text-gray-700'>Status</th>
-                                <th className='text-left py-3 px-4 font-semibold text-gray-700'>File Size</th>
-                                <th className='text-left py-3 px-4 font-semibold text-gray-700'>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {reports
-                                .filter(report => 
-                                    (report.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                    report.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                    (typeFilter === '' || report.type === typeFilter)
-                                )
-                                .map((report) => (
-                                <tr key={report.id} className='border-b border-gray-100 hover:bg-gray-50 transition-colors'>
-                                    <td className='py-3 px-4'>
-                                        <div>
-                                            <div className='font-medium text-gray-900'>{report.name}</div>
-                                            <div className='text-sm text-gray-500'>{report.description}</div>
+                <>
+                    {/* Card View for Reports - Modern UI */}
+                    <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8'>
+                        {reports
+                            .filter(report => 
+                                (report.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                report.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                                (typeFilter === '' || report.type === typeFilter)
+                            )
+                            .map((report) => (
+                                <div key={report.id} className='bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow'>
+                                    <div className='p-5'>
+                                        <div className='flex items-start space-x-4'>
+                                            <div className='p-3 bg-gray-50 rounded-lg'>
+                                                {getReportIcon(report.type)}
+                                            </div>
+                                            <div>
+                                                <h3 className='text-lg font-semibold text-gray-900 mb-1'>{report.name}</h3>
+                                                <span className={getTypeBadge(report.type)}>
+                                                    {report.type}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </td>
-                                    <td className='py-3 px-4'>
-                                        <span className={getTypeBadge(report.type)}>
-                                            {report.type}
-                                        </span>
-                                    </td>
-                                    <td className='py-3 px-4 text-gray-600'>{report.lastGenerated}</td>
-                                    <td className='py-3 px-4'>
-                                        <span className={getStatusBadge(
-                                            generatingReportId === report.id ? 'Generating' : report.status
-                                        )}>
-                                            {generatingReportId === report.id ? 'Generating' : report.status}
-                                        </span>
-                                    </td>
-                                    <td className='py-3 px-4 text-gray-600'>{report.fileSize}</td>
-                                    <td className='py-3 px-4'>
-                                        <div className='flex gap-2'>
-                                            {generatingReportId !== report.id && report.status === 'Ready' && (
-                                                <>
-                                                    <Button
-                                                        type='button'
-                                                        variant='secondary'
-                                                        size='sm'
-                                                        onClick={() => handleDownloadReport(report.id)}
-                                                    >
-                                                        Download
-                                                    </Button>
-                                                    <Button
-                                                        type='button'
-                                                        variant='primary'
-                                                        size='sm'
-                                                        onClick={() => handleViewReport(report.id)}
-                                                    >
-                                                        View
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {generatingReportId === report.id && (
-                                                <Button
-                                                    type='button'
-                                                    variant='secondary'
-                                                    size='sm'
-                                                    disabled
-                                                >
-                                                    Generating...
-                                                </Button>
-                                            )}
+                                        
+                                        <p className='text-gray-600 mt-3 text-sm'>{report.description}</p>
+                                        
+                                        <div className='flex justify-between items-center mt-4 text-xs text-gray-500'>
+                                            <div>Last generated: {report.lastGenerated}</div>
+                                            <span className={getStatusBadge(
+                                                generatingReportId === report.id ? 'Generating' : report.status
+                                            )}>
+                                                {generatingReportId === report.id ? 'Generating' : report.status}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className='grid grid-cols-2 gap-3 mt-5'>
+                                            <Link 
+                                                href={`/admin/reports/${report.id}`} 
+                                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 px-3 rounded-md text-center text-sm font-medium transition-colors"
+                                            >
+                                                Standard Report
+                                            </Link>
+                                            <Link 
+                                                href={`/admin/reports/${report.id}/ai-enhanced`} 
+                                                className="bg-purple-100 hover:bg-purple-200 text-purple-700 py-2 px-3 rounded-md text-center text-sm font-medium transition-colors"
+                                            >
+                                                AI-Enhanced
+                                            </Link>
+                                        </div>
+                                        
+                                        <div className='flex justify-between mt-3'>
+                                            <Button
+                                                type='button'
+                                                variant='secondary'
+                                                size='sm'
+                                                onClick={() => handleDownloadReport(report.id)}
+                                                className="flex-1 mr-1 bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center justify-center"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                </svg>
+                                                Download
+                                            </Button>
                                             <Button
                                                 type='button'
                                                 variant='success'
                                                 size='sm'
                                                 disabled={generatingReportId === report.id}
                                                 onClick={() => handleRegenerateReport(report.id)}
+                                                className="flex-1 ml-1 bg-green-600 hover:bg-green-700 text-white shadow-sm flex items-center justify-center"
                                             >
-                                                Regenerate
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                                                </svg>
+                                                {generatingReportId === report.id ? 'Generating...' : 'Regenerate'}
                                             </Button>
                                         </div>
-                                    </td>
-                                </tr>
+                                    </div>
+                                </div>
                             ))}
-                            {reports.filter(report => 
-                                (report.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                report.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                (typeFilter === '' || report.type === typeFilter)
-                            ).length === 0 && (
-                                <tr>
-                                    <td colSpan="6" className="py-4 text-center text-gray-500">
-                                        No reports found matching your criteria
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                    </div>
+                    
+                    {reports.filter(report => 
+                        (report.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        report.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                        (typeFilter === '' || report.type === typeFilter)
+                    ).length === 0 && (
+                        <div className="py-8 text-center">
+                            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+                            <h3 className="mt-2 text-lg font-medium text-gray-900">No reports found</h3>
+                            <p className="mt-1 text-sm text-gray-500">No reports match your current filter criteria.</p>
+                            <div className="mt-6">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setTypeFilter('');
+                                    }}
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     )
