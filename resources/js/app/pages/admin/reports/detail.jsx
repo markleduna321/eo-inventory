@@ -144,7 +144,7 @@ const ReportDetail = ({ reportType }) => {
                                     <h2 className="text-xl font-semibold mb-4 border-b pb-2">Report Summary</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         {report.summary && Object.entries(report.summary).map(([key, value]) => (
-                                            key !== 'by_category' && key !== 'deployment_rate' ? (
+                                            key !== 'by_category' && key !== 'deployment_rate' && key !== 'by_type' && typeof value !== 'object' ? (
                                                 <div key={key} className="bg-gradient-to-br from-white to-gray-50 shadow-sm p-4 rounded-lg border border-gray-100">
                                                     <div className="text-sm text-gray-500 font-medium">{key.replace(/_/g, ' ').toUpperCase()}</div>
                                                     <div className="mt-2 text-3xl font-bold text-gray-800">
@@ -163,6 +163,21 @@ const ReportDetail = ({ reportType }) => {
                                         ))}
                                     </div>
                                 </div>
+                                
+                                {/* Transaction Type Breakdown */}
+                                {report.summary && report.summary.by_type && (
+                                    <div className="mb-8">
+                                        <h2 className="text-xl font-semibold mb-4 border-b pb-2">Transaction Type Breakdown</h2>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            {Object.entries(report.summary.by_type).map(([type, count]) => (
+                                                <div key={type} className="bg-gradient-to-br from-blue-50 to-blue-100 shadow-sm p-4 rounded-lg border border-blue-200">
+                                                    <div className="text-sm text-blue-600 font-medium">{type.replace(/_/g, ' ').toUpperCase()}</div>
+                                                    <div className="mt-2 text-2xl font-bold text-blue-800">{count}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 
                                 {/* Report Data Sections with Improved Tables */}
                                 <div>
