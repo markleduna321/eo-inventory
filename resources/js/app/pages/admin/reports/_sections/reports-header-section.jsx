@@ -40,7 +40,7 @@ export default function ReportsHeaderSection() {
             <div className='flex justify-between items-center'>
                 <div>
                     <h1 className='text-2xl font-bold text-gray-800'>Reports</h1>
-                    <p className='text-gray-600 mt-1'>Generate and view various system reports</p>
+                    <p className='text-gray-600 mt-1'>Generate and view various system reports, or ask AI questions about your inventory</p>
                 </div>
                 <div className='flex gap-2'>
                     <Button
@@ -60,12 +60,6 @@ export default function ReportsHeaderSection() {
                     >
                         {isGenerating ? 'Generating...' : 'Generate Report'}
                     </Button>
-                    <a 
-                        href="/admin/reports/ai"
-                        className="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-500 focus:outline-none focus:border-purple-700 focus:ring ring-purple-300 transition ease-in-out duration-150"
-                    >
-                        AI Reports
-                    </a>
                 </div>
             </div>
         </div>

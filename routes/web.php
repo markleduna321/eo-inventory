@@ -117,29 +117,7 @@ Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function (
             return Inertia::render('admin/reports/page');
         });
         
-        Route::get('/ai', function () {
-            return Inertia::render('admin/reports/ai/index');
-        });
-        
-        // Test route for debugging Ask AI issues
-        Route::get('/test-ask-ai', function () {
-            return Inertia::render('admin/reports/ai/ask', [
-                'debugMode' => true
-            ]);
-        });
-        
-        // Define specific routes before the catch-all route
-        Route::get('/ask-ai', function () {
-            return Inertia::render('admin/reports/ai/ask');
-        });
-        
-        Route::get('/{reportType}/ai-enhanced', function ($reportType) {
-            return Inertia::render('admin/reports/ai/enhanced', [
-                'reportType' => $reportType
-            ]);
-        });
-        
-        // This catch-all route should come last
+        // This catch-all route for specific report types
         Route::get('/{reportType}', function ($reportType) {
             return Inertia::render('admin/reports/detail', [
                 'reportType' => $reportType
