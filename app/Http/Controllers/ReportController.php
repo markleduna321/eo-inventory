@@ -399,10 +399,48 @@ class ReportController extends Controller
                 )
             ],
             'data' => [
-                'monitors' => $monitorStats,
-                'system_units' => $systemUnitStats,
-                'peripherals' => $peripheralStats,
-                'stations' => $this->getStationUtilizationData()
+                'monitors' => $monitors->map(function($monitor) {
+                    return [
+                        'id' => $monitor->id,
+                        'brand' => $monitor->brand,
+                        'model' => $monitor->model,
+                        'serial_number' => $monitor->serial_number,
+                        'status' => $monitor->status,
+                        'location' => $monitor->location,
+                        'station' => $monitor->station ? $monitor->station->name : 'Unassigned',
+                        'deployment_status' => $monitor->deployment_status
+                    ];
+                }),
+                'system_units' => $systemUnits->map(function($unit) {
+                    return [
+                        'id' => $unit->id,
+                        'system_name' => $unit->system_name,
+                        'brand' => $unit->brand,
+                        'model' => $unit->model,
+                        'status' => $unit->status,
+                        'location' => $unit->location,
+                        'station' => $unit->station ? $unit->station->name : 'Unassigned',
+                        'assigned_to' => $unit->assigned_to
+                    ];
+                }),
+                'peripherals' => $peripherals->map(function($peripheral) {
+                    return [
+                        'id' => $peripheral->id,
+                        'type' => $peripheral->type,
+                        'brand' => $peripheral->brand,
+                        'model' => $peripheral->model,
+                        'total_stock' => $peripheral->total_stock,
+                        'available_stock' => $peripheral->available_stock,
+                        'deployed_stock' => $peripheral->deployed_stock,
+                        'status' => $peripheral->status,
+                        'location' => $peripheral->location
+                    ];
+                }),
+                'utilization_summary' => [
+                    'monitors' => $monitorStats,
+                    'system_units' => $systemUnitStats,
+                    'peripherals' => $peripheralStats
+                ]
             ]
         ];
     }
@@ -794,11 +832,11 @@ class ReportController extends Controller
      */
     private function calculateDeploymentStats($collection, $statusField)
     {
-        $deployed = $collection->where($statusField, 'deployed')->count();
-        $available = $collection->where($statusField, 'available')->count();
-        $maintenance = $collection->where($statusField, 'under_repair')->count() +
-                      $collection->where($statusField, 'maintenance')->count();
-        $retired = $collection->where($statusField, 'retired')->count();
+        // Map actual database status values to deployment categories
+        $deployed = $collection->whereIn($statusField, ['deployed', 'assigned', 'active'])->count();
+        $available = $collection->whereIn($statusField, ['available', 'working', 'in_stock'])->count();
+        $maintenance = $collection->whereIn($statusField, ['under_repair', 'maintenance', 'repair'])->count();
+        $retired = $collection->whereIn($statusField, ['retired', 'disposed', 'not_working'])->count();
         
         return [
             'deployed' => $deployed,

@@ -29,14 +29,14 @@ class DashboardController extends Controller
             'total_parts' => Part::count(),
             'total_stations' => Station::count(),
             
-            // Asset status counts
-            'active_monitors' => Monitor::where('status', 'active')->count(),
-            'deployed_monitors' => Monitor::where('status', 'deployed')->count(),
-            'maintenance_monitors' => Monitor::where('status', 'maintenance')->count(),
+            // Asset status counts - updated to match actual database values
+            'active_monitors' => Monitor::whereIn('status', ['working', 'available', 'active'])->count(),
+            'deployed_monitors' => Monitor::whereIn('status', ['deployed', 'assigned'])->count(),
+            'maintenance_monitors' => Monitor::whereIn('status', ['maintenance', 'under_repair', 'repair'])->count(),
             
-            'active_system_units' => SystemUnit::where('status', 'active')->count(),
-            'deployed_system_units' => SystemUnit::where('status', 'deployed')->count(),
-            'maintenance_system_units' => SystemUnit::where('status', 'maintenance')->count(),
+            'active_system_units' => SystemUnit::whereIn('status', ['available', 'working', 'active'])->count(),
+            'deployed_system_units' => SystemUnit::whereIn('status', ['assigned', 'deployed'])->count(),
+            'maintenance_system_units' => SystemUnit::whereIn('status', ['maintenance', 'under_repair', 'repair'])->count(),
             
             'available_peripherals' => Peripheral::sum('available_stock'),
             'deployed_peripherals' => Peripheral::sum('deployed_stock'),
@@ -92,16 +92,16 @@ class DashboardController extends Controller
             [
                 'label' => 'Monitors',
                 'value' => Monitor::count(),
-                'active' => Monitor::where('status', 'active')->count(),
-                'deployed' => Monitor::where('status', 'deployed')->count(),
-                'maintenance' => Monitor::where('status', 'maintenance')->count(),
+                'active' => Monitor::whereIn('status', ['working', 'available', 'active'])->count(),
+                'deployed' => Monitor::whereIn('status', ['deployed', 'assigned'])->count(),
+                'maintenance' => Monitor::whereIn('status', ['maintenance', 'under_repair', 'repair'])->count(),
             ],
             [
                 'label' => 'System Units',
                 'value' => SystemUnit::count(),
-                'active' => SystemUnit::where('status', 'active')->count(),
-                'deployed' => SystemUnit::where('status', 'deployed')->count(),
-                'maintenance' => SystemUnit::where('status', 'maintenance')->count(),
+                'active' => SystemUnit::whereIn('status', ['available', 'working', 'active'])->count(),
+                'deployed' => SystemUnit::whereIn('status', ['assigned', 'deployed'])->count(),
+                'maintenance' => SystemUnit::whereIn('status', ['maintenance', 'under_repair', 'repair'])->count(),
             ],
             [
                 'label' => 'Peripherals',
