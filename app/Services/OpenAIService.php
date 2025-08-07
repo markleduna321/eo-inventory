@@ -21,9 +21,11 @@ class OpenAIService
         $this->apiKey = env('OPENAI_API_KEY');
         $this->defaultModel = env('OPENAI_MODEL', 'gpt-4');
         $this->fallbackModels = [
-            'gpt-3.5-turbo', 
-            'gpt-3.5-turbo-1106', 
-            'gpt-4-0613'
+            'gpt-3.5-turbo-0125',  // Latest GPT-3.5 with better performance
+            'gpt-3.5-turbo-1106',  // Stable version
+            'gpt-3.5-turbo',       // Standard version
+            'gpt-4',               // More expensive but higher quality
+            'gpt-4-0613'           // Stable GPT-4 version
         ];
         $this->temperature = (float)env('OPENAI_TEMPERATURE', 0.3);
         $this->maxTokens = (int)env('OPENAI_MAX_TOKENS', 500);
@@ -87,6 +89,13 @@ class OpenAIService
         $model = $options['model'] ?? $this->defaultModel;
         $temperature = $options['temperature'] ?? $this->temperature;
         $maxTokens = $options['maxTokens'] ?? $this->maxTokens;
+        
+        // Optimize parameters for GPT-3.5-turbo
+        if (strpos($model, 'gpt-3.5') !== false) {
+            $temperature = min(0.1, $temperature); // Lower temperature for more consistent responses
+            $maxTokens = min(300, $maxTokens); // Reduce tokens for better focus
+        }
+        
         $retryCount = 0;
         $modelIndex = -1; // Start with default model
         
