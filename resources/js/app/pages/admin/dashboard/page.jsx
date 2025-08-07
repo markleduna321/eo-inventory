@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import AdminLayout from '../layout'
-import AssetChartMonthly from './sections/asset-chart-monthly-section'
 import { BarChart, LineChart, PieChart } from '@mui/x-charts'
 import AssetValueMonthly from './sections/asset-value-monthly'
 import AssetUsageSection from './sections/asset-usage-section'
@@ -152,57 +151,57 @@ export default function AdminDashboardPage() {
     <AdminLayout>
       <div>
         {/* Dashboard Header with Controls */}
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 rounded-xl shadow-lg mb-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Inventory Dashboard</h1>
-              <p className="text-gray-600">Overview of your inventory assets and metrics</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Inventory Dashboard</h1>
+              <p className="text-blue-100">Real-time overview of your inventory assets and key performance metrics</p>
             </div>
             
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mt-2 sm:mt-0">
+            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-0">
               {/* Timeframe Selector */}
-              <div className="inline-flex bg-gray-100 rounded-md">
+              <div className="inline-flex bg-white/10 backdrop-blur-sm rounded-lg p-1">
                 <button 
                   onClick={() => handleTimeframeChange('30days')}
-                  className={`px-3 py-1.5 text-sm rounded-l-md ${dashboardData.timeframe === '30days' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 text-sm rounded-md transition-all duration-200 ${dashboardData.timeframe === '30days' 
+                    ? 'bg-white text-blue-600 shadow-md font-medium' 
+                    : 'text-white hover:bg-white/20'}`}
                 >
                   30 Days
                 </button>
                 <button 
                   onClick={() => handleTimeframeChange('90days')}
-                  className={`px-3 py-1.5 text-sm ${dashboardData.timeframe === '90days' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 text-sm transition-all duration-200 ${dashboardData.timeframe === '90days' 
+                    ? 'bg-white text-blue-600 shadow-md font-medium rounded-md' 
+                    : 'text-white hover:bg-white/20'}`}
                 >
                   90 Days
                 </button>
                 <button 
                   onClick={() => handleTimeframeChange('12months')}
-                  className={`px-3 py-1.5 text-sm rounded-r-md ${dashboardData.timeframe === '12months' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 text-sm rounded-md transition-all duration-200 ${dashboardData.timeframe === '12months' 
+                    ? 'bg-white text-blue-600 shadow-md font-medium' 
+                    : 'text-white hover:bg-white/20'}`}
                 >
                   12 Months
                 </button>
               </div>
               
               {/* View Mode Selector */}
-              <div className="inline-flex bg-gray-100 rounded-md">
+              <div className="inline-flex bg-white/10 backdrop-blur-sm rounded-lg p-1">
                 <button 
                   onClick={() => handleViewModeChange('charts')}
-                  className={`px-3 py-1.5 text-sm rounded-l-md ${dashboardData.viewMode === 'charts' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 text-sm rounded-md transition-all duration-200 ${dashboardData.viewMode === 'charts' 
+                    ? 'bg-white text-blue-600 shadow-md font-medium' 
+                    : 'text-white hover:bg-white/20'}`}
                 >
                   Charts
                 </button>
                 <button 
                   onClick={() => handleViewModeChange('statistics')}
-                  className={`px-3 py-1.5 text-sm rounded-r-md ${dashboardData.viewMode === 'statistics' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  className={`px-4 py-2 text-sm rounded-md transition-all duration-200 ${dashboardData.viewMode === 'statistics' 
+                    ? 'bg-white text-blue-600 shadow-md font-medium' 
+                    : 'text-white hover:bg-white/20'}`}
                 >
                   Statistics
                 </button>
@@ -214,96 +213,112 @@ export default function AdminDashboardPage() {
                   setDashboardData(prev => ({...prev, loading: true}));
                   setTimeout(() => fetchDashboardData(), 100);
                 }} 
-                className="flex items-center px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                className="flex items-center px-4 py-2 text-sm bg-white/10 backdrop-blur-sm text-white rounded-lg hover:bg-white/20 transition-all duration-200"
               >
-                <CogIcon className="w-4 h-4 mr-1" />
+                <CogIcon className="w-4 h-4 mr-2" />
                 Refresh
               </button>
             </div>
           </div>
           
-          {/* Currency Notice */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 rounded">
+          {/* Currency Notice 
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-4 mb-6 rounded-lg shadow-sm">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="h-6 w-6 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-blue-800">
-                  All financial values are displayed in Philippine Pesos (₱).
+                <h3 className="text-sm font-medium text-amber-800">Currency Information</h3>
+                <p className="text-sm text-amber-700 mt-1">
+                  All financial values are displayed in Philippine Pesos (₱). Exchange rates are updated daily.
                 </p>
               </div>
             </div>
-          </div>
+          </div>*/}
 
-          {/* Quick Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200 flex items-center">
-              <div className="bg-blue-500 text-white p-3 rounded-md">
-                <ComputerDesktopIcon className="w-6 h-6" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Monitors</h3>
+          {/* Enhanced KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
+            <div className="group bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardData.loading ? '...' : dashboardData.stats?.total_monitors || 0}
-                  </p>
-                  <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                    {dashboardData.loading ? '...' : `${dashboardData.stats?.active_monitors || 0} active`}
-                  </span>
+                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-3 rounded-xl shadow-md">
+                    <ComputerDesktopIcon className="w-7 h-7" />
+                  </div>
+                  <div className="ml-4">
+                    <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Monitors</h3>
+                    <div className="flex items-baseline mt-1">
+                      <p className="text-3xl font-bold text-gray-900">
+                        {dashboardData.loading ? '...' : dashboardData.stats?.total_monitors || 0}
+                      </p>
+                      <span className="ml-3 text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium">
+                        {dashboardData.loading ? '...' : `${dashboardData.stats?.active_monitors || 0} active`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-blue-500 opacity-50 group-hover:opacity-100 transition-opacity">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
                 </div>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200 flex items-center">
-              <div className="bg-green-500 text-white p-3 rounded-md">
-                <CpuChipIcon className="w-6 h-6" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">System Units</h3>
-                <div className="flex items-center">
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardData.loading ? '...' : dashboardData.stats?.total_system_units || 0}
-                  </p>
-                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                    {dashboardData.loading ? '...' : `${dashboardData.stats?.active_system_units || 0} active`}
-                  </span>
+            <div className="group bg-gradient-to-br from-green-50 via-green-50 to-emerald-50 rounded-xl p-6 shadow-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:border-green-200 hover:bg-gradient-to-br hover:from-green-100 hover:to-emerald-100">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-green-700 tracking-wide uppercase">System Units</h3>
+                  <div className="flex items-center space-x-3">
+                    <p className="text-4xl font-bold text-gray-900 group-hover:text-green-800 transition-colors duration-300">
+                      {dashboardData.loading ? '...' : dashboardData.stats?.total_system_units || 0}
+                    </p>
+                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold group-hover:bg-green-200 transition-colors duration-300">
+                      {dashboardData.loading ? '...' : `${dashboardData.stats?.active_system_units || 0} active`}
+                    </span>
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                  <CpuChipIcon className="w-7 h-7 text-green-600 group-hover:text-green-700 transition-colors duration-300" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-4 rounded-lg border border-amber-200 flex items-center">
-              <div className="bg-amber-500 text-white p-3 rounded-md">
-                <DeviceTabletIcon className="w-6 h-6" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Peripherals</h3>
-                <div className="flex items-center">
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardData.loading ? '...' : dashboardData.stats?.total_peripherals || 0}
-                  </p>
-                  <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
-                    {dashboardData.loading ? '...' : `${dashboardData.stats?.available_peripherals || 0} available`}
-                  </span>
+            <div className="group bg-gradient-to-br from-amber-50 via-amber-50 to-orange-50 rounded-xl p-6 shadow-sm border border-amber-100 hover:shadow-lg transition-all duration-300 hover:border-amber-200 hover:bg-gradient-to-br hover:from-amber-100 hover:to-orange-100">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-amber-700 tracking-wide uppercase">Peripherals</h3>
+                  <div className="flex items-center space-x-3">
+                    <p className="text-4xl font-bold text-gray-900 group-hover:text-amber-800 transition-colors duration-300">
+                      {dashboardData.loading ? '...' : dashboardData.stats?.total_peripherals || 0}
+                    </p>
+                    <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-semibold group-hover:bg-amber-200 transition-colors duration-300">
+                      {dashboardData.loading ? '...' : `${dashboardData.stats?.available_peripherals || 0} available`}
+                    </span>
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                  <DeviceTabletIcon className="w-7 h-7 text-amber-600 group-hover:text-amber-700 transition-colors duration-300" />
                 </div>
               </div>
             </div>
             
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200 flex items-center">
-              <div className="bg-purple-500 text-white p-3 rounded-md">
-                <BuildingOfficeIcon className="w-6 h-6" />
-              </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Stations</h3>
-                <div className="flex items-center">
-                  <p className="text-2xl font-bold text-gray-800">
-                    {dashboardData.loading ? '...' : dashboardData.stats?.total_stations || 0}
-                  </p>
-                  <span className="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
-                    Total workstations
-                  </span>
+            <div className="group bg-gradient-to-br from-purple-50 via-purple-50 to-indigo-50 rounded-xl p-6 shadow-sm border border-purple-100 hover:shadow-lg transition-all duration-300 hover:border-purple-200 hover:bg-gradient-to-br hover:from-purple-100 hover:to-indigo-100">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-purple-700 tracking-wide uppercase">Stations</h3>
+                  <div className="flex items-center space-x-3">
+                    <p className="text-4xl font-bold text-gray-900 group-hover:text-purple-800 transition-colors duration-300">
+                      {dashboardData.loading ? '...' : dashboardData.stats?.total_stations || 0}
+                    </p>
+                    <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold group-hover:bg-purple-200 transition-colors duration-300">
+                      Total workstations
+                    </span>
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                  <BuildingOfficeIcon className="w-7 h-7 text-purple-600 group-hover:text-purple-700 transition-colors duration-300" />
                 </div>
               </div>
             </div>
@@ -313,90 +328,52 @@ export default function AdminDashboardPage() {
         {/* Main Dashboard Content - Conditional rendering based on viewMode */}
         {dashboardData.viewMode === 'charts' ? (
           <>
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Left Section - Bar Chart */}
-              <div className="w-full lg:w-8/12 bg-white p-4 rounded-lg shadow-md">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-xl font-semibold">Assets Received Per Month</h2>
-                  <div className="text-sm text-gray-500">
-                    Showing data for {dashboardData.timeframe === '30days' ? 'last 30 days' : 
-                      dashboardData.timeframe === '90days' ? 'last 90 days' : 'last 12 months'}
-                  </div>
-                </div>
-                <AssetChartMonthly />
+            {/* Row 1: 3-Column Grid Layout for Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Column 1 - Asset Distribution Pie Chart */}
+              <div className="bg-gradient-to-br from-white to-blue-50 p-4 rounded-xl shadow-sm border border-blue-100 hover:shadow-lg transition-all duration-300 h-80">
+                <AssetUsageSection />
               </div>
 
-              {/* Right Section - Pie Chart & Total Value */}
-              <div className="flex flex-col gap-4 w-full lg:w-4/12">
-                {/* Pie Chart */}
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <AssetUsageSection />
-                </div>
+              {/* Column 2 - Asset Value Growth */}
+              <div className="bg-gradient-to-br from-white to-purple-50 p-4 rounded-xl shadow-sm border border-purple-100 hover:shadow-lg transition-all duration-300 h-80">
+                <AssetValueMonthly />
+              </div>
 
-                {/* Total Asset Value with trend indicator */}
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <h2 className="text-lg font-semibold text-gray-700 mb-1">Total Asset Value</h2>
-                  <div className="flex items-end">
-                    <p className="text-3xl font-bold text-blue-600">
-                      {dashboardData.loading ? 'Loading...' : (
-                        console.log('Rendering asset value:', dashboardData.totalAssetValue),
-                        dashboardData.totalAssetValue ? dashboardData.totalAssetValue : '₱343,702.00'
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Asset value breakdown: {!dashboardData.loading && dashboardData.assetBreakdown ? 
-                        `Monitors (₱${dashboardData.assetBreakdown.monitors?.toLocaleString() || 0}), 
-                         Peripherals (₱${dashboardData.assetBreakdown.peripherals?.toLocaleString() || 0}), 
-                         System Units (₱${dashboardData.assetBreakdown.system_units?.toLocaleString() || 0}), 
-                         Parts (₱${dashboardData.assetBreakdown.parts?.toLocaleString() || 0}),
-                         Devices (₱${dashboardData.assetBreakdown.devices?.toLocaleString() || 0})` : 
-                        'Calculating...'
-                      }
-                    </p>
-                    <div className="ml-2 text-sm text-green-600 flex items-center">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                      </svg>
-                      <span>4.8% from last month</span>
+              {/* Column 3 - Financial Metrics */}
+              <div className="bg-gradient-to-br from-white to-indigo-50 p-6 rounded-xl shadow-sm border border-indigo-100 hover:shadow-lg transition-all duration-300 h-80">
+                <div className="space-y-4 h-full flex flex-col">
+                  <h2 className="text-lg font-bold text-gray-800 tracking-tight flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    Financial Metrics
+                  </h2>
+                  <div className="space-y-3 flex-1 flex flex-col justify-center">
+                    <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
+                      <span className="text-gray-700 font-medium">Monthly Depreciation:</span>
+                      <span className="font-bold text-red-600">₱145,650</span>
                     </div>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Updated today at {new Date().toLocaleTimeString()} • PHP (₱) currency
-                  </p>
-                </div>
-
-                {/* Line Chart for Asset Value Per Month */}
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <AssetValueMonthly />
-                </div>
-
-                {/* Additional Financial Metrics */}
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                  <h2 className="text-lg font-semibold text-gray-700 mb-3">Financial Metrics</h2>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="text-gray-600">Monthly Depreciation:</span>
-                      <span className="font-medium text-red-600">₱145,650</span>
+                    <div className="flex justify-between items-center p-3 bg-amber-50 rounded-lg border border-amber-100">
+                      <span className="text-gray-700 font-medium">Maintenance Budget:</span>
+                      <span className="font-bold text-amber-600">₱82,500/mo</span>
                     </div>
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="text-gray-600">Maintenance Budget:</span>
-                      <span className="font-medium text-amber-600">₱82,500/mo</span>
+                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                      <span className="text-gray-700 font-medium">Replacement Value:</span>
+                      <span className="font-bold text-green-600">₱3,842,750</span>
                     </div>
-                    <div className="flex justify-between items-center border-b pb-2">
-                      <span className="text-gray-600">Replacement Value:</span>
-                      <span className="font-medium text-green-600">₱3,842,750</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Cost per Workstation:</span>
-                      <span className="font-medium text-blue-600">₱68,250</span>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <span className="text-gray-700 font-medium">Cost per Workstation:</span>
+                      <span className="font-bold text-blue-600">₱68,250</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Alerts and Notifications Section */}
+            {/* Row 2: Total Asset Value and Transaction History/Alerts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+              {/* Column 1 - Transaction History */}
               <div className="lg:col-span-2 bg-white p-4 rounded-lg shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">Transaction History</h2>
@@ -445,45 +422,86 @@ export default function AdminDashboardPage() {
                   </table>
                 </div>
               </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow-md">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">Alerts & Notifications</h2>
-                  <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {dashboardData.alertItems.length} new
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {dashboardData.alertItems.map(alert => (
-                    <div key={alert.id} className={`p-3 rounded-lg border-l-4 ${
-                      alert.severity === 'high' ? 'border-red-500 bg-red-50' :
-                      alert.severity === 'medium' ? 'border-amber-500 bg-amber-50' :
-                      'border-blue-500 bg-blue-50'
-                    }`}>
-                      <div className="flex items-start">
-                        <div className={`p-1 rounded-full ${
-                          alert.severity === 'high' ? 'bg-red-200' :
-                          alert.severity === 'medium' ? 'bg-amber-200' :
-                          'bg-blue-200'
-                        }`}>
-                          <BellAlertIcon className={`w-4 h-4 ${
-                            alert.severity === 'high' ? 'text-red-600' :
-                            alert.severity === 'medium' ? 'text-amber-600' :
-                            'text-blue-600'
-                          }`} />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-sm font-medium text-gray-800">{alert.message}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{alert.date}</p>
-                        </div>
+
+              {/* Column 2 & 3 - Stacked Total Asset Value and Alerts */}
+              <div className="flex flex-col gap-4">
+                {/* Total Asset Value */}
+                <div className="bg-gradient-to-br from-white to-green-50 p-6 rounded-xl shadow-sm border border-green-100 hover:shadow-lg transition-all duration-300">
+                  <div className="space-y-3">
+                    <h2 className="text-lg font-bold text-gray-800 tracking-tight">Total Asset Value</h2>
+                    <div className="flex items-center space-x-4">
+                      <p className="text-3xl font-bold text-green-600">
+                        {dashboardData.loading ? 'Loading...' : (
+                          console.log('Rendering asset value:', dashboardData.totalAssetValue),
+                          dashboardData.totalAssetValue ? dashboardData.totalAssetValue : '₱343,702.00'
+                        )}
+                      </p>
+                      <div className="flex items-center text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full font-semibold">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        <span>+4.8%</span>
                       </div>
                     </div>
-                  ))}
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Asset value breakdown: {!dashboardData.loading && dashboardData.assetBreakdown ? 
+                        `Monitors (₱${dashboardData.assetBreakdown.monitors?.toLocaleString() || 0}), 
+                         Peripherals (₱${dashboardData.assetBreakdown.peripherals?.toLocaleString() || 0}), 
+                         System Units (₱${dashboardData.assetBreakdown.system_units?.toLocaleString() || 0}), 
+                         Parts (₱${dashboardData.assetBreakdown.parts?.toLocaleString() || 0}),
+                         Devices (₱${dashboardData.assetBreakdown.devices?.toLocaleString() || 0})` : 
+                        'Calculating...'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-400 flex items-center space-x-1">
+                      <span>•</span>
+                      <span>Updated today at {new Date().toLocaleTimeString()}</span>
+                      <span>•</span>
+                      <span>PHP (₱) currency</span>
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-4">
-                  <button className="w-full px-4 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
-                    View All Notifications
-                  </button>
+
+                {/* Alerts & Notifications */}
+                <div className="bg-white p-4 rounded-lg shadow-md">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold">Alerts & Notifications</h2>
+                    <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                      {dashboardData.alertItems.length} new
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {dashboardData.alertItems.map(alert => (
+                      <div key={alert.id} className={`p-3 rounded-lg border-l-4 ${
+                        alert.severity === 'high' ? 'border-red-500 bg-red-50' :
+                        alert.severity === 'medium' ? 'border-amber-500 bg-amber-50' :
+                        'border-blue-500 bg-blue-50'
+                      }`}>
+                        <div className="flex items-start">
+                          <div className={`p-1 rounded-full ${
+                            alert.severity === 'high' ? 'bg-red-200' :
+                            alert.severity === 'medium' ? 'bg-amber-200' :
+                            'bg-blue-200'
+                          }`}>
+                            <BellAlertIcon className={`w-4 h-4 ${
+                              alert.severity === 'high' ? 'text-red-600' :
+                              alert.severity === 'medium' ? 'text-amber-600' :
+                              'text-blue-600'
+                            }`} />
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-800">{alert.message}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{alert.date}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                    <button className="w-full px-4 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors">
+                      View All Notifications
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

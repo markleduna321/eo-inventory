@@ -34,8 +34,8 @@ export default function AssetUsageSection() {
     if (usageData.loading) {
         return (
             <div>
-                <h2 className="text-xl font-semibold mb-2">Asset Distribution</h2>
-                <div className="h-[250px] flex items-center justify-center">
+                <h2 className="text-lg font-bold text-gray-800 tracking-tight mb-4">Asset Distribution</h2>
+                <div className="h-[240px] flex items-center justify-center">
                     <div className="text-gray-500">Loading...</div>
                 </div>
             </div>
@@ -44,18 +44,40 @@ export default function AssetUsageSection() {
 
     return (
         <div>
-            <h2 className="text-xl font-semibold mb-2">Asset Distribution</h2>
+            <h2 className="text-lg font-bold text-gray-800 tracking-tight">Asset Distribution</h2>
             <PieChart
                 series={[
                     {
                         data: usageData.data,
-                        innerRadius: 50,
-                        outerRadius: 120,
-                        colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444"],
+                        innerRadius: 35,
+                        outerRadius: 95,
+                        paddingAngle: 2,
+                        cornerRadius: 5,
+                        startAngle: -90,
+                        endAngle: 270,
+                        cx: 130,
+                        cy: 130,
+                        highlightScope: { faded: 'global', highlighted: 'item' },
+                        faded: { innerRadius: 35, additionalRadius: -30, color: 'gray' },
+                        arcLabel: (item) => `${item.value}`,
+                        arcLabelMinAngle: 35,
+                        arcLabelRadius: '60%',
                     },
                 ]}
-                width={400}
-                height={250}
+                width={450}
+                height={260}
+                slotProps={{
+                    legend: {
+                        direction: 'column',
+                        position: { vertical: 'middle', horizontal: 'right' },
+                        padding: 0,
+                        itemMarkWidth: 8,
+                        itemMarkHeight: 8,
+                        markGap: 4,
+                        itemGap: 8,
+                    },
+                }}
+                margin={{ right: 160, left: 20, top: 20, bottom: 20 }}
             />
         </div>
     )

@@ -41,9 +41,9 @@ export default function AssetValueMonthly() {
 
     if (valueData.loading) {
         return (
-            <div ref={chartContainerRef} className="w-full h-72 bg-white">
-                <h2 className="text-xl font-semibold mb-2">Asset Value Growth</h2>
-                <div className="h-[220px] flex items-center justify-center">
+            <div ref={chartContainerRef} className="h-full flex flex-col">
+                <h2 className="text-xl font-semibold mb-4">Asset Value Growth</h2>
+                <div className="flex-1 flex items-center justify-center">
                     <div className="text-gray-500">Loading...</div>
                 </div>
             </div>
@@ -51,21 +51,23 @@ export default function AssetValueMonthly() {
     }
 
     return (
-        <div ref={chartContainerRef} className="w-full h-72 bg-white">
-            <h2 className="text-xl font-semibold mb-2">Asset Value Growth</h2>
-            <LineChart
-                width={chartWidth}
-                height={220}
-                margin={{ left: 60, right: 20, top: 20, bottom: 40 }}
-                series={[
-                    { 
-                        data: valueData.values, 
-                        label: "Cumulative Asset Value", 
-                        color: "#10b981" 
-                    },
-                ]}
-                xAxis={[{ scaleType: "point", data: valueData.months }]}
-            />
+        <div ref={chartContainerRef} className="h-full flex flex-col">
+            <h2 className="text-xl font-semibold mb-4">Asset Value Growth</h2>
+            <div className="flex-1">
+                <LineChart
+                    width={chartWidth}
+                    height={260}
+                    margin={{ left: 70, right: 30, top: 20, bottom: 50 }}
+                    series={[
+                        { 
+                            data: valueData.values, 
+                            label: "Cumulative Asset Value", 
+                            color: "#10b981" 
+                        },
+                    ]}
+                    xAxis={[{ scaleType: "point", data: valueData.months }]}
+                />
+            </div>
         </div>
     )
 }

@@ -29,14 +29,14 @@ export default function AssetChartMonthly() {
 
     if (chartData.loading) {
         return (
-            <div className="bg-white w-full h-[600px] flex items-center justify-center">
+            <div className="bg-white w-full h-[300px] flex items-center justify-center">
                 <div className="text-gray-500">Loading chart data...</div>
             </div>
         )
     }
 
     return (
-        <div className="bg-white w-full">
+        <div className="bg-white w-full h-[300px]">
             <BarChart
                 xAxis={[
                     {
@@ -52,7 +52,8 @@ export default function AssetChartMonthly() {
                         color: '#3b82f6'
                     },
                 ]}
-                height={600}
+                height={280}
+                margin={{ left: 60, right: 60, top: 20, bottom: 60 }}
             />
         </div>
     )
