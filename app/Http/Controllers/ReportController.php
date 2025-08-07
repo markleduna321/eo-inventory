@@ -1367,13 +1367,24 @@ class ReportController extends Controller
         // Log the request for debugging purposes
         Log::info('AI Request', [
             'question' => $question,
-            'contextDataSize' => strlen($contextData)
+            'contextDataSize' => strlen($contextData),
+            'environment' => config('app.env')
         ]);
+        
+        // Validate data size for production stability
+        if (strlen($contextData) > 15000) {
+            Log::warning('Context data too large, truncating', [
+                'original_size' => strlen($contextData),
+                'question' => $question
+            ]);
+            $contextData = json_encode($this->prepareMinimalDataForAI($relevantData));
+        }
         
         // Build the system prompt to give better context
         $systemPrompt = 'You are an inventory management expert assistant named "InventoryGPT" for a large organization. '
             . 'Answer questions precisely based on the provided inventory data. '
             . 'Include specific numbers and metrics when available. '
+            . 'Keep responses under 200 words and be concise. '
             . 'If the data does not contain the answer, say so instead of making up information.';
         
         // Build the user prompt with clear instructions
@@ -1385,12 +1396,15 @@ class ReportController extends Controller
         try {
             // Use our OpenAI service for better reliability
             $openAIService = app()->make(\App\Services\OpenAIService::class);
+            
+            // Set production-specific timeout
             $result = $openAIService->generateResponse($systemPrompt, $userPrompt);
             
             if ($result['success']) {
                 Log::info('OpenAI API response successful', [
                     'model' => $result['model'] ?? 'unknown',
-                    'token_usage' => $result['token_usage'] ?? 'unknown'
+                    'token_usage' => $result['token_usage'] ?? 'unknown',
+                    'question' => $question
                 ]);
                 
                 // Extract any key figures or data points to highlight
@@ -1405,16 +1419,37 @@ class ReportController extends Controller
             } else {
                 Log::error('OpenAI service returned error', [
                     'error' => $result['error'] ?? 'Unknown error',
-                    'question' => $question
+                    'question' => $question,
+                    'environment' => config('app.env')
                 ]);
                 
-                // Handle rate limiting specifically
-                if (isset($result['error']) && $result['error']['code'] === 'rate_limit_exceeded') {
-                    return [
-                        'answer' => $result['error']['message'],
-                        'data' => [],
-                        'error' => 'rate_limit_exceeded'
-                    ];
+                // Handle specific error types
+                if (isset($result['error'])) {
+                    $errorCode = is_array($result['error']) ? ($result['error']['code'] ?? null) : null;
+                    
+                    if ($errorCode === 'rate_limit_exceeded') {
+                        return [
+                            'answer' => 'The AI service is currently experiencing high demand. Please try again in a moment.',
+                            'data' => [],
+                            'error' => 'rate_limit_exceeded'
+                        ];
+                    }
+                    
+                    if ($errorCode === 'context_length_exceeded') {
+                        // Retry with minimal data
+                        Log::info('Retrying with minimal data due to context length');
+                        $minimalData = json_encode($this->prepareMinimalDataForAI($relevantData));
+                        $minimalPrompt = "Based on this inventory data:\n{$minimalData}\n\nQuestion: {$question}\n\nProvide a brief answer.";
+                        
+                        $retryResult = $openAIService->generateResponse($systemPrompt, $minimalPrompt);
+                        if ($retryResult['success']) {
+                            return [
+                                'answer' => $retryResult['content'],
+                                'data' => [],
+                                'model' => $retryResult['model'] ?? null
+                            ];
+                        }
+                    }
                 }
                 
                 return $this->getFallbackResponse($question);
@@ -1423,7 +1458,9 @@ class ReportController extends Controller
             Log::error('Exception calling OpenAI API', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'question' => $question
+                'question' => $question,
+                'environment' => config('app.env'),
+                'context_size' => strlen($contextData)
             ]);
             
             return $this->getFallbackResponse($question);
@@ -1463,6 +1500,31 @@ class ReportController extends Controller
         }
         
         return $simplifiedData;
+    }
+    
+    /**
+     * Prepare minimal data for AI when context is too large
+     */
+    private function prepareMinimalDataForAI($data)
+    {
+        $minimalData = [];
+        
+        // Only include summary information
+        if (isset($data['summary'])) {
+            $minimalData['summary'] = $data['summary'];
+        }
+        
+        // Include only counts for categories
+        if (isset($data['data'])) {
+            $minimalData['counts'] = [];
+            foreach ($data['data'] as $key => $value) {
+                if (is_array($value)) {
+                    $minimalData['counts'][$key] = count($value);
+                }
+            }
+        }
+        
+        return $minimalData;
     }
     
     /**

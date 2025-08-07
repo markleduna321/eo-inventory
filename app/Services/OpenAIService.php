@@ -90,6 +90,13 @@ class OpenAIService
         $temperature = $options['temperature'] ?? $this->temperature;
         $maxTokens = $options['maxTokens'] ?? $this->maxTokens;
         
+        // Production-specific optimizations
+        if (app()->environment('production')) {
+            // Use more conservative settings in production
+            $temperature = min(0.3, $temperature);
+            $maxTokens = min(400, $maxTokens);
+        }
+        
         // Optimize parameters for GPT-3.5-turbo
         if (strpos($model, 'gpt-3.5') !== false) {
             $temperature = min(0.1, $temperature); // Lower temperature for more consistent responses
