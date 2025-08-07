@@ -82,10 +82,13 @@ try {
                 if (isset($responseData['error'])) {
                     echo "   Error details: " . json_encode($responseData['error']) . "\n";
                 }
+                // Debug: Show full response data for troubleshooting
+                echo "   Full response: " . json_encode($responseData) . "\n";
             }
         } catch (\Exception $e) {
             echo "   ❌ Exception: " . $e->getMessage() . "\n";
             echo "   Line: " . $e->getFile() . ':' . $e->getLine() . "\n";
+            echo "   Stack trace: " . $e->getTraceAsString() . "\n";
         }
         
         echo "\n";

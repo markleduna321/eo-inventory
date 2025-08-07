@@ -176,26 +176,45 @@ class ReportController extends Controller
      */
     public function askAI(Request $request)
     {
-        $validated = $request->validate([
-            'question' => 'required|string|max:500',
-            'reportContext' => 'nullable|string',
-        ]);
-        
-        $question = $validated['question'];
-        $reportContext = $validated['reportContext'] ?? null;
-        
-        // Get relevant report data based on the question
-        $relevantData = $this->getRelevantDataForQuestion($question, $reportContext);
-        
-        // Generate AI response
-        $response = $this->generateAIResponse($question, $relevantData);
-        
-        return response()->json([
-            'question' => $question,
-            'answer' => $response['answer'],
-            'relevantData' => $response['data'],
-            'generatedAt' => now()->toDateTimeString()
-        ]);
+        try {
+            $validated = $request->validate([
+                'question' => 'required|string|max:500',
+                'reportContext' => 'nullable|string',
+            ]);
+            
+            $question = $validated['question'];
+            $reportContext = $validated['reportContext'] ?? null;
+            
+            // Get relevant report data based on the question
+            $relevantData = $this->getRelevantDataForQuestion($question, $reportContext);
+            
+            // Generate AI response
+            $response = $this->generateAIResponse($question, $relevantData);
+            
+            return response()->json([
+                'success' => true,
+                'question' => $question,
+                'answer' => $response['answer'],
+                'relevantData' => $response['data'],
+                'generatedAt' => now()->toDateTimeString(),
+                'model' => $response['model'] ?? null,
+                'is_fallback' => $response['is_fallback'] ?? false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('askAI method failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'question' => $request->input('question', 'unknown')
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process your question due to a technical error.',
+                'error' => $e->getMessage(),
+                'question' => $request->input('question', 'unknown'),
+                'generatedAt' => now()->toDateTimeString()
+            ], 500);
+        }
     }
 
     /**
