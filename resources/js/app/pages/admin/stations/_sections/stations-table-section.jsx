@@ -49,7 +49,7 @@ export default function StationsTableSection() {
     const [editPeripheralTypeFilter, setEditPeripheralTypeFilter] = useState("all")
 
     // Filter configuration
-    const searchableFields = ['name', 'code', 'type', 'department', 'assigned_user', 'location_name']
+    const searchableFields = ['name', 'code', 'type', 'department', 'assigned_user', 'ip_address', 'location_name']
     const filterOptions = {
         type: [
             { label: 'Employee', value: 'employee' },
@@ -812,7 +812,7 @@ export default function StationsTableSection() {
                 onFilterChange={handleFilterChange}
                 onClearFilters={clearFilters}
                 filterOptions={filterOptions}
-                placeholder="Search stations by name, code, type, department, user..."
+                placeholder="Search stations by name, code, type, department, user, IP address..."
                 showDateRange={true}
                 dateRangeLabel="Created Date"
             />
@@ -868,6 +868,9 @@ export default function StationsTableSection() {
                                         Assigned User
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        IP Address
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                         Assets
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -904,6 +907,9 @@ export default function StationsTableSection() {
                                             </td>
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 {station.assigned_user || 'Unassigned'}
+                                            </td>
+                                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                                                {station.ip_address || '-'}
                                             </td>
                                             <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                                                 <div className="flex items-center">
@@ -1226,6 +1232,19 @@ export default function StationsTableSection() {
                                                 placeholder="Enter assigned user"
                                             />
                                             {editErrors.assigned_user && <InputError message={editErrors.assigned_user} />}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                IP Address
+                                            </label>
+                                            <InputTextComponent
+                                                name="ip_address"
+                                                value={editFormData.ip_address || ''}
+                                                onChange={handleEditInputChange}
+                                                placeholder="e.g. 192.168.1.100"
+                                            />
+                                            {editErrors.ip_address && <InputError message={editErrors.ip_address} />}
                                         </div>
 
                                         <div>

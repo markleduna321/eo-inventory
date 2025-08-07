@@ -18,6 +18,7 @@ class Station extends Model
         'department',
         'location_id',
         'assigned_user',
+        'ip_address',
         'description',
         'status'
     ];
@@ -456,7 +457,7 @@ class Station extends Model
             
             // Only record history for significant changes, not every update
             $significantAttributes = array_intersect_key($dirtyAttributes, array_flip([
-                'name', 'type', 'department', 'location_id', 'assigned_user', 'status'
+                'name', 'type', 'department', 'location_id', 'assigned_user', 'ip_address', 'status'
             ]));
             
             if (count($significantAttributes) > 0) {

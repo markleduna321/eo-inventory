@@ -25,6 +25,7 @@ export default function CreateStationsSection() {
         department: '',
         location_id: '',
         assigned_user: '',
+        ip_address: '',
         description: '',
         status: 'active',
         assigned_monitors: [],
@@ -52,6 +53,7 @@ export default function CreateStationsSection() {
             department: '',
             location_id: '',
             assigned_user: '',
+            ip_address: '',
             description: '',
             status: 'active',
             assigned_monitors: [],
@@ -335,6 +337,18 @@ export default function CreateStationsSection() {
                                         placeholder="e.g. John Smith"
                                     />
                                     {errors.assigned_user && <InputError message={errors.assigned_user} />}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        IP Address
+                                    </label>
+                                    <InputTextComponent
+                                        name="ip_address"
+                                        value={formData.ip_address}
+                                        onChange={handleInputChange}
+                                        placeholder="e.g. 192.168.1.100"
+                                    />
+                                    {errors.ip_address && <InputError message={errors.ip_address} />}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
