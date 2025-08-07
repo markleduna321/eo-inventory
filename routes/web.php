@@ -117,12 +117,19 @@ Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function (
             return Inertia::render('admin/reports/page');
         });
         
+        // AI-enhanced report route
+        Route::get('/{reportType}/ai-enhanced', function ($reportType) {
+            return Inertia::render('admin/reports/enhanced', [
+                'reportType' => $reportType
+            ]);
+        });
+        
         // This catch-all route for specific report types
         Route::get('/{reportType}', function ($reportType) {
             return Inertia::render('admin/reports/detail', [
                 'reportType' => $reportType
             ]);
-        })->where('reportType', '^(?!.*ai-enhanced).*$'); // Exclude ai-enhanced pattern
+        });
     });
 });
 
