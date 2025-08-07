@@ -29,24 +29,35 @@ const AskAI = ({ debugMode = false }) => {
             setLoading(true);
             console.log('Sending request with question:', question);
             
-            // Use the real endpoint directly - OpenAI integration
-            const res = await axios.post('/api/reports/ask-ai', { 
-                question,
-                reportContext: null
-            });
-            console.log('API response:', res.data);
-            setResponse(res.data);
-            
             // Add to recent questions if not already there
             if (!recentQuestions.includes(question)) {
                 setRecentQuestions(prev => [question, ...prev.slice(0, 4)]);
             }
             
-            toast.success('AI response generated');
+            // Use the real endpoint with better error handling
+            const res = await axios.post('/api/reports/ask-ai', { 
+                question,
+                reportContext: null
+            });
+            
+            console.log('API response:', res.data);
+            
+            // Validate response structure
+            if (res.data && typeof res.data.answer === 'string') {
+                setResponse(res.data);
+                toast.success('AI response generated');
+            } else {
+                console.warn('Invalid response format:', res.data);
+                throw new Error('Received an invalid response format');
+            }
             
             // Only use test endpoint if there's an issue with OpenAI
             // and only in debug mode
-            if (debugMode && res.data.answer && res.data.answer.includes('could not process')) {
+            if (debugMode && res.data.answer && (
+                res.data.answer.includes('could not process') || 
+                res.data.answer.includes('not configured') ||
+                res.data.answer.includes('technical issue')
+            )) {
                 try {
                     console.log('Fallback to test endpoint due to OpenAI issue');
                     const testRes = await axios.post('/api/test-ask-ai', { 
@@ -54,21 +65,53 @@ const AskAI = ({ debugMode = false }) => {
                         reportContext: null
                     });
                     console.log('Test endpoint response:', testRes.data);
-                    setResponse(testRes.data);
-                    toast.info('Using test response as fallback');
+                    
+                    if (testRes.data && typeof testRes.data.answer === 'string') {
+                        setResponse(testRes.data);
+                        toast.info('Using test response as fallback');
+                    } else {
+                        console.warn('Invalid test response format:', testRes.data);
+                    }
                 } catch (testError) {
-                    console.warn('Test endpoint also failed:', testError);
+                    console.warn('Test endpoint failed:', testError);
                 }
             }
         } catch (error) {
             console.error('Error asking AI:', error);
-            console.error('Error details:', {
+            
+            // Better error logging and display
+            const errorDetails = {
                 message: error.message,
-                response: error.response?.data,
-                status: error.response?.status,
-                stack: error.stack
-            });
-            toast.error(`Failed to get a response: ${error.message}`);
+                responseData: error.response?.data,
+                responseStatus: error.response?.status
+            };
+            console.error('Error details:', errorDetails);
+            
+            // If in debug mode, try the test endpoint as fallback for any error
+            if (debugMode) {
+                try {
+                    console.log('Attempting fallback to test endpoint after error');
+                    const testRes = await axios.post('/api/test-ask-ai', { 
+                        question,
+                        reportContext: null
+                    });
+                    console.log('Test endpoint response:', testRes.data);
+                    setResponse(testRes.data);
+                    toast.warning('Using test response due to API error');
+                } catch (testError) {
+                    console.warn('Test endpoint also failed:', testError);
+                    toast.error('Both primary and backup AI services failed');
+                }
+            } else {
+                // Show specific error messages based on response
+                if (error.response?.status === 429) {
+                    toast.error('AI service rate limit reached. Please try again later.');
+                } else if (error.response?.status === 500) {
+                    toast.error('Server error processing your question. Our team has been notified.');
+                } else {
+                    toast.error(`Failed to get a response: ${error.message}`);
+                }
+            }
         } finally {
             setLoading(false);
         }
@@ -171,14 +214,50 @@ const AskAI = ({ debugMode = false }) => {
                             <p className="text-center mt-4 text-gray-600">Analyzing inventory data...</p>
                         </div>
                     ) : response && (
-                        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 overflow-hidden shadow-sm sm:rounded-lg">
+                        <div className={`bg-gradient-to-r ${response.is_fallback ? 'from-amber-50 to-orange-50 border-l-4 border-amber-500' : 'from-purple-50 to-indigo-50'} overflow-hidden shadow-sm sm:rounded-lg`}>
                             <div className="p-6">
-                                <h2 className="text-xl font-semibold mb-4 text-purple-700 border-b pb-2">AI Response</h2>
+                                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                                    <h2 className="text-xl font-semibold text-purple-700">AI Response</h2>
+                                    {response.is_fallback && (
+                                        <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-md">
+                                            Fallback Response
+                                        </span>
+                                    )}
+                                    {response.error && (
+                                        <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-1 rounded-md">
+                                            {response.error}
+                                        </span>
+                                    )}
+                                </div>
                                 
                                 <div className="prose max-w-none">
-                                    <div className="mb-6 bg-white p-4 rounded-lg shadow-sm">
+                                    <div className={`mb-6 ${response.is_fallback ? 'bg-amber-50' : 'bg-white'} p-4 rounded-lg shadow-sm`}>
                                         <p className="text-gray-800">{response.answer}</p>
+                                        
+                                        {response.is_fallback && (
+                                            <div className="mt-4 flex items-center space-x-2 text-sm text-amber-700 bg-amber-50 p-2 rounded-md border border-amber-200">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                </svg>
+                                                <span>Note: The AI service encountered an issue. This is a fallback response based on predefined data.</span>
+                                            </div>
+                                        )}
                                     </div>
+                                    
+                                    {/* Retry button for fallback responses */}
+                                    {response.is_fallback && (
+                                        <div className="flex justify-center mb-6">
+                                            <button
+                                                onClick={() => handleSubmit({ preventDefault: () => {} })}
+                                                className="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-md font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                Try Again
+                                            </button>
+                                        </div>
+                                    )}
                                     
                                     {/* Key Data Points */}
                                     {response.relevantData && Object.keys(response.relevantData).length > 0 && (
@@ -186,7 +265,7 @@ const AskAI = ({ debugMode = false }) => {
                                             <h3 className="text-lg font-medium text-purple-600 mb-3">Key Data Points</h3>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 {Object.entries(response.relevantData).map(([key, value]) => (
-                                                    <div key={key} className="bg-white p-4 rounded-lg shadow-sm">
+                                                    <div key={key} className={`${response.is_fallback ? 'bg-white/80' : 'bg-white'} p-4 rounded-lg shadow-sm`}>
                                                         <p className="text-sm font-medium text-gray-500">{key.replace(/_/g, ' ').toUpperCase()}</p>
                                                         <p className="text-xl font-bold text-gray-800">{value}</p>
                                                     </div>
@@ -194,6 +273,11 @@ const AskAI = ({ debugMode = false }) => {
                                             </div>
                                         </div>
                                     )}
+                                    
+                                    {/* Response metadata */}
+                                    <div className="mt-6 text-xs text-right text-gray-500">
+                                        Generated: {response.generatedAt || new Date().toLocaleString()}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -215,6 +299,12 @@ const AskAI = ({ debugMode = false }) => {
                                     className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
                                 >
                                     Test Mock Endpoint
+                                </button>
+                                <button
+                                    onClick={() => testEndpoint('/api/direct-ask-ai-test')}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Test Direct API Integration
                                 </button>
                             </div>
                             

@@ -1,9 +1,33 @@
 <?php
 
+use App\Http\Controllers\ReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+
+// Direct test to the ask-ai endpoint with simplified logic
+Route::post('/direct-ask-ai-test', function (Request $request) {
+    $question = $request->input('question', 'Which department has the highest number of monitors?');
+    
+    try {
+        $reportController = app()->make(ReportController::class);
+        $response = $reportController->askAI($request);
+        
+        return response()->json([
+            'status' => 'success',
+            'originalQuestion' => $question,
+            'response' => $response->original,
+            'environment' => app()->environment()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
 
 Route::get('/test-openai', function () {
     try {

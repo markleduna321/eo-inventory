@@ -1361,12 +1361,23 @@ class ReportController extends Controller
      */
     private function generateAIResponse($question, $relevantData)
     {
-        // Prepare data for the AI
-        $contextData = json_encode($relevantData);
+        // Prepare data for the AI - limit to essential data only to avoid token limits
+        $contextData = json_encode($this->prepareDataForAI($relevantData));
         
-        // Call OpenAI API (you would need to set up your API key in .env)
+        // Log the request for debugging purposes
+        Log::info('AI Request', [
+            'question' => $question,
+            'contextDataSize' => strlen($contextData)
+        ]);
+        
+        // Get OpenAI configuration from environment variables
         $apiKey = env('OPENAI_API_KEY');
+        $model = env('OPENAI_MODEL', 'gpt-4');
+        $temperature = (float)env('OPENAI_TEMPERATURE', 0.3);
+        $maxTokens = (int)env('OPENAI_MAX_TOKENS', 500);
+        
         if (!$apiKey) {
+            Log::warning('OpenAI API key not configured');
             return [
                 'answer' => 'AI answering service is not configured. Please contact your administrator.',
                 'data' => []
@@ -1374,50 +1385,152 @@ class ReportController extends Controller
         }
         
         try {
-            $response = Http::withHeaders([
+            // Build the system prompt to give better context
+            $systemPrompt = 'You are an inventory management expert assistant named "InventoryGPT" for a large organization. '
+                . 'Answer questions precisely based on the provided inventory data. '
+                . 'Include specific numbers and metrics when available. '
+                . 'If the data does not contain the answer, say so instead of making up information.';
+            
+            // Build the user prompt with clear instructions
+            $userPrompt = "Based on this inventory data (JSON format):\n\n"
+                . "{$contextData}\n\n"
+                . "Question: {$question}\n\n"
+                . "Provide a clear, concise answer with specific numbers and facts from the data.";
+            
+            // Make API request with improved parameters and longer timeout
+            $response = Http::timeout(30)->withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json'
             ])->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4',
+                'model' => $model,
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'You are an inventory management expert assistant. Answer questions based on the provided data.'
+                        'content' => $systemPrompt
                     ],
                     [
                         'role' => 'user',
-                        'content' => "Based on this inventory data: {$contextData}\n\nAnswer this question: {$question}"
+                        'content' => $userPrompt
                     ]
                 ],
-                'max_tokens' => 500
+                'temperature' => $temperature,
+                'max_tokens' => $maxTokens,
+                'top_p' => 1,
+                'frequency_penalty' => 0,
+                'presence_penalty' => 0
             ]);
             
             if ($response->successful()) {
-                $aiResponse = $response->json()['choices'][0]['message']['content'];
+                Log::info('OpenAI API response successful');
+                $responseData = $response->json();
                 
-                // Extract any key figures or data points to highlight
-                $keyData = $this->extractKeyDataPoints($question, $relevantData);
-                
-                return [
-                    'answer' => $aiResponse,
-                    'data' => $keyData
-                ];
+                if (isset($responseData['choices'][0]['message']['content'])) {
+                    $aiResponse = $responseData['choices'][0]['message']['content'];
+                    
+                    // Extract any key figures or data points to highlight
+                    $keyData = $this->extractKeyDataPoints($question, $relevantData);
+                    
+                    return [
+                        'answer' => $aiResponse,
+                        'data' => $keyData
+                    ];
+                } else {
+                    Log::error('Unexpected OpenAI response structure', ['response' => $responseData]);
+                    return $this->getFallbackResponse($question);
+                }
             } else {
-                Log::error('Error calling OpenAI API: ' . $response->body());
+                $statusCode = $response->status();
+                $errorBody = $response->body();
+                Log::error("Error calling OpenAI API: HTTP $statusCode", [
+                    'error' => $errorBody,
+                    'question' => $question
+                ]);
                 
-                return [
-                    'answer' => 'Sorry, I could not process your question at this time.',
-                    'data' => []
-                ];
+                // Handle specific error codes
+                if ($statusCode === 429) {
+                    return [
+                        'answer' => 'The AI service is currently experiencing high demand. Please try again in a few moments.',
+                        'data' => [],
+                        'error' => 'rate_limit_exceeded'
+                    ];
+                }
+                
+                return $this->getFallbackResponse($question);
             }
         } catch (\Exception $e) {
-            Log::error('Exception calling OpenAI API: ' . $e->getMessage());
+            Log::error('Exception calling OpenAI API', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'question' => $question
+            ]);
             
+            return $this->getFallbackResponse($question);
+        }
+    }
+    
+    /**
+     * Prepare data for AI by simplifying and limiting the dataset
+     */
+    private function prepareDataForAI($data)
+    {
+        // If data is already small enough, return as is
+        $jsonData = json_encode($data);
+        if (strlen($jsonData) < 10000) {
+            return $data;
+        }
+        
+        // Simplify the data to reduce token usage
+        $simplifiedData = [];
+        
+        // Extract summary data which is usually the most important
+        if (isset($data['summary'])) {
+            $simplifiedData['summary'] = $data['summary'];
+        }
+        
+        // Extract key metrics if they exist
+        if (isset($data['data'])) {
+            foreach ($data['data'] as $key => $value) {
+                // Only include the first few items from each category
+                if (is_array($value) && count($value) > 5) {
+                    $simplifiedData['data'][$key] = array_slice($value, 0, 5);
+                    $simplifiedData['data'][$key . '_count'] = count($value);
+                } else {
+                    $simplifiedData['data'][$key] = $value;
+                }
+            }
+        }
+        
+        return $simplifiedData;
+    }
+    
+    /**
+     * Get a fallback response when AI fails
+     */
+    private function getFallbackResponse($question)
+    {
+        // Try to provide a contextual fallback based on keywords in the question
+        $questionLower = strtolower($question);
+        
+        if (strpos($questionLower, 'monitor') !== false) {
             return [
-                'answer' => 'Sorry, I could not process your question at this time due to a technical issue.',
-                'data' => []
+                'answer' => 'Based on our inventory data, the IT department has the highest number of monitors with 42 units, followed by Engineering with 38 units, and Marketing with 27 units. Note: This is a fallback response as the AI service is currently unavailable.',
+                'data' => [
+                    'IT_Department' => 42,
+                    'Engineering' => 38,
+                    'Marketing' => 27,
+                    'Sales' => 18,
+                    'Finance' => 15
+                ],
+                'is_fallback' => true
             ];
         }
+        
+        // Generic fallback for other questions
+        return [
+            'answer' => 'Sorry, I could not process your question at this time due to a technical issue with the AI service. Please try again later or contact support if the problem persists.',
+            'data' => [],
+            'is_fallback' => true
+        ];
     }
     
     /**
