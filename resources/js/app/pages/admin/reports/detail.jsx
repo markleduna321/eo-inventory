@@ -211,6 +211,9 @@ const ReportDetail = ({ reportType }) => {
                                                                                         ></div>
                                                                                     </div>
                                                                                 </div>
+                                                                            ) : typeof value === 'object' && value !== null ? (
+                                                                                // Handle object values (like location, part, etc.)
+                                                                                value.name || value.title || value.code || JSON.stringify(value)
                                                                             ) : (
                                                                                 value
                                                                             )}

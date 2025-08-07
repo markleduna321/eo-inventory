@@ -1,0 +1,1 @@
+import{j as r}from"./app-BQTayoMl.js";import o from"./layout-JluvSas3.js";import"./XMarkIcon-13TZj94J.js";import"./ChevronDownIcon-Dio-0Red.js";import"./transition-B8WkP1q7.js";function m(){return r.jsx(o,{children:r.jsx("div",{children:"UserDashboardPage"})})}export{m as default};
