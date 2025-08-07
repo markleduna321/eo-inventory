@@ -12,7 +12,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register OpenAI service as a singleton
+        $this->app->singleton(\App\Services\OpenAIService::class, function ($app) {
+            return new \App\Services\OpenAIService();
+        });
     }
 
     /**

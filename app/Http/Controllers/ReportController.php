@@ -1370,86 +1370,48 @@ class ReportController extends Controller
             'contextDataSize' => strlen($contextData)
         ]);
         
-        // Get OpenAI configuration from environment variables
-        $apiKey = env('OPENAI_API_KEY');
-        $model = env('OPENAI_MODEL', 'gpt-4');
-        $temperature = (float)env('OPENAI_TEMPERATURE', 0.3);
-        $maxTokens = (int)env('OPENAI_MAX_TOKENS', 500);
+        // Build the system prompt to give better context
+        $systemPrompt = 'You are an inventory management expert assistant named "InventoryGPT" for a large organization. '
+            . 'Answer questions precisely based on the provided inventory data. '
+            . 'Include specific numbers and metrics when available. '
+            . 'If the data does not contain the answer, say so instead of making up information.';
         
-        if (!$apiKey) {
-            Log::warning('OpenAI API key not configured');
-            return [
-                'answer' => 'AI answering service is not configured. Please contact your administrator.',
-                'data' => []
-            ];
-        }
+        // Build the user prompt with clear instructions
+        $userPrompt = "Based on this inventory data (JSON format):\n\n"
+            . "{$contextData}\n\n"
+            . "Question: {$question}\n\n"
+            . "Provide a clear, concise answer with specific numbers and facts from the data.";
         
         try {
-            // Build the system prompt to give better context
-            $systemPrompt = 'You are an inventory management expert assistant named "InventoryGPT" for a large organization. '
-                . 'Answer questions precisely based on the provided inventory data. '
-                . 'Include specific numbers and metrics when available. '
-                . 'If the data does not contain the answer, say so instead of making up information.';
+            // Use our OpenAI service for better reliability
+            $openAIService = app()->make(\App\Services\OpenAIService::class);
+            $result = $openAIService->generateResponse($systemPrompt, $userPrompt);
             
-            // Build the user prompt with clear instructions
-            $userPrompt = "Based on this inventory data (JSON format):\n\n"
-                . "{$contextData}\n\n"
-                . "Question: {$question}\n\n"
-                . "Provide a clear, concise answer with specific numbers and facts from the data.";
-            
-            // Make API request with improved parameters and longer timeout
-            $response = Http::timeout(30)->withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
-                'Content-Type' => 'application/json'
-            ])->post('https://api.openai.com/v1/chat/completions', [
-                'model' => $model,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => $systemPrompt
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => $userPrompt
-                    ]
-                ],
-                'temperature' => $temperature,
-                'max_tokens' => $maxTokens,
-                'top_p' => 1,
-                'frequency_penalty' => 0,
-                'presence_penalty' => 0
-            ]);
-            
-            if ($response->successful()) {
-                Log::info('OpenAI API response successful');
-                $responseData = $response->json();
+            if ($result['success']) {
+                Log::info('OpenAI API response successful', [
+                    'model' => $result['model'] ?? 'unknown',
+                    'token_usage' => $result['token_usage'] ?? 'unknown'
+                ]);
                 
-                if (isset($responseData['choices'][0]['message']['content'])) {
-                    $aiResponse = $responseData['choices'][0]['message']['content'];
-                    
-                    // Extract any key figures or data points to highlight
-                    $keyData = $this->extractKeyDataPoints($question, $relevantData);
-                    
-                    return [
-                        'answer' => $aiResponse,
-                        'data' => $keyData
-                    ];
-                } else {
-                    Log::error('Unexpected OpenAI response structure', ['response' => $responseData]);
-                    return $this->getFallbackResponse($question);
-                }
+                // Extract any key figures or data points to highlight
+                $keyData = $this->extractKeyDataPoints($question, $relevantData);
+                
+                return [
+                    'answer' => $result['content'],
+                    'data' => $keyData,
+                    'model' => $result['model'] ?? null,
+                    'token_usage' => $result['token_usage'] ?? null
+                ];
             } else {
-                $statusCode = $response->status();
-                $errorBody = $response->body();
-                Log::error("Error calling OpenAI API: HTTP $statusCode", [
-                    'error' => $errorBody,
+                Log::error('OpenAI service returned error', [
+                    'error' => $result['error'] ?? 'Unknown error',
                     'question' => $question
                 ]);
                 
-                // Handle specific error codes
-                if ($statusCode === 429) {
+                // Handle rate limiting specifically
+                if (isset($result['error']) && $result['error']['code'] === 'rate_limit_exceeded') {
                     return [
-                        'answer' => 'The AI service is currently experiencing high demand. Please try again in a few moments.',
+                        'answer' => $result['error']['message'],
                         'data' => [],
                         'error' => 'rate_limit_exceeded'
                     ];

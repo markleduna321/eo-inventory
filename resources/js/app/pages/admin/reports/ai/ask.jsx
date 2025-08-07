@@ -35,9 +35,12 @@ const AskAI = ({ debugMode = false }) => {
             }
             
             // Use the real endpoint with better error handling
+            // Add a longer timeout for the request (15 seconds)
             const res = await axios.post('/api/reports/ask-ai', { 
                 question,
                 reportContext: null
+            }, {
+                timeout: 15000 // 15 second timeout
             });
             
             console.log('API response:', res.data);
@@ -45,7 +48,20 @@ const AskAI = ({ debugMode = false }) => {
             // Validate response structure
             if (res.data && typeof res.data.answer === 'string') {
                 setResponse(res.data);
-                toast.success('AI response generated');
+                
+                // Show relevant toast based on response contents
+                if (res.data.error === 'rate_limit_exceeded') {
+                    toast.warning('AI service is experiencing high demand. Try again shortly.');
+                } else if (res.data.is_fallback) {
+                    toast.info('Using fallback response (AI service unavailable)');
+                } else {
+                    toast.success('AI response generated');
+                }
+                
+                // If we received model info, log it for debugging
+                if (res.data.model) {
+                    console.log(`Response generated using model: ${res.data.model}`);
+                }
             } else {
                 console.warn('Invalid response format:', res.data);
                 throw new Error('Received an invalid response format');
@@ -56,7 +72,8 @@ const AskAI = ({ debugMode = false }) => {
             if (debugMode && res.data.answer && (
                 res.data.answer.includes('could not process') || 
                 res.data.answer.includes('not configured') ||
-                res.data.answer.includes('technical issue')
+                res.data.answer.includes('technical issue') ||
+                res.data.answer.includes('high demand')
             )) {
                 try {
                     console.log('Fallback to test endpoint due to OpenAI issue');
@@ -87,8 +104,24 @@ const AskAI = ({ debugMode = false }) => {
             };
             console.error('Error details:', errorDetails);
             
+            // Check for timeout errors specifically
+            const isTimeout = error.code === 'ECONNABORTED' || 
+                             (error.message && error.message.includes('timeout'));
+            
+            if (isTimeout) {
+                toast.error('AI service took too long to respond. Please try again.');
+                
+                // Set a simple response to show the user
+                setResponse({
+                    answer: 'The AI service took too long to respond. This might be due to high demand or complex data processing. Please try again or simplify your question.',
+                    data: [],
+                    error: 'timeout',
+                    is_fallback: true,
+                    generatedAt: new Date().toLocaleString()
+                });
+            } 
             // If in debug mode, try the test endpoint as fallback for any error
-            if (debugMode) {
+            else if (debugMode) {
                 try {
                     console.log('Attempting fallback to test endpoint after error');
                     const testRes = await axios.post('/api/test-ask-ai', { 
@@ -106,6 +139,15 @@ const AskAI = ({ debugMode = false }) => {
                 // Show specific error messages based on response
                 if (error.response?.status === 429) {
                     toast.error('AI service rate limit reached. Please try again later.');
+                    
+                    // Set a user-friendly response
+                    setResponse({
+                        answer: 'The AI service is currently experiencing high demand. Please try again in a few moments.',
+                        data: [],
+                        error: 'rate_limit_exceeded',
+                        is_fallback: true,
+                        generatedAt: new Date().toLocaleString()
+                    });
                 } else if (error.response?.status === 500) {
                     toast.error('Server error processing your question. Our team has been notified.');
                 } else {

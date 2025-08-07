@@ -29,6 +29,87 @@ Route::post('/direct-ask-ai-test', function (Request $request) {
     }
 });
 
+// Mock AI endpoint that returns pre-defined responses for testing
+Route::post('/test-ask-ai', function (Request $request) {
+    $question = $request->input('question', 'What is our inventory status?');
+    $questionLower = strtolower($question);
+    
+    // Define a set of mock responses for common questions
+    $mockResponses = [
+        'monitor' => [
+            'answer' => 'Based on the inventory data, the IT department has the highest number of monitors with 42 units, followed by Engineering with 38 units. Overall, we have 152 monitors across all departments with 85% utilization rate.',
+            'data' => [
+                'IT_Department' => 42,
+                'Engineering' => 38,
+                'Marketing' => 27,
+                'Sales' => 18,
+                'Finance' => 15,
+                'total_monitors' => 152,
+                'utilization_rate' => '85%'
+            ]
+        ],
+        'value' => [
+            'answer' => 'The total value of your inventory is $2,347,850. This includes $895,200 in monitors, $1,125,400 in system units, $180,750 in peripherals, and $146,500 in spare parts.',
+            'data' => [
+                'total_value' => '$2,347,850',
+                'monitors_value' => '$895,200',
+                'system_units_value' => '$1,125,400',
+                'peripherals_value' => '$180,750',
+                'parts_value' => '$146,500'
+            ]
+        ],
+        'stock' => [
+            'answer' => 'Currently, we have 18 parts that are below the minimum stock level. The most critical items are: Laptop RAM modules (2 remaining, minimum 5), Power supplies (3 remaining, minimum 10), and SSD drives (4 remaining, minimum 8).',
+            'data' => [
+                'critical_parts_count' => 18,
+                'lowest_stock_items' => [
+                    'Laptop RAM modules' => 2,
+                    'Power supplies' => 3,
+                    'SSD drives' => 4
+                ]
+            ]
+        ],
+        'utilization' => [
+            'answer' => 'The overall asset utilization rate last month was 82.3%, which is a 3.5% increase from the previous month. Monitors have the highest utilization at 89.1%, followed by system units at 83.7% and peripherals at 74.2%.',
+            'data' => [
+                'overall_utilization' => '82.3%',
+                'month_over_month_change' => '+3.5%',
+                'monitors_utilization' => '89.1%',
+                'system_units_utilization' => '83.7%',
+                'peripherals_utilization' => '74.2%'
+            ]
+        ]
+    ];
+    
+    // Determine which mock response to use based on keywords
+    $responseType = 'general';
+    foreach ($mockResponses as $keyword => $response) {
+        if (strpos($questionLower, $keyword) !== false) {
+            $responseType = $keyword;
+            break;
+        }
+    }
+    
+    // Default response if no specific match
+    $response = $mockResponses[$responseType] ?? [
+        'answer' => 'Based on the inventory data, you have 152 monitors, 128 system units, 304 peripherals, and 1,250 spare parts across all departments. The overall inventory utilization rate is 78.5%.',
+        'data' => [
+            'total_monitors' => 152,
+            'total_system_units' => 128,
+            'total_peripherals' => 304,
+            'total_parts' => 1250,
+            'utilization_rate' => '78.5%'
+        ]
+    ];
+    
+    // Add metadata for completeness
+    $response['question'] = $question;
+    $response['generatedAt'] = now()->toDateTimeString();
+    $response['is_test'] = true;
+    
+    return response()->json($response);
+});
+
 Route::get('/test-openai', function () {
     try {
         $apiKey = env('OPENAI_API_KEY');
