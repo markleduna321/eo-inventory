@@ -132,16 +132,22 @@ export default function CreatePeripheralsSection() {
     ]
 
     const brands = [
-        { label: 'Select Brand', value: '' },
-        { label: 'Logitech', value: 'logitech' },
-        { label: 'Microsoft', value: 'microsoft' },
-        { label: 'Razer', value: 'razer' },
-        { label: 'Corsair', value: 'corsair' },
-        { label: 'HP', value: 'hp' },
-        { label: 'Canon', value: 'canon' },
-        { label: 'Epson', value: 'epson' },
-        { label: 'Creative', value: 'creative' },
-        { label: 'Other', value: 'other' }
+        { label: 'Logitech', value: 'Logitech' },
+        { label: 'Microsoft', value: 'Microsoft' },
+        { label: 'A4 Tech', value: 'A4 Tech' },
+        { label: 'Razer', value: 'Razer' },
+        { label: 'Apple', value: 'Apple' },
+        { label: 'Samsung', value: 'Samsung' },
+        { label: 'Asus', value: 'Asus' },
+        { label: 'Lenovo', value: 'Lenovo' },
+        { label: 'Havit', value: 'Havit' },
+        { label: 'HP', value: 'HP' },
+        { label: 'AWP', value: 'AWP' },
+        { label: 'Secure', value: 'Secure' },
+        { label: 'HikVision', value: 'HikVision' },
+        { label: 'Nvision', value: 'Nvision' },
+        { label: 'Jabra', value: 'Jabra' },
+        { label: 'Creative', value: 'Creative' }
     ]
 
     const locations = [

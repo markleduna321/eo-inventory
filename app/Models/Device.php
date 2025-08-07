@@ -15,6 +15,7 @@ class Device extends Model
         'brand',
         'model',
         'operating_system',
+        'mac_address',
         'specifications',
         'price',
         'purchase_date',

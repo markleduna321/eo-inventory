@@ -24,7 +24,7 @@ export default function DeviceTableSection() {
     const itemsPerPage = 10 // Number of items to display per page
 
     // Filter configuration
-    const searchableFields = ['serial_number', 'device_type', 'brand', 'model', 'operating_system', 'issued_to', 'received_by']
+    const searchableFields = ['serial_number', 'device_type', 'brand', 'model', 'operating_system', 'mac_address', 'issued_to', 'received_by']
     const filterOptions = {
         device_type: [
             { label: 'Laptop', value: 'Laptop' },
@@ -257,6 +257,9 @@ export default function DeviceTableSection() {
                                         Operating System
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        MAC Address
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                         Status
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -276,7 +279,7 @@ export default function DeviceTableSection() {
                             <tbody className="divide-y divide-gray-200 bg-white">
                                 {filteredData.length === 0 ? (
                                     <tr>
-                                        <td colSpan="10" className="text-center py-8 text-gray-500">
+                                        <td colSpan="11" className="text-center py-8 text-gray-500">
                                             {filterStats.isFiltered ? 'No devices match your search criteria' : 'No devices found'}
                                         </td>
                                     </tr>
@@ -297,6 +300,9 @@ export default function DeviceTableSection() {
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {device.operating_system}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {device.mac_address || '-'}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {getStatusBadge(device.status)}
@@ -534,6 +540,10 @@ export default function DeviceTableSection() {
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Operating System</p>
                                     <p className="mt-1 text-sm text-gray-900">{viewingDevice.operating_system || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-500">MAC Address</p>
+                                    <p className="mt-1 text-sm text-gray-900">{viewingDevice.mac_address || 'N/A'}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-gray-500">Status</p>

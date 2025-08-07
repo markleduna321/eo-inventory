@@ -111,7 +111,7 @@ class Station extends Model
     // Methods for asset assignment
     public function assignAsset($assetType, $assetId)
     {
-        // Check if asset is already assigned to another station
+        // Check if asset is already assigned to another station (with active assignment)
         $existingAssignment = StationAsset::where('asset_type', $assetType)
             ->where('asset_id', $assetId)
             ->whereNull('unassigned_at')
@@ -133,6 +133,17 @@ class Station extends Model
             }
         }
 
+        // Check if asset exists and has the correct status
+        $asset = $this->getAssetModel($assetType, $assetId);
+        if (!$asset) {
+            throw new \Exception('Asset not found');
+        }
+
+        // Check asset availability based on type
+        if (!$this->isAssetAvailableForAssignment($assetType, $asset)) {
+            throw new \Exception('Asset is not available for assignment');
+        }
+
         // Create new assignment
         $assignment = $this->stationAssets()->create([
             'asset_type' => $assetType,
@@ -144,7 +155,6 @@ class Station extends Model
         $this->updateAssetLocation($assetType, $assetId);
         
         // Get asset details for history
-        $asset = $this->getAssetModel($assetType, $assetId);
         if ($asset) {
             $assetName = $assetType === 'system_unit' ? 
                 $asset->system_name : 
@@ -230,25 +240,35 @@ class Station extends Model
                 }
                 break;
             case 'peripheral':
-                // For peripherals, deploy stock from available to deployed
+                // Deploy exactly this peripheral's stock
                 $asset = Peripheral::find($assetId);
-                if ($asset) {
-                    // Find similar peripherals (same type, brand, model)
-                    $similarPeripheral = Peripheral::where('type', $asset->type)
-                        ->where('brand', $asset->brand)
-                        ->where('model', $asset->model)
-                        ->where('available_stock', '>', 0)
-                        ->orderBy('id')
-                        ->first();
-                        
-                    if ($similarPeripheral) {
-                        $similarPeripheral->deployStock(1); // Deploy 1 unit of the peripheral
-                    } else {
-                        // If no similar peripheral with stock is found, use the original one
-                        $asset->deployStock(1);
-                    }
+                if ($asset && $asset->available_stock > 0) {
+                    $asset->deployStock(1); // Deploy 1 unit of this specific peripheral
+                } else {
+                    throw new \Exception('Peripheral has no available stock');
                 }
                 break;
+        }
+    }
+
+    /**
+     * Check if an asset is available for assignment
+     * 
+     * @param string $assetType
+     * @param mixed $asset
+     * @return bool
+     */
+    private function isAssetAvailableForAssignment($assetType, $asset)
+    {
+        switch ($assetType) {
+            case 'monitor':
+                return $asset->status === 'working';
+            case 'system_unit':
+                return in_array($asset->status, ['available']);
+            case 'peripheral':
+                return $asset->status === 'active' && $asset->available_stock > 0;
+            default:
+                return false;
         }
     }
 
@@ -297,7 +317,7 @@ class Station extends Model
                         $asset->update([
                             'location' => 'Storage',
                             'station_id' => null,
-                            'status' => 'not_working', // Use lowercase to match the enum in monitors table
+                            'status' => 'not_working',
                             'deployment_status' => 'Out of Service'
                         ]);
                         break;
@@ -305,13 +325,13 @@ class Station extends Model
                         $asset->update([
                             'location' => 'Storage',
                             'station_id' => null,
-                            'status' => 'retired', // Use 'retired' for damaged items
+                            'status' => 'retired',
                             'deployment_status' => 'Out of Service'
                         ]);
                         break;
                     case 'peripheral':
                         $asset->update([
-                            'status' => 'not_working' // Use lowercase to match other models
+                            'status' => 'inactive' // Use 'inactive' instead of 'not_working'
                         ]);
                         break;
                 }
@@ -324,21 +344,21 @@ class Station extends Model
                         $asset->update([
                             'location' => 'Service Center',
                             'station_id' => null,
-                            'status' => 'under_repair', // Use 'under_repair' for repair reason
+                            'status' => 'under_repair',
                             'deployment_status' => 'Out of Service'
                         ]);
                         break;
                     case 'system_unit':
                         $asset->update([
-                            'location' => 'Service Center', // Make sure this value exists in your application's locations
+                            'location' => 'Service Center',
                             'station_id' => null,
-                            'status' => 'maintenance', // Use valid status from enum: available, assigned, maintenance, retired
+                            'status' => 'maintenance',
                             'deployment_status' => 'Out of Service'
                         ]);
                         break;
                     case 'peripheral':
                         $asset->update([
-                            'status' => 'under_repair' // Use under_repair for repair reason
+                            'status' => 'inactive' // Mark as inactive for repair
                         ]);
                         break;
                 }
@@ -379,22 +399,10 @@ class Station extends Model
                 }
                 break;
             case 'peripheral':
-                // For peripherals, return stock from deployed to available
+                // Return exactly this peripheral's stock
                 $asset = Peripheral::find($assetId);
-                if ($asset) {
-                    // Find similar peripherals (same type, brand, model)
-                    $similarPeripheral = Peripheral::where('type', $asset->type)
-                        ->where('brand', $asset->brand)
-                        ->where('model', $asset->model)
-                        ->orderBy('id')
-                        ->first();
-                        
-                    if ($similarPeripheral) {
-                        $similarPeripheral->returnStock(1); // Return 1 unit to the peripheral
-                    } else {
-                        // If no similar peripheral is found, use the original one
-                        $asset->returnStock(1);
-                    }
+                if ($asset && $asset->deployed_stock > 0) {
+                    $asset->returnStock(1); // Return 1 unit of this specific peripheral
                 }
                 break;
         }

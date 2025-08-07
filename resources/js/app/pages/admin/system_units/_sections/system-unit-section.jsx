@@ -1124,7 +1124,8 @@ export default function SystemUnitTableSection() {
                                                 onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                                                 options={[
                                                     { value: 'available', label: 'Available' },
-                                                    { value: 'assigned', label: 'Assigned' }
+                                                    { value: 'assigned', label: 'Assigned' },
+                                                    { value: 'retired', label: 'Retired' }
                                                 ]}
                                                 required
                                             />

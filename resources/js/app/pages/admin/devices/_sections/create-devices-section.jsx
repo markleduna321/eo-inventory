@@ -22,6 +22,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
     brand: '',
     model: '',
     operating_system: '',
+    mac_address: '',
     specifications: {
       cpu: '',
       ram: '',
@@ -47,6 +48,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
       brand: '',
       model: '',
       operating_system: '',
+      mac_address: '',
       specifications: {
         cpu: '',
         ram: '',
@@ -102,6 +104,7 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
         brand: editDevice.brand || '',
         model: editDevice.model || '',
         operating_system: editDevice.operating_system || '',
+        mac_address: editDevice.mac_address || '',
         specifications: specs,
         price: editDevice.price || '',
         purchase_date: editDevice.purchase_date || '',
@@ -361,6 +364,23 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
               {errors.operating_system && (
                 <div className="text-red-500 text-sm mt-1">
                   {errors.operating_system[0]}
+                </div>
+              )}
+            </div>
+
+            <div className='mb-3'>
+              <InputLabelComponent htmlFor="mac_address" labelText="MAC Address"/>
+              <InputTextComponent
+                id="mac_address"
+                name="mac_address" 
+                type="text"
+                value={formData.mac_address}
+                onChange={handleInputChange}
+                placeholder="e.g., 00:1B:44:11:3A:B7"
+                />
+              {errors.mac_address && (
+                <div className="text-red-500 text-sm mt-1">
+                  {errors.mac_address[0]}
                 </div>
               )}
             </div>
