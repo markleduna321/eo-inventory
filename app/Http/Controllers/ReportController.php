@@ -832,11 +832,21 @@ class ReportController extends Controller
      */
     private function calculateDeploymentStats($collection, $statusField)
     {
-        // Map actual database status values to deployment categories
-        $deployed = $collection->whereIn($statusField, ['deployed', 'assigned', 'active'])->count();
-        $available = $collection->whereIn($statusField, ['available', 'working', 'in_stock'])->count();
-        $maintenance = $collection->whereIn($statusField, ['under_repair', 'maintenance', 'repair'])->count();
-        $retired = $collection->whereIn($statusField, ['retired', 'disposed', 'not_working'])->count();
+        // For monitors, deployment is determined by station assignment, not status
+        if ($collection->first() instanceof \App\Models\Monitor) {
+            $deployed = $collection->filter(function($monitor) {
+                return $monitor->stationAssignment !== null;
+            })->count();
+            $available = $collection->where($statusField, 'working')->count() - $deployed;
+            $maintenance = $collection->whereIn($statusField, ['under_repair'])->count();
+            $retired = $collection->whereIn($statusField, ['retired', 'not_working'])->count();
+        } else {
+            // For other models, use status-based mapping
+            $deployed = $collection->whereIn($statusField, ['deployed', 'assigned', 'active'])->count();
+            $available = $collection->whereIn($statusField, ['available', 'working', 'in_stock'])->count();
+            $maintenance = $collection->whereIn($statusField, ['under_repair', 'maintenance', 'repair'])->count();
+            $retired = $collection->whereIn($statusField, ['retired', 'disposed', 'not_working'])->count();
+        }
         
         return [
             'deployed' => $deployed,

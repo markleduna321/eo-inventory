@@ -30,9 +30,9 @@ class DashboardController extends Controller
             'total_stations' => Station::count(),
             
             // Asset status counts - updated to match actual database values
-            'active_monitors' => Monitor::whereIn('status', ['working', 'available', 'active'])->count(),
-            'deployed_monitors' => Monitor::whereIn('status', ['deployed', 'assigned'])->count(),
-            'maintenance_monitors' => Monitor::whereIn('status', ['maintenance', 'under_repair', 'repair'])->count(),
+            'active_monitors' => Monitor::whereIn('status', ['working'])->count(),
+            'deployed_monitors' => Monitor::whereHas('stationAssignment')->count(), // Count monitors assigned to stations
+            'maintenance_monitors' => Monitor::whereIn('status', ['under_repair'])->count(),
             
             'active_system_units' => SystemUnit::whereIn('status', ['available', 'working', 'active'])->count(),
             'deployed_system_units' => SystemUnit::whereIn('status', ['assigned', 'deployed'])->count(),
@@ -83,7 +83,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    /**
+        /**
      * Get asset usage distribution (for pie chart)
      */
     public function getAssetUsage()
@@ -92,9 +92,9 @@ class DashboardController extends Controller
             [
                 'label' => 'Monitors',
                 'value' => Monitor::count(),
-                'active' => Monitor::whereIn('status', ['working', 'available', 'active'])->count(),
-                'deployed' => Monitor::whereIn('status', ['deployed', 'assigned'])->count(),
-                'maintenance' => Monitor::whereIn('status', ['maintenance', 'under_repair', 'repair'])->count(),
+                'active' => Monitor::whereIn('status', ['working'])->count(),
+                'deployed' => Monitor::whereHas('stationAssignment')->count(), // Count monitors assigned to stations
+                'maintenance' => Monitor::whereIn('status', ['under_repair'])->count(),
             ],
             [
                 'label' => 'System Units',
