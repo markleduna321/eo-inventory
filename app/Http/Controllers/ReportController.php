@@ -562,33 +562,6 @@ class ReportController extends Controller
                 ];
             })
         ];
-        
-        return [
-            'title' => 'Transaction History Report',
-            'generated' => now()->toDateTimeString(),
-            'summary' => [
-                'total_transactions' => $transactions->count(),
-                'by_type' => [
-                    'in' => $transactions->where('transaction_type', 'in')->count(),
-                    'out' => $transactions->where('transaction_type', 'out')->count()
-                ],
-                'date_range' => [
-                    'start' => $startDate ? $startDate->toDateString() : null,
-                    'end' => $endDate ? $endDate->toDateString() : null
-                ]
-            ],
-            'data' => $transactions->map(function ($transaction) {
-                return [
-                    'id' => $transaction->id,
-                    'date' => $transaction->created_at->toDateTimeString(),
-                    'part' => $transaction->part ? $transaction->part->name : 'Unknown Part',
-                    'quantity' => $transaction->quantity,
-                    'transaction_type' => $transaction->transaction_type,
-                    'notes' => $transaction->notes,
-                    'user' => $transaction->user ? $transaction->user->name : 'Unknown User'
-                ];
-            })
-        ];
     }
 
     /**

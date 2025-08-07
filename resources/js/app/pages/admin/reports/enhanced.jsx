@@ -47,7 +47,8 @@ const EnhancedReport = ({ reportType }) => {
             'asset-utilization': 'Asset Utilization',
             'financial': 'Financial',
             'maintenance': 'Maintenance',
-            'location-based': 'Location Based'
+            'location-based': 'Location Based',
+            'transaction-history': 'Transaction History'
         };
         return titles[type] || 'Report';
     };

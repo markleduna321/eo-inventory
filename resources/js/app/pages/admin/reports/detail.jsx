@@ -19,6 +19,7 @@ const ReportDetail = ({ reportType }) => {
             'financial': 'Financial',
             'maintenance': 'Maintenance',
             'location-based': 'Location Based',
+            'transaction-history': 'Transaction History',
         };
         return reportTypes[id] || 'Report';
     };
