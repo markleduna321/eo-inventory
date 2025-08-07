@@ -535,8 +535,7 @@ export default function AdminDashboardPage() {
                       <span>Usage Rate</span>
                       <span>
                         {dashboardData.loading ? '...' : 
-                          `${Math.round(((dashboardData.stats?.active_monitors || 0) + 
-                          (dashboardData.stats?.deployed_monitors || 0)) / 
+                          `${Math.round((dashboardData.stats?.deployed_monitors || 0) / 
                           (dashboardData.stats?.total_monitors || 1) * 100)}%`
                         }
                       </span>
@@ -546,8 +545,7 @@ export default function AdminDashboardPage() {
                         className="bg-blue-600 h-2 rounded-full" 
                         style={{ 
                           width: dashboardData.loading ? '0%' : 
-                            `${Math.round(((dashboardData.stats?.active_monitors || 0) + 
-                            (dashboardData.stats?.deployed_monitors || 0)) / 
+                            `${Math.round((dashboardData.stats?.deployed_monitors || 0) / 
                             (dashboardData.stats?.total_monitors || 1) * 100)}%` 
                         }}
                       ></div>
@@ -595,8 +593,7 @@ export default function AdminDashboardPage() {
                       <span>Usage Rate</span>
                       <span>
                         {dashboardData.loading ? '...' : 
-                          `${Math.round(((dashboardData.stats?.active_system_units || 0) + 
-                          (dashboardData.stats?.deployed_system_units || 0)) / 
+                          `${Math.round((dashboardData.stats?.deployed_system_units || 0) / 
                           (dashboardData.stats?.total_system_units || 1) * 100)}%`
                         }
                       </span>
@@ -606,8 +603,7 @@ export default function AdminDashboardPage() {
                         className="bg-green-600 h-2 rounded-full" 
                         style={{ 
                           width: dashboardData.loading ? '0%' : 
-                            `${Math.round(((dashboardData.stats?.active_system_units || 0) + 
-                            (dashboardData.stats?.deployed_system_units || 0)) / 
+                            `${Math.round((dashboardData.stats?.deployed_system_units || 0) / 
                             (dashboardData.stats?.total_system_units || 1) * 100)}%` 
                         }}
                       ></div>
