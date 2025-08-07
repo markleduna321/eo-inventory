@@ -1043,23 +1043,31 @@ class ReportController extends Controller
     private function enhanceReportWithAI($reportData, $type)
     {
         try {
+            // Generate AI analysis content
+            $analysis = $this->generateReportSummary($reportData, $type);
+            $keyInsights = $this->generateKeyInsights($reportData, $type);
+            $recommendations = $this->generateRecommendations($reportData, $type);
+            
             // Add AI insights section to the report
-            $reportData['ai_insights'] = [
-                'summary' => $this->generateReportSummary($reportData, $type),
-                'trends' => $this->analyzeReportTrends($reportData, $type),
-                'recommendations' => $this->generateRecommendations($reportData, $type),
-                'predictive_analytics' => $this->generatePredictiveAnalytics($reportData, $type),
-                'generated_at' => now()->toDateTimeString()
+            $reportData['aiInsights'] = [
+                'analysis' => $analysis,
+                'keyInsights' => $keyInsights,
+                'recommendations' => $recommendations,
+                'generatedAt' => now()->toDateTimeString(),
+                'is_fallback' => false
             ];
             
             return $reportData;
         } catch (\Exception $e) {
             Log::error('Error enhancing report with AI: ' . $e->getMessage());
             
-            // Return original report if AI enhancement fails
-            $reportData['ai_insights'] = [
-                'error' => 'AI enhancement failed',
-                'message' => 'The standard report is still available.'
+            // Return fallback AI insights
+            $reportData['aiInsights'] = [
+                'analysis' => $this->getFallbackAnalysis($type, $reportData),
+                'keyInsights' => $this->getFallbackKeyInsights($reportData, $type),
+                'recommendations' => $this->getFallbackRecommendations($reportData, $type),
+                'generatedAt' => now()->toDateTimeString(),
+                'is_fallback' => true
             ];
             
             return $reportData;
@@ -1225,9 +1233,36 @@ class ReportController extends Controller
                     }
                     
                     if (count($lowStockItems) > 0) {
-                        $recommendations[] = "Consider restocking " . count($lowStockItems) . " parts that are at or below the threshold of {$lowStockThreshold} units.";
+                        $recommendations[] = [
+                            'title' => 'Low Stock Alert',
+                            'description' => "Consider restocking " . count($lowStockItems) . " parts that are at or below the threshold of {$lowStockThreshold} units.",
+                            'priority' => 'medium'
+                        ];
                     }
                 }
+                
+                // Check for non-working devices
+                if (isset($reportData['data']['monitors'])) {
+                    $monitors = $reportData['data']['monitors'];
+                    if ($monitors instanceof \Illuminate\Support\Collection) {
+                        $nonWorkingMonitors = $monitors->filter(function($monitor) {
+                            return $monitor['status'] === 'not_working';
+                        })->all();
+                    } else {
+                        $nonWorkingMonitors = array_filter($monitors, function($monitor) {
+                            return $monitor['status'] === 'not_working';
+                        });
+                    }
+                    
+                    if (count($nonWorkingMonitors) > 0) {
+                        $recommendations[] = [
+                            'title' => 'Equipment Maintenance',
+                            'description' => count($nonWorkingMonitors) . " monitors are currently not working and need repair or replacement.",
+                            'priority' => 'high'
+                        ];
+                    }
+                }
+                
                 break;
                 
             case 'asset-utilization':
@@ -1238,7 +1273,11 @@ class ReportController extends Controller
                     
                     foreach ($deploymentRates as $category => $rate) {
                         if ($rate < $underUtilizedThreshold) {
-                            $recommendations[] = "Consider redistributing or evaluating the need for {$category}, which are currently only at {$rate}% utilization.";
+                            $recommendations[] = [
+                                'title' => 'Low Utilization Alert',
+                                'description' => "Consider redistributing or evaluating the need for {$category}, which are currently only at {$rate}% utilization.",
+                                'priority' => 'medium'
+                            ];
                         }
                     }
                 }
@@ -1246,18 +1285,30 @@ class ReportController extends Controller
                 
             case 'financial':
                 // Check for high-value assets nearing end-of-life
-                $recommendations[] = "Consider performing a cost-benefit analysis on high-value assets to determine optimal replacement timing.";
+                $recommendations[] = [
+                    'title' => 'Asset Lifecycle Review',
+                    'description' => "Consider performing a cost-benefit analysis on high-value assets to determine optimal replacement timing.",
+                    'priority' => 'low'
+                ];
                 break;
                 
             case 'maintenance':
                 if (isset($reportData['summary']['assets_under_maintenance']) && $reportData['summary']['assets_under_maintenance'] > 0) {
-                    $recommendations[] = "Review maintenance procedures for common failure points in your {$reportData['summary']['assets_under_maintenance']} assets currently under repair.";
+                    $recommendations[] = [
+                        'title' => 'Maintenance Process Review',
+                        'description' => "Review maintenance procedures for common failure points in your {$reportData['summary']['assets_under_maintenance']} assets currently under repair.",
+                        'priority' => 'high'
+                    ];
                 }
                 break;
         }
         
         if (empty($recommendations)) {
-            $recommendations[] = "Your inventory management appears to be in good order based on current data.";
+            $recommendations[] = [
+                'title' => 'System Performing Well',
+                'description' => "Your inventory management appears to be in good order based on current data.",
+                'priority' => 'low'
+            ];
         }
         
         return $recommendations;
@@ -1604,5 +1655,142 @@ class ReportController extends Controller
         }
         
         return $keyData;
+    }
+
+    /**
+     * Generate key insights from report data
+     */
+    private function generateKeyInsights($reportData, $type)
+    {
+        $insights = [];
+        
+        // Extract key metrics based on report type
+        if (isset($reportData['summary'])) {
+            $summary = $reportData['summary'];
+            
+            switch ($type) {
+                case 'asset-inventory':
+                    if (isset($summary['total_assets'])) {
+                        $insights[] = ['title' => 'Total Assets', 'value' => $summary['total_assets']];
+                    }
+                    if (isset($summary['total_asset_value'])) {
+                        $insights[] = ['title' => 'Total Value', 'value' => '$' . number_format($summary['total_asset_value'])];
+                    }
+                    if (isset($summary['by_category'])) {
+                        $maxCategory = array_keys($summary['by_category'], max($summary['by_category']))[0];
+                        $insights[] = ['title' => 'Top Category', 'value' => ucfirst($maxCategory)];
+                    }
+                    break;
+                    
+                case 'asset-utilization':
+                    if (isset($summary['overall_utilization'])) {
+                        $insights[] = ['title' => 'Overall Utilization', 'value' => $summary['overall_utilization'] . '%'];
+                    }
+                    break;
+                    
+                default:
+                    $insights[] = ['title' => 'Data Points', 'value' => count($reportData['data'] ?? [])];
+                    break;
+            }
+        }
+        
+        return $insights;
+    }
+
+    /**
+     * Generate fallback analysis text
+     */
+    private function getFallbackAnalysis($type, $reportData)
+    {
+        $summary = $reportData['summary'] ?? [];
+        
+        switch ($type) {
+            case 'asset-inventory':
+                return "Your asset inventory contains " . ($summary['total_assets'] ?? 'multiple') . " assets across various categories. " .
+                       "This report provides a comprehensive overview of your current inventory status and distribution.";
+                       
+            case 'asset-utilization':
+                return "Your asset utilization analysis shows current usage patterns across your inventory. " .
+                       "This data helps identify underutilized assets and optimization opportunities.";
+                       
+            case 'financial':
+                return "The financial summary provides insights into your inventory valuation and cost analysis. " .
+                       "This information is crucial for budget planning and investment decisions.";
+                       
+            case 'maintenance':
+                return "Your maintenance schedule overview shows upcoming and overdue maintenance tasks. " .
+                       "Regular maintenance helps extend asset life and reduce unexpected downtime.";
+                       
+            case 'location-based':
+                return "The location-based inventory analysis shows asset distribution across your facilities. " .
+                       "This helps optimize asset allocation and identify location-specific needs.";
+                       
+            default:
+                return "This report provides valuable insights into your inventory management system. " .
+                       "Review the data to identify trends and optimization opportunities.";
+        }
+    }
+
+    /**
+     * Generate fallback key insights
+     */
+    private function getFallbackKeyInsights($reportData, $type)
+    {
+        return $this->generateKeyInsights($reportData, $type);
+    }
+
+    /**
+     * Generate fallback recommendations
+     */
+    private function getFallbackRecommendations($reportData, $type)
+    {
+        $recommendations = [];
+        $summary = $reportData['summary'] ?? [];
+        
+        switch ($type) {
+            case 'asset-inventory':
+                $recommendations[] = [
+                    'title' => 'Regular Inventory Audits',
+                    'description' => 'Conduct quarterly inventory audits to ensure data accuracy and identify discrepancies.',
+                    'priority' => 'medium'
+                ];
+                
+                if (isset($summary['by_category'])) {
+                    $categories = $summary['by_category'];
+                    $minCategory = array_keys($categories, min($categories))[0];
+                    $recommendations[] = [
+                        'title' => 'Increase ' . ucfirst($minCategory) . ' Inventory',
+                        'description' => 'Consider expanding your ' . $minCategory . ' inventory to balance your asset portfolio.',
+                        'priority' => 'low'
+                    ];
+                }
+                break;
+                
+            case 'asset-utilization':
+                $recommendations[] = [
+                    'title' => 'Optimize Asset Allocation',
+                    'description' => 'Review underutilized assets and consider redeployment to areas with higher demand.',
+                    'priority' => 'high'
+                ];
+                break;
+                
+            case 'maintenance':
+                $recommendations[] = [
+                    'title' => 'Preventive Maintenance Schedule',
+                    'description' => 'Implement a proactive maintenance schedule to reduce unexpected failures.',
+                    'priority' => 'high'
+                ];
+                break;
+                
+            default:
+                $recommendations[] = [
+                    'title' => 'Data Review',
+                    'description' => 'Regularly review and analyze this report data to identify improvement opportunities.',
+                    'priority' => 'medium'
+                ];
+                break;
+        }
+        
+        return $recommendations;
     }
 }
