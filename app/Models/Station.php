@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class Station extends Model
 {
@@ -110,16 +111,56 @@ class Station extends Model
     }
 
     // Methods for asset assignment
-    public function assignAsset($assetType, $assetId)
+    public function assignAsset($assetType, $assetId, $serialNumber = null)
     {
-        // Check if asset is already assigned to another station (with active assignment)
-        $existingAssignment = StationAsset::where('asset_type', $assetType)
-            ->where('asset_id', $assetId)
-            ->whereNull('unassigned_at')
-            ->first();
+        Log::info('assignAsset called', ['assetType' => $assetType, 'assetId' => $assetId, 'serialNumber' => $serialNumber, 'stationId' => $this->id]);
+        
+        // Check if asset is already assigned based on type
+        if ($assetType === 'peripheral') {
+            if ($serialNumber) {
+                // For peripherals with serial numbers, check if THIS specific serial is already assigned
+                $existingAssignment = StationAsset::where('asset_type', $assetType)
+                    ->where('asset_id', $assetId)
+                    ->where('serial_number', $serialNumber)
+                    ->whereNull('unassigned_at')
+                    ->first();
 
-        if ($existingAssignment) {
-            throw new \Exception('Asset is already assigned to another station');
+                if ($existingAssignment) {
+                    Log::warning('Serial number already assigned', ['existing' => $existingAssignment->toArray()]);
+                    throw new \Exception("Serial number '{$serialNumber}' is already assigned to another station");
+                }
+            } else {
+                // For peripherals without serial numbers, check if we have available stock
+                $currentAssignments = StationAsset::where('asset_type', $assetType)
+                    ->where('asset_id', $assetId)
+                    ->whereNull('serial_number')
+                    ->whereNull('unassigned_at')
+                    ->count();
+
+                $peripheral = \App\Models\Peripheral::find($assetId);
+                if (!$peripheral || $currentAssignments >= $peripheral->available_stock) {
+                    Log::warning('No available stock for assignment', [
+                        'peripheral_id' => $assetId,
+                        'current_assignments' => $currentAssignments,
+                        'available_stock' => $peripheral ? $peripheral->available_stock : 'N/A'
+                    ]);
+                    throw new \Exception('No available stock for this peripheral');
+                }
+            }
+        } else {
+            // For non-peripheral assets (monitors, system units), check if already assigned
+            $existingAssignment = StationAsset::where('asset_type', $assetType)
+                ->where('asset_id', $assetId)
+                ->when($serialNumber, function($query) use ($serialNumber) {
+                    return $query->where('serial_number', $serialNumber);
+                })
+                ->whereNull('unassigned_at')
+                ->first();
+
+            if ($existingAssignment) {
+                Log::warning('Asset already assigned', ['existing' => $existingAssignment->toArray()]);
+                throw new \Exception('Asset is already assigned to another station');
+            }
         }
 
         // For system units, check if station already has one assigned
@@ -140,8 +181,20 @@ class Station extends Model
             throw new \Exception('Asset not found');
         }
 
+        // For peripherals with serial numbers, validate the serial number
+        if ($assetType === 'peripheral' && $serialNumber) {
+            $peripheralSerial = PeripheralSerial::where('peripheral_id', $assetId)
+                ->where('serial_number', $serialNumber)
+                ->where('status', 'available')
+                ->first();
+                
+            if (!$peripheralSerial) {
+                throw new \Exception("Serial number '{$serialNumber}' is not available for this peripheral");
+            }
+        }
+
         // Check asset availability based on type
-        if (!$this->isAssetAvailableForAssignment($assetType, $asset)) {
+        if (!$this->isAssetAvailableForAssignment($assetType, $asset, $serialNumber)) {
             throw new \Exception('Asset is not available for assignment');
         }
 
@@ -149,11 +202,16 @@ class Station extends Model
         $assignment = $this->stationAssets()->create([
             'asset_type' => $assetType,
             'asset_id' => $assetId,
+            'serial_number' => $serialNumber,
             'assigned_at' => now(),
         ]);
 
+        Log::info('Assignment created', ['assignment_id' => $assignment->id, 'assignment' => $assignment->toArray()]);
+
         // Update asset location based on asset type
-        $this->updateAssetLocation($assetType, $assetId);
+        $this->updateAssetLocation($assetType, $assetId, $serialNumber);
+        
+        Log::info('Asset location updated', ['assetType' => $assetType, 'assetId' => $assetId, 'serialNumber' => $serialNumber]);
         
         // Get asset details for history
         if ($asset) {
@@ -166,34 +224,82 @@ class Station extends Model
                 'asset_type' => $assetType,
                 'asset_id' => $assetId,
                 'asset_name' => $assetName,
-                'asset_serial' => $asset->serial_number
+                'asset_serial' => $serialNumber ?: ($asset->serial_number ?? null)
             ]);
         }
+
+        Log::info('Assignment completed successfully', [
+            'assignment_id' => $assignment->id,
+            'station_id' => $this->id,
+            'asset_type' => $assetType,
+            'asset_id' => $assetId,
+            'serial_number' => $serialNumber,
+            'final_status' => 'COMPLETED'
+        ]);
 
         return $assignment;
     }
 
-    public function unassignAsset($assetType, $assetId, $reason = null, $notes = null)
+    public function unassignAsset($assetType, $assetId, $serialNumber = null, $reason = null, $notes = null)
     {
+        // Get detailed backtrace to see what's calling this
+        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+        $callerInfo = [];
+        foreach ($backtrace as $index => $trace) {
+            if (isset($trace['file']) && isset($trace['line'])) {
+                $callerInfo[] = [
+                    'file' => $trace['file'],
+                    'line' => $trace['line'],
+                    'function' => $trace['function'] ?? 'unknown',
+                    'class' => $trace['class'] ?? null
+                ];
+            }
+        }
+
+        Log::info('=== UNASSIGN ASSET CALLED ===', [
+            'station_id' => $this->id,
+            'asset_type' => $assetType,
+            'asset_id' => $assetId,
+            'serial_number' => $serialNumber,
+            'reason' => $reason,
+            'notes' => $notes,
+            'caller_stack' => $callerInfo,
+            'request_url' => request()->fullUrl(),
+            'request_method' => request()->method(),
+            'request_ip' => request()->ip()
+        ]);
+
         $assignment = $this->stationAssets()
             ->where('asset_type', $assetType)
             ->where('asset_id', $assetId)
+            ->when($serialNumber, function($query) use ($serialNumber) {
+                return $query->where('serial_number', $serialNumber);
+            })
             ->whereNull('unassigned_at')
             ->first();
 
         if ($assignment) {
+            Log::info('Found assignment to unassign', [
+                'assignment_id' => $assignment->id,
+                'created_at' => $assignment->created_at,
+                'about_to_unassign' => true
+            ]);
+
             $assignment->update(['unassigned_at' => now()]);
             
             // Get asset details before clearing location
             $assetModel = $this->getAssetModel($assetType, $assetId);
             $assetName = null;
-            $assetSerial = null;
+            $assetSerial = $serialNumber;
             
             if ($assetModel) {
                 $assetName = $assetType === 'system_unit' ? 
                     $assetModel->system_name : 
                     $assetModel->brand . ' ' . $assetModel->model;
-                $assetSerial = $assetModel->serial_number;
+                    
+                if (!$assetSerial) {
+                    $assetSerial = $assetModel->serial_number ?? null;
+                }
             }
             
             // Record history entry for unbinding
@@ -208,17 +314,29 @@ class Station extends Model
             
             // Update asset status based on unbind reason
             if ($reason) {
-                $this->updateAssetStatusByReason($assetType, $assetId, $reason);
+                $this->updateAssetStatusByReason($assetType, $assetId, $reason, $serialNumber);
             } else {
                 // Default behavior if no reason provided
-                $this->clearAssetLocation($assetType, $assetId);
+                $this->clearAssetLocation($assetType, $assetId, $serialNumber);
             }
+
+            Log::info('Unassignment completed', [
+                'assignment_id' => $assignment->id,
+                'unassigned_at' => $assignment->fresh()->unassigned_at
+            ]);
+        } else {
+            Log::warning('No assignment found to unassign', [
+                'station_id' => $this->id,
+                'asset_type' => $assetType,
+                'asset_id' => $assetId,
+                'serial_number' => $serialNumber
+            ]);
         }
 
         return $assignment;
     }
 
-    private function updateAssetLocation($assetType, $assetId)
+    private function updateAssetLocation($assetType, $assetId, $serialNumber = null)
     {
         switch ($assetType) {
             case 'monitor':
@@ -241,12 +359,50 @@ class Station extends Model
                 }
                 break;
             case 'peripheral':
-                // Deploy exactly this peripheral's stock
                 $asset = Peripheral::find($assetId);
-                if ($asset && $asset->available_stock > 0) {
-                    $asset->deployStock(1); // Deploy 1 unit of this specific peripheral
-                } else {
-                    throw new \Exception('Peripheral has no available stock');
+                if ($asset) {
+                    if ($serialNumber) {
+                        Log::info('Attempting to deploy serial number', [
+                            'peripheral_id' => $assetId,
+                            'serial_number' => $serialNumber,
+                            'station_name' => $this->name,
+                            'station_id' => $this->id
+                        ]);
+
+                        // Deploy specific serial number
+                        $peripheralSerial = PeripheralSerial::where('peripheral_id', $assetId)
+                            ->where('serial_number', $serialNumber)
+                            ->where('status', 'available')
+                            ->first();
+
+                        Log::info('Serial lookup result', [
+                            'found' => $peripheralSerial ? true : false,
+                            'serial_data' => $peripheralSerial ? $peripheralSerial->toArray() : null
+                        ]);
+                            
+                        if ($peripheralSerial) {
+                            Log::info('Deploying serial number', ['serial_id' => $peripheralSerial->id]);
+                            $peripheralSerial->deploy($this->name, $this->id);
+                            // Also update peripheral's deployed stock count
+                            $asset->increment('deployed_stock');
+                            $asset->decrement('available_stock');
+                            Log::info('Serial deployment completed successfully');
+                        } else {
+                            Log::error('Serial number not found or not available', [
+                                'peripheral_id' => $assetId,
+                                'serial_number' => $serialNumber,
+                                'all_serials_for_peripheral' => PeripheralSerial::where('peripheral_id', $assetId)->get()->toArray()
+                            ]);
+                            throw new \Exception("Serial number '{$serialNumber}' not found or not available");
+                        }
+                    } else {
+                        // Deploy 1 unit of this peripheral (legacy behavior)
+                        if ($asset->available_stock > 0) {
+                            $asset->deployStock(1);
+                        } else {
+                            throw new \Exception('Peripheral has no available stock');
+                        }
+                    }
                 }
                 break;
         }
@@ -257,9 +413,10 @@ class Station extends Model
      * 
      * @param string $assetType
      * @param mixed $asset
+     * @param string|null $serialNumber
      * @return bool
      */
-    private function isAssetAvailableForAssignment($assetType, $asset)
+    private function isAssetAvailableForAssignment($assetType, $asset, $serialNumber = null)
     {
         switch ($assetType) {
             case 'monitor':
@@ -267,7 +424,17 @@ class Station extends Model
             case 'system_unit':
                 return in_array($asset->status, ['available']);
             case 'peripheral':
-                return $asset->status === 'active' && $asset->available_stock > 0;
+                if ($serialNumber) {
+                    // Check if specific serial number is available
+                    $peripheralSerial = PeripheralSerial::where('peripheral_id', $asset->id)
+                        ->where('serial_number', $serialNumber)
+                        ->where('status', 'available')
+                        ->exists();
+                    return $asset->status === 'active' && $peripheralSerial;
+                } else {
+                    // Check if peripheral has available stock
+                    return $asset->status === 'active' && $asset->available_stock > 0;
+                }
             default:
                 return false;
         }
@@ -300,9 +467,10 @@ class Station extends Model
      * @param string $assetType
      * @param int $assetId
      * @param string $reason
+     * @param string|null $serialNumber
      * @return void
      */
-    private function updateAssetStatusByReason($assetType, $assetId, $reason)
+    private function updateAssetStatusByReason($assetType, $assetId, $reason, $serialNumber = null)
     {
         $asset = $this->getAssetModel($assetType, $assetId);
         
@@ -331,9 +499,26 @@ class Station extends Model
                         ]);
                         break;
                     case 'peripheral':
-                        $asset->update([
-                            'status' => 'inactive' // Use 'inactive' instead of 'not_working'
-                        ]);
+                        if ($serialNumber) {
+                            $peripheralSerial = PeripheralSerial::where('peripheral_id', $assetId)
+                                ->where('serial_number', $serialNumber)
+                                ->first();
+                            if ($peripheralSerial) {
+                                $peripheralSerial->markDamaged('Damaged during station unbinding');
+                                // Update peripheral stock counts
+                                $asset->decrement('deployed_stock');
+                                $asset->increment('damaged_stock');
+                                
+                                // Keep peripheral active if it still has available stock or if it uses serial numbers
+                                // Only mark as inactive if it has no available stock and doesn't use serial numbers
+                                if (!$asset->uses_serial_numbers && $asset->available_stock <= 0) {
+                                    $asset->update(['status' => 'inactive']);
+                                }
+                            }
+                        } else {
+                            // Legacy: for peripherals without serial tracking
+                            $asset->update(['status' => 'inactive']);
+                        }
                         break;
                 }
                 break;
@@ -358,26 +543,48 @@ class Station extends Model
                         ]);
                         break;
                     case 'peripheral':
-                        $asset->update([
-                            'status' => 'inactive' // Mark as inactive for repair
-                        ]);
+                        if ($serialNumber) {
+                            $peripheralSerial = PeripheralSerial::where('peripheral_id', $assetId)
+                                ->where('serial_number', $serialNumber)
+                                ->first();
+                            if ($peripheralSerial) {
+                                $peripheralSerial->update([
+                                    'status' => 'maintenance',
+                                    'deployed_to' => null,
+                                    'station_id' => null,
+                                    'returned_at' => now()
+                                ]);
+                                // Update peripheral stock counts
+                                $asset->decrement('deployed_stock');
+                                // Don't increment available_stock since it's in maintenance
+                                
+                                // Keep peripheral active if it still has available stock or if it uses serial numbers
+                                // Only mark as inactive if it has no available stock and doesn't use serial numbers
+                                if (!$asset->uses_serial_numbers && $asset->available_stock <= 0) {
+                                    $asset->update(['status' => 'inactive']);
+                                }
+                            }
+                        } else {
+                            // Legacy: for peripherals without serial tracking
+                            $asset->update(['status' => 'inactive']);
+                        }
                         break;
                 }
                 break;
                 
             case StationHistory::REASON_REPLACE_NEW:
                 // Keep the current status but mark as unassigned
-                $this->clearAssetLocation($assetType, $assetId);
+                $this->clearAssetLocation($assetType, $assetId, $serialNumber);
                 break;
                 
             default:
                 // Default behavior
-                $this->clearAssetLocation($assetType, $assetId);
+                $this->clearAssetLocation($assetType, $assetId, $serialNumber);
                 break;
         }
     }
 
-    private function clearAssetLocation($assetType, $assetId)
+    private function clearAssetLocation($assetType, $assetId, $serialNumber = null)
     {
         switch ($assetType) {
             case 'monitor':
@@ -400,10 +607,27 @@ class Station extends Model
                 }
                 break;
             case 'peripheral':
-                // Return exactly this peripheral's stock
                 $asset = Peripheral::find($assetId);
-                if ($asset && $asset->deployed_stock > 0) {
-                    $asset->returnStock(1); // Return 1 unit of this specific peripheral
+                if ($asset) {
+                    if ($serialNumber) {
+                        // Return specific serial number to stock
+                        $peripheralSerial = PeripheralSerial::where('peripheral_id', $assetId)
+                            ->where('serial_number', $serialNumber)
+                            ->where('status', 'deployed')
+                            ->first();
+                            
+                        if ($peripheralSerial) {
+                            $peripheralSerial->returnToStock();
+                            // Update peripheral stock counts
+                            $asset->decrement('deployed_stock');
+                            $asset->increment('available_stock');
+                        }
+                    } else {
+                        // Return 1 unit of this peripheral (legacy behavior)
+                        if ($asset->deployed_stock > 0) {
+                            $asset->returnStock(1);
+                        }
+                    }
                 }
                 break;
         }

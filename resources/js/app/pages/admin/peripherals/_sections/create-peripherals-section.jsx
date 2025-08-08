@@ -19,14 +19,12 @@ export default function CreatePeripheralsSection() {
         location: '',
         description: '',
         notes: '',
-        initial_stock: 1,
-        unit_price: '',
-        supplier: '',
         purchase_order: '',
         invoice_number: '',
         delivery_date: new Date().toISOString().split('T')[0],
         delivery_notes: '',
-        received_by: auth?.user?.name || ''
+        received_by: auth?.user?.name || '',
+        uses_serial_numbers: false
     })
 
     const openModal = () => setIsModalOpen(true)
@@ -41,14 +39,12 @@ export default function CreatePeripheralsSection() {
             location: '',
             description: '',
             notes: '',
-            initial_stock: 1,
-            unit_price: '',
-            supplier: '',
             purchase_order: '',
             invoice_number: '',
             delivery_date: new Date().toISOString().split('T')[0],
             delivery_notes: '',
-            received_by: auth?.user?.name || ''
+            received_by: auth?.user?.name || '',
+            uses_serial_numbers: false
         })
     }
 
@@ -82,10 +78,18 @@ export default function CreatePeripheralsSection() {
             console.log('Submitting peripheral data:', formData);
             console.log('Using headers:', headers);
 
+            // Add default initial_stock since we removed it from the form
+            const submitData = {
+                ...formData,
+                initial_stock: 0, // Default to 0 since stock will be managed separately
+                unit_price: 0.00, // Default unit price since it will be set when adding stock
+                supplier: '' // Default empty supplier since it will be set when adding stock
+            };
+
             const response = await fetch('/api/peripherals', {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             })
 
             if (response.ok) {
@@ -100,7 +104,20 @@ export default function CreatePeripheralsSection() {
                 
                 // More specific error messages
                 if (response.status === 422) {
-                    alert('Validation error: Please check all required fields and their formats.')
+                    // Show validation errors
+                    const errorMessages = [];
+                    if (errorData.errors) {
+                        Object.keys(errorData.errors).forEach(field => {
+                            const fieldErrors = errorData.errors[field];
+                            if (Array.isArray(fieldErrors)) {
+                                errorMessages.push(...fieldErrors);
+                            }
+                        });
+                    }
+                    const errorMessage = errorMessages.length > 0 
+                        ? `Validation errors:\n${errorMessages.join('\n')}` 
+                        : errorData.message || 'Validation error: Please check all required fields and their formats.';
+                    alert(errorMessage);
                 } else if (response.status === 401) {
                     alert('Authentication required. Please log in again.')
                 } else if (response.status === 403) {
@@ -171,14 +188,27 @@ export default function CreatePeripheralsSection() {
             </Button>
 
             <Modal isOpen={isModalOpen} onClose={closeModal}>
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900" id="modal-title">
+                <div className="flex flex-col h-[85vh] w-full max-w-4xl bg-white rounded-lg shadow-lg">
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-lg">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
                                 Add New Peripheral
                             </h3>
-                            <div className="mt-2">
-                                <form className="space-y-4" onSubmit={handleSubmit}>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Scrollable Content */}
+                    <div className="overflow-y-auto px-6 py-6 flex-1 min-h-0">
+                        <form id="create-peripheral-form" className="space-y-6" onSubmit={handleSubmit}>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label htmlFor="peripheral_type" className="block text-sm font-medium text-gray-700 mb-1">
@@ -224,38 +254,6 @@ export default function CreatePeripheralsSection() {
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor="initial_stock" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Initial Stock *
-                                            </label>
-                                            <InputTextComponent
-                                                id="initial_stock"
-                                                name="initial_stock"
-                                                type="number"
-                                                placeholder="1"
-                                                value={formData.initial_stock}
-                                                onChange={(e) => handleInputChange('initial_stock', parseInt(e.target.value) || 0)}
-                                                required
-                                                min="0"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="unit_price" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Unit Price (₱)
-                                            </label>
-                                            <InputTextComponent
-                                                id="unit_price"
-                                                name="unit_price"
-                                                type="number"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                value={formData.unit_price}
-                                                onChange={(e) => handleInputChange('unit_price', e.target.value)}
-                                            />
-                                        </div>
-                                        <div>
                                             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
                                                 Location *
                                             </label>
@@ -272,31 +270,45 @@ export default function CreatePeripheralsSection() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Supplier
+                                            <label htmlFor="purchase_order" className="block text-sm font-medium text-gray-700 mb-1">
+                                                Purchase Order
                                             </label>
                                             <InputTextComponent
-                                                id="supplier"
-                                                name="supplier"
+                                                id="purchase_order"
+                                                name="purchase_order"
                                                 type="text"
-                                                placeholder="e.g. Amazon, Best Buy"
-                                                value={formData.supplier}
-                                                onChange={(e) => handleInputChange('supplier', e.target.value)}
+                                                placeholder="e.g. PO-2024-001"
+                                                value={formData.purchase_order}
+                                                onChange={(e) => handleInputChange('purchase_order', e.target.value)}
                                             />
                                         </div>
                                         <div>
-                                            <label htmlFor="delivery_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Delivery Date *
+                                            <label htmlFor="invoice_number" className="block text-sm font-medium text-gray-700 mb-1">
+                                                Invoice Number
                                             </label>
                                             <InputTextComponent
-                                                id="delivery_date"
-                                                name="delivery_date"
-                                                type="date"
-                                                value={formData.delivery_date}
-                                                onChange={(e) => handleInputChange('delivery_date', e.target.value)}
-                                                required
+                                                id="invoice_number"
+                                                name="invoice_number"
+                                                type="text"
+                                                placeholder="e.g. INV-2024-001"
+                                                value={formData.invoice_number}
+                                                onChange={(e) => handleInputChange('invoice_number', e.target.value)}
                                             />
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label htmlFor="delivery_date" className="block text-sm font-medium text-gray-700 mb-1">
+                                            Delivery Date *
+                                        </label>
+                                        <InputTextComponent
+                                            id="delivery_date"
+                                            name="delivery_date"
+                                            type="date"
+                                            value={formData.delivery_date}
+                                            onChange={(e) => handleInputChange('delivery_date', e.target.value)}
+                                            required
+                                        />
                                     </div>
 
                                     <div>
@@ -312,6 +324,25 @@ export default function CreatePeripheralsSection() {
                                             value={formData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
                                         />
+                                    </div>
+
+                                    {/* Serial Number Configuration */}
+                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                        <div className="flex items-center">
+                                            <input
+                                                id="uses_serial_numbers"
+                                                type="checkbox"
+                                                checked={formData.uses_serial_numbers || false}
+                                                onChange={(e) => handleInputChange('uses_serial_numbers', e.target.checked)}
+                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                            />
+                                            <label htmlFor="uses_serial_numbers" className="ml-2 block text-sm font-medium text-blue-800">
+                                                This peripheral uses serial numbers
+                                            </label>
+                                        </div>
+                                        <p className="text-xs text-blue-600 mt-1">
+                                            Check this if each individual item will have a unique serial number that needs to be tracked separately.
+                                        </p>
                                     </div>
 
                                     <div>
@@ -338,30 +369,30 @@ export default function CreatePeripheralsSection() {
                                         value={formData.received_by}
                                         onChange={e => setFormData(prev => ({ ...prev, received_by: e.target.value }))}
                                     />
-
-                                    {/* Buttons */}
-                                    <div className='flex justify-end gap-2 mt-4'>
-                                        <Button
-                                            type='submit'
-                                            variant='primary'
-                                            size='md'
-                                            disabled={loading}
-                                        >
-                                            {loading ? 'Saving...' : 'Save'}
-                                        </Button>
-
-                                        <Button
-                                            type='button'
-                                            variant='danger'
-                                            size='md'
-                                            onClick={closeModal}
-                                            disabled={loading}
-                                        >
-                                            Cancel
-                                        </Button>
-                                    </div>
                                 </form>
                             </div>
+                    
+                    {/* Footer */}
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0 rounded-b-lg">
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                type='button'
+                                variant='secondary'
+                                size='md'
+                                onClick={closeModal}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type='submit'
+                                variant='primary'
+                                size='md'
+                                form="create-peripheral-form"
+                                disabled={loading}
+                            >
+                                {loading ? 'Saving...' : 'Save Peripheral'}
+                            </Button>
                         </div>
                     </div>
                 </div>

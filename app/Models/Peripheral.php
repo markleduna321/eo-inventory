@@ -21,6 +21,7 @@ class Peripheral extends Model
         'unit_price',
         'location',
         'status',
+        'uses_serial_numbers',
         'notes',
         'received_by'
     ];
@@ -31,12 +32,18 @@ class Peripheral extends Model
         'available_stock' => 'integer',
         'deployed_stock' => 'integer',
         'damaged_stock' => 'integer',
+        'uses_serial_numbers' => 'boolean',
     ];
 
     // Relationships
     public function deliveries()
     {
         return $this->hasMany(PeripheralDelivery::class);
+    }
+
+    public function serialNumbers()
+    {
+        return $this->hasMany(PeripheralSerial::class);
     }
 
     public function stationAssignment()

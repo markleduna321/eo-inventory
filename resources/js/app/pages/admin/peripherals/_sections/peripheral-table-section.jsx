@@ -6,7 +6,7 @@ import Alert from '@/app/pages/components/alert'
 import TableFilter from '@/app/pages/components/table-filter'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, PlusIcon, CubeIcon, ArrowUturnLeftIcon, EyeIcon } from '@heroicons/react/24/outline'
-import { fetchPeripherals, updatePeripheral, deletePeripheral, addStock, deployStock, returnStock, fetchStations, fetchDeliveryHistory, clearError, clearSuccessMessage } from '@/app/redux/peripheral/peripheralSlice'
+import { fetchPeripherals, updatePeripheral, deletePeripheral, addStock, returnStock, fetchStations, fetchDeliveryHistory, clearError, clearSuccessMessage } from '@/app/redux/peripheral/peripheralSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 import { usePage } from '@inertiajs/react'
 
@@ -19,7 +19,6 @@ export default function PeripheralTableSection() {
     // Modal states
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isStockModalOpen, setIsStockModalOpen] = useState(false)
-    const [isDeployModalOpen, setIsDeployModalOpen] = useState(false)
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
     const [selectedPeripheral, setSelectedPeripheral] = useState(null)
     const [activeTab, setActiveTab] = useState('details') // 'details' or 'history'
@@ -31,11 +30,32 @@ export default function PeripheralTableSection() {
     // Form states
     const [editForm, setEditForm] = useState({})
     const [stockForm, setStockForm] = useState({})
-    const [deployForm, setDeployForm] = useState({})
     const [returnForm, setReturnForm] = useState({})
     
     // Alert state
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    const [serialValidation, setSerialValidation] = useState({ duplicates: [], errors: [] })
+
+    // Validation functions
+    const validateSerialNumbers = (serialNumbers) => {
+        const errors = []
+        const duplicates = []
+        
+        // Check for duplicates within the form
+        const seen = new Set()
+        const cleanedSerials = serialNumbers.map(s => s.trim()).filter(s => s !== '')
+        
+        cleanedSerials.forEach((serial, index) => {
+            if (seen.has(serial)) {
+                duplicates.push({ index, serial })
+            } else {
+                seen.add(serial)
+            }
+        })
+        
+        setSerialValidation({ duplicates, errors })
+        return duplicates.length === 0 && errors.length === 0
+    }
 
     // Filter configuration
     const searchableFields = ['type', 'brand', 'model', 'description', 'location', 'received_by', 'stock_status']
@@ -196,28 +216,24 @@ export default function PeripheralTableSection() {
 
     const handleAddStock = (peripheral) => {
         setSelectedPeripheral(peripheral)
+        
+        // Default to peripheral's current setting, but allow override
+        const defaultUsesSerial = peripheral.uses_serial_numbers || false
+        
         setStockForm({
-            quantity: '',
+            quantity: defaultUsesSerial ? '' : '1', // Default quantity to 1 for non-serial peripherals
             unit_price: peripheral.unit_price || '',
             supplier: '',
             purchase_order: '',
             invoice_number: '',
-            delivery_date: new Date().toISOString().split('T')[0],
+            delivery_date: '',
             received_by: auth.user?.name || '',
-            notes: ''
+            notes: '',
+            has_serial_numbers: defaultUsesSerial, // Default based on peripheral setting
+            serial_numbers: defaultUsesSerial ? [''] : []
         })
+        setSerialValidation({ duplicates: [], errors: [] }) // Clear validation
         setIsStockModalOpen(true)
-    }
-
-    const handleDeploy = (peripheral) => {
-        setSelectedPeripheral(peripheral)
-        setDeployForm({
-            quantity: '',
-            station_id: '',
-            deployed_to: '',
-            notes: ''
-        })
-        setIsDeployModalOpen(true)
     }
 
     const handleReturn = (peripheral) => {
@@ -245,14 +261,20 @@ export default function PeripheralTableSection() {
 
     const handleStockSubmit = async (e) => {
         e.preventDefault()
-        dispatch(addStock({ id: selectedPeripheral.id, stockData: stockForm }))
+        console.log('Submitting stock form with data:', stockForm)
+        console.log('Selected peripheral:', selectedPeripheral)
+        
+        // Prepare the data to send
+        const dataToSend = { ...stockForm }
+        
+        // If using serial numbers, don't send quantity (it will be calculated from serial numbers)
+        if (stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) {
+            delete dataToSend.quantity
+        }
+        
+        console.log('Data being sent after processing:', dataToSend)
+        dispatch(addStock({ id: selectedPeripheral.id, stockData: dataToSend }))
         setIsStockModalOpen(false)
-    }
-
-    const handleDeploySubmit = async (e) => {
-        e.preventDefault()
-        dispatch(deployStock({ id: selectedPeripheral.id, deployData: deployForm }))
-        setIsDeployModalOpen(false)
     }
 
     const handleReturnSubmit = async (e) => {
@@ -273,12 +295,7 @@ export default function PeripheralTableSection() {
         setIsStockModalOpen(false)
         setSelectedPeripheral(null)
         setStockForm({})
-    }
-
-    const closeDeployModal = () => {
-        setIsDeployModalOpen(false)
-        setSelectedPeripheral(null)
-        setDeployForm({})
+        setSerialValidation({ duplicates: [], errors: [] })
     }
 
     const closeReturnModal = () => {
@@ -444,17 +461,6 @@ export default function PeripheralTableSection() {
                                                     >
                                                         <PlusIcon className="h-4 w-4" />
                                                     </Button>
-                                                    {peripheral.available_stock > 0 && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="primary"
-                                                            size="sm"
-                                                            onClick={() => handleDeploy(peripheral)}
-                                                            title="Deploy Stock"
-                                                        >
-                                                            <CubeIcon className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
                                                     {peripheral.deployed_stock > 0 && (
                                                         <Button
                                                             type="button"
@@ -667,6 +673,16 @@ export default function PeripheralTableSection() {
                                     >
                                         Delivery History
                                     </button>
+                                    <button
+                                        onClick={() => setActiveTab('serial')}
+                                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                            activeTab === 'serial'
+                                                ? 'border-indigo-500 text-indigo-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        Serial Numbers
+                                    </button>
                                 </nav>
                             </div>
 
@@ -781,7 +797,7 @@ export default function PeripheralTableSection() {
                                             </Button>
                                         </div>
                                     </form>
-                                ) : (
+                                ) : activeTab === 'history' ? (
                                     // History Tab
                                     <div className="max-h-96 overflow-y-auto">
                                         {deliveryHistory.length === 0 ? (
@@ -838,6 +854,90 @@ export default function PeripheralTableSection() {
                                             </Button>
                                         </div>
                                     </div>
+                                ) : (
+                                    // Serial Numbers Tab
+                                    <div className="max-h-96 overflow-y-auto">
+                                        {selectedPeripheral?.serial_numbers && selectedPeripheral.serial_numbers.length > 0 ? (
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h4 className="font-medium text-gray-900">Serial Numbers</h4>
+                                                    <span className="text-sm text-gray-500">
+                                                        Total: {selectedPeripheral.serial_numbers.length}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {selectedPeripheral.serial_numbers.map((serial, index) => (
+                                                        <div key={serial.id || index} className="border rounded-lg p-4 bg-gray-50">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="font-mono font-medium text-gray-900">
+                                                                            {serial.serial_number}
+                                                                        </span>
+                                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                                            serial.status === 'available' 
+                                                                                ? 'bg-green-100 text-green-800'
+                                                                                : serial.status === 'deployed'
+                                                                                ? 'bg-blue-100 text-blue-800'
+                                                                                : serial.status === 'maintenance'
+                                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                                : serial.status === 'damaged'
+                                                                                ? 'bg-red-100 text-red-800'
+                                                                                : 'bg-gray-100 text-gray-800'
+                                                                        }`}>
+                                                                            {serial.status?.charAt(0).toUpperCase() + serial.status?.slice(1) || 'Available'}
+                                                                        </span>
+                                                                    </div>
+                                                                    {serial.unit_price && (
+                                                                        <div className="mt-1 text-sm text-gray-600">
+                                                                            Unit Price: ₱{parseFloat(serial.unit_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                                                        </div>
+                                                                    )}
+                                                                    {serial.deployed_to && (
+                                                                        <div className="mt-1 text-sm text-gray-600">
+                                                                            Deployed to: {serial.deployed_to}
+                                                                        </div>
+                                                                    )}
+                                                                    {serial.deployed_at && (
+                                                                        <div className="mt-1 text-sm text-gray-500">
+                                                                            Deployed: {new Date(serial.deployed_at).toLocaleDateString()}
+                                                                        </div>
+                                                                    )}
+                                                                    {serial.delivery_date && (
+                                                                        <div className="mt-1 text-sm text-gray-500">
+                                                                            Received: {new Date(serial.delivery_date).toLocaleDateString()}
+                                                                        </div>
+                                                                    )}
+                                                                    {serial.notes && (
+                                                                        <div className="mt-1 text-sm text-gray-500">
+                                                                            Notes: {serial.notes}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100">
+                                                    <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2h4a1 1 0 011 1v1a1 1 0 01-1 1h-1v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7H3a1 1 0 01-1-1V5a1 1 0 011-1h4zM9 4h6V3H9v1zm3 8l-3-3m0 0l3 3m-3-3v6" />
+                                                    </svg>
+                                                </div>
+                                                <h3 className="mt-2 text-sm font-medium text-gray-900">No Serial Numbers</h3>
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                    This peripheral doesn't have individual serial numbers tracked.
+                                                </p>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-end mt-6">
+                                            <Button type="button" variant="secondary" onClick={closeEditModal}>
+                                                Close
+                                            </Button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -847,15 +947,141 @@ export default function PeripheralTableSection() {
 
             {/* Add Stock Modal */}
             <Modal isOpen={isStockModalOpen} onClose={closeStockModal}>
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900">
+                <div className="flex flex-col h-[85vh] w-full max-w-4xl bg-white rounded-lg shadow-lg">
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-lg">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900">
                                 Add Stock - {selectedPeripheral?.brand} {selectedPeripheral?.model}
                             </h3>
+                            <button
+                                onClick={closeStockModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Scrollable Content */}
+                    <div className="overflow-y-auto px-6 py-6 flex-1 min-h-0">
+                        <form id="add-stock-form" onSubmit={handleStockSubmit} className="space-y-6">
+                            {/* Serial Number Option - Always show for user choice, but indicate current state */}
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                <div className="flex items-center">
+                                    <input
+                                        id="has_serial_numbers"
+                                        type="checkbox"
+                                        checked={stockForm.has_serial_numbers || false}
+                                        onChange={(e) => {
+                                            const hasSerial = e.target.checked
+                                            setStockForm({
+                                                ...stockForm, 
+                                                has_serial_numbers: hasSerial,
+                                                serial_numbers: hasSerial ? [''] : [],
+                                                quantity: hasSerial ? '' : (stockForm.quantity || '1')
+                                            })
+                                        }}
+                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    />
+                                    <label htmlFor="has_serial_numbers" className="ml-2 block text-sm font-medium text-blue-800">
+                                        This peripheral has serial numbers
+                                    </label>
+                                </div>
+                                <p className="text-xs text-blue-600 mt-1">
+                                    {selectedPeripheral?.uses_serial_numbers 
+                                        ? "This peripheral is configured to use serial numbers. You can uncheck this to add bulk stock instead."
+                                        : "Check this if each item has a unique serial number. The quantity will be determined by the number of serial numbers entered."
+                                    }
+                                </p>
+                            </div>
 
-                            <form onSubmit={handleStockSubmit} className="mt-4 space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Quantity or Serial Numbers */}
+                                {stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers ? (
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Serial Numbers *
+                                        </label>
+                                        <div className="space-y-2">
+                                            {(stockForm.serial_numbers || []).map((serial, index) => (
+                                                <div key={index} className="flex gap-2">
+                                                    <div className="flex-1">
+                                                        <InputTextComponent
+                                                            placeholder={`Serial Number ${index + 1}`}
+                                                            value={serial}
+                                                            onChange={(e) => {
+                                                                const newSerials = [...(stockForm.serial_numbers || [])]
+                                                                newSerials[index] = e.target.value
+                                                                setStockForm({
+                                                                    ...stockForm, 
+                                                                    serial_numbers: newSerials,
+                                                                    quantity: newSerials.filter(s => s.trim()).length
+                                                                })
+                                                                // Validate serial numbers after change
+                                                                validateSerialNumbers(newSerials)
+                                                            }}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newSerials = (stockForm.serial_numbers || []).filter((_, i) => i !== index)
+                                                            setStockForm({
+                                                                ...stockForm, 
+                                                                serial_numbers: newSerials,
+                                                                quantity: newSerials.filter(s => s.trim()).length
+                                                            })
+                                                            validateSerialNumbers(newSerials)
+                                                        }}
+                                                        className="px-3 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors"
+                                                        disabled={(stockForm.serial_numbers || []).length <= 1}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newSerials = [...(stockForm.serial_numbers || []), '']
+                                                    setStockForm({
+                                                        ...stockForm, 
+                                                        serial_numbers: newSerials
+                                                    })
+                                                }}
+                                                className="px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 transition-colors text-sm"
+                                            >
+                                                + Add Serial Number
+                                            </button>
+                                        </div>
+                                        <div className="mt-2 text-sm text-gray-600">
+                                            Total Quantity: {(stockForm.serial_numbers || []).filter(s => s.trim()).length} items
+                                        </div>
+                                        {serialValidation.duplicates.length > 0 && (
+                                            <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                                                <div className="flex">
+                                                    <div className="flex-shrink-0">
+                                                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <h3 className="text-sm font-medium text-red-800">
+                                                            Duplicate Serial Numbers
+                                                        </h3>
+                                                        <div className="mt-2 text-sm text-red-700">
+                                                            Please ensure all serial numbers are unique. Each serial number must be globally unique across the entire system.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
                                     <InputTextComponent
                                         label="Quantity *"
                                         id="quantity"
@@ -866,142 +1092,78 @@ export default function PeripheralTableSection() {
                                         onChange={(e) => setStockForm({...stockForm, quantity: e.target.value})}
                                         required
                                     />
-                                    <InputTextComponent
-                                        label="Unit Price"
-                                        id="unit_price"
-                                        name="unit_price"
-                                        type="number"
-                                        step="0.01"
-                                        value={stockForm.unit_price || ''}
-                                        onChange={(e) => setStockForm({...stockForm, unit_price: e.target.value})}
-                                    />
-                                    <InputTextComponent
-                                        label="Supplier"
-                                        id="supplier"
-                                        name="supplier"
-                                        value={stockForm.supplier || ''}
-                                        onChange={(e) => setStockForm({...stockForm, supplier: e.target.value})}
-                                    />
-                                    <InputTextComponent
-                                        label="Purchase Order"
-                                        id="purchase_order"
-                                        name="purchase_order"
-                                        value={stockForm.purchase_order || ''}
-                                        onChange={(e) => setStockForm({...stockForm, purchase_order: e.target.value})}
-                                    />
-                                    <InputTextComponent
-                                        label="Invoice Number"
-                                        id="invoice_number"
-                                        name="invoice_number"
-                                        value={stockForm.invoice_number || ''}
-                                        onChange={(e) => setStockForm({...stockForm, invoice_number: e.target.value})}
-                                    />
-                                    <InputTextComponent
-                                        label="Delivery Date *"
-                                        id="delivery_date"
-                                        name="delivery_date"
-                                        type="date"
-                                        value={stockForm.delivery_date || ''}
-                                        onChange={(e) => setStockForm({...stockForm, delivery_date: e.target.value})}
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                    <textarea
-                                        value={stockForm.notes || ''}
-                                        onChange={(e) => setStockForm({...stockForm, notes: e.target.value})}
-                                        rows={2}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Additional notes about this delivery..."
-                                    />
-                                </div>
-                                <div className="text-sm text-gray-500 mb-4">
-                                    <strong>Received by:</strong> {auth.user?.name || 'Current User'}
-                                </div>
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <Button type="button" variant="secondary" onClick={closeStockModal}>
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" variant="success">
-                                        Add Stock
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
+                                )}
+                                
+                                <InputTextComponent
+                                    label="Unit Price"
+                                    id="unit_price"
+                                    name="unit_price"
+                                    type="number"
+                                    step="0.01"
+                                    value={stockForm.unit_price || ''}
+                                    onChange={(e) => setStockForm({...stockForm, unit_price: e.target.value})}
+                                />
+                                <InputTextComponent
+                                    label="Supplier"
+                                    id="supplier"
+                                    name="supplier"
+                                    value={stockForm.supplier || ''}
+                                    onChange={(e) => setStockForm({...stockForm, supplier: e.target.value})}
+                                />
+                                <InputTextComponent
+                                    label="Purchase Order"
+                                    id="purchase_order"
+                                    name="purchase_order"
+                                    value={stockForm.purchase_order || ''}
+                                    onChange={(e) => setStockForm({...stockForm, purchase_order: e.target.value})}
+                                />
+                                <InputTextComponent
+                                    label="Invoice Number"
+                                    id="invoice_number"
+                                    name="invoice_number"
+                                    value={stockForm.invoice_number || ''}
+                                    onChange={(e) => setStockForm({...stockForm, invoice_number: e.target.value})}
+                                />
+                                <InputTextComponent
+                                    label="Delivery Date *"
+                                    id="delivery_date"
+                                    name="delivery_date"
+                                    type="date"
+                                    value={stockForm.delivery_date || ''}
+                                    onChange={(e) => setStockForm({...stockForm, delivery_date: e.target.value})}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea
+                                    value={stockForm.notes || ''}
+                                    onChange={(e) => setStockForm({...stockForm, notes: e.target.value})}
+                                    rows={3}
+                                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Additional notes about this delivery..."
+                                />
+                            </div>
+                            <div className="text-sm text-gray-500">
+                                <strong>Received by:</strong> {auth.user?.name || 'Current User'}
+                            </div>
+                        </form>
                     </div>
-                </div>
-            </Modal>
-
-            {/* Deploy Stock Modal */}
-            <Modal isOpen={isDeployModalOpen} onClose={closeDeployModal}>
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900">
-                                Deploy Stock - {selectedPeripheral?.brand} {selectedPeripheral?.model}
-                            </h3>
-                            <p className="text-sm text-gray-500 mt-1">
-                                Available Stock: {selectedPeripheral?.available_stock || 0}
-                            </p>
-
-                            <form onSubmit={handleDeploySubmit} className="mt-4 space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <InputTextComponent
-                                        label="Quantity *"
-                                        id="quantity"
-                                        name="quantity"
-                                        type="number"
-                                        min="1"
-                                        max={selectedPeripheral?.available_stock || 1}
-                                        value={deployForm.quantity || ''}
-                                        onChange={(e) => setDeployForm({...deployForm, quantity: e.target.value})}
-                                        required
-                                    />
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Station (Optional)</label>
-                                        <select
-                                            value={deployForm.station_id || ''}
-                                            onChange={(e) => setDeployForm({...deployForm, station_id: e.target.value})}
-                                            className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                        >
-                                            <option value="">Select Station (Optional)</option>
-                                            {stations.map(station => (
-                                                <option key={station.id} value={station.id}>
-                                                    {station.name} - {station.location_name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <InputTextComponent
-                                        label="Deployed To *"
-                                        id="deployed_to"
-                                        name="deployed_to"
-                                        value={deployForm.deployed_to || ''}
-                                        onChange={(e) => setDeployForm({...deployForm, deployed_to: e.target.value})}
-                                        placeholder="Person/Department receiving the peripheral"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                                    <textarea
-                                        value={deployForm.notes || ''}
-                                        onChange={(e) => setDeployForm({...deployForm, notes: e.target.value})}
-                                        rows={2}
-                                        className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Deployment notes..."
-                                    />
-                                </div>
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <Button type="button" variant="secondary" onClick={closeDeployModal}>
-                                        Cancel
-                                    </Button>
-                                    <Button type="submit" variant="primary">
-                                        Deploy Stock
-                                    </Button>
-                                </div>
-                            </form>
+                    
+                    {/* Footer */}
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0 rounded-b-lg">
+                        <div className="flex justify-end gap-3">
+                            <Button type="button" variant="secondary" onClick={closeStockModal}>
+                                Cancel
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                variant="success" 
+                                form="add-stock-form"
+                                disabled={(stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) && serialValidation.duplicates.length > 0}
+                            >
+                                Add Stock
+                            </Button>
                         </div>
                     </div>
                 </div>

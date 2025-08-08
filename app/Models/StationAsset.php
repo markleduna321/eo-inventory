@@ -13,6 +13,7 @@ class StationAsset extends Model
         'station_id',
         'asset_type',
         'asset_id',
+        'serial_number', // Add serial number field for peripheral tracking
         'assigned_at',
         'unassigned_at'
     ];
@@ -54,6 +55,12 @@ class StationAsset extends Model
     public function peripheral()
     {
         return $this->belongsTo(Peripheral::class, 'asset_id');
+    }
+
+    public function peripheralSerial()
+    {
+        return $this->hasOne(PeripheralSerial::class, 'serial_number', 'serial_number')
+            ->where('peripheral_id', $this->asset_id);
     }
 
     public function systemUnit()

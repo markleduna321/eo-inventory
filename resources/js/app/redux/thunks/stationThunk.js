@@ -109,6 +109,24 @@ export const fetchAvailablePeripherals = createAsyncThunk(
     }
 )
 
+// Fetch available peripherals with serial numbers
+export const fetchAvailablePeripheralsWithSerials = createAsyncThunk(
+    'stations/fetchAvailablePeripheralsWithSerials',
+    async (_, { rejectWithValue }) => {
+        try {
+            console.log('Fetching available peripherals with serials...')
+            const response = await axios.get('/api/stations/available-peripherals-with-serials')
+            console.log('Available peripherals with serials response:', response.data)
+            return response.data
+        } catch (error) {
+            console.error('Error fetching available peripherals with serials:', error)
+            return rejectWithValue(
+                error.response?.data?.message || 'Failed to fetch available peripherals with serials'
+            )
+        }
+    }
+)
+
 // Fetch station locations
 export const fetchStationLocations = createAsyncThunk(
     'stations/fetchStationLocations',

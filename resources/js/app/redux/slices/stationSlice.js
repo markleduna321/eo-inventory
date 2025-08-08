@@ -7,6 +7,7 @@ import {
     fetchAvailableMonitors,
     fetchAvailableSystemUnits,
     fetchAvailablePeripherals,
+    fetchAvailablePeripheralsWithSerials,
     fetchStationLocations
 } from '../thunks/stationThunk'
 
@@ -15,6 +16,7 @@ const initialState = {
     availableMonitors: [],
     availableSystemUnits: [],
     availablePeripherals: [],
+    availablePeripheralsWithSerials: [],
     locations: [],
     currentStation: null,
     loading: false,
@@ -113,6 +115,15 @@ const stationSlice = createSlice({
             .addCase(fetchAvailablePeripherals.rejected, (state, action) => {
                 state.error = action.payload
                 console.error('Failed to fetch available peripherals:', action.payload)
+            })
+
+            // Fetch available peripherals with serials
+            .addCase(fetchAvailablePeripheralsWithSerials.fulfilled, (state, action) => {
+                state.availablePeripheralsWithSerials = action.payload
+            })
+            .addCase(fetchAvailablePeripheralsWithSerials.rejected, (state, action) => {
+                state.error = action.payload
+                console.error('Failed to fetch available peripherals with serials:', action.payload)
             })
 
             // Fetch locations

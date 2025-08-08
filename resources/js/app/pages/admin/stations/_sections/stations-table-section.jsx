@@ -10,6 +10,7 @@ import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
 import UnbindAssetModal from '@/app/components/UnbindAssetModal'
+import PeripheralBindingWithSerialsSection from './peripheral-binding-with-serials-section'
 import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, ComputerDesktopIcon, QrCodeIcon } from '@heroicons/react/24/outline'
 import { fetchStations, updateStation, deleteStation, fetchAvailableMonitors, fetchAvailableSystemUnits, fetchAvailablePeripherals, fetchStationLocations } from '@/app/redux/thunks/stationThunk'
 import { setCurrentStation, clearCurrentStation } from '@/app/redux/slices/stationSlice'
@@ -36,11 +37,15 @@ export default function StationsTableSection() {
     
     // Unbind modal state
     const [isUnbindModalOpen, setIsUnbindModalOpen] = useState(false)
-    const [unbindAsset, setUnbindAsset] = useState({ type: '', id: null, name: '' })
+    const [unbindAsset, setUnbindAsset] = useState({ type: '', id: null, name: '', serialNumber: null })
     
     // QR code modal state
     const [isQrModalOpen, setIsQrModalOpen] = useState(false)
     const [selectedStation, setSelectedStation] = useState(null)
+    
+    // Peripheral binding with serials modal state
+    const [isPeripheralBindingModalOpen, setIsPeripheralBindingModalOpen] = useState(false)
+    const [peripheralBindingStationId, setPeripheralBindingStationId] = useState(null)
     
     // Search state for the edit form
     const [editMonitorSearch, setEditMonitorSearch] = useState("")
@@ -108,6 +113,39 @@ export default function StationsTableSection() {
     const handleCloseQrModal = () => {
         setIsQrModalOpen(false)
         setSelectedStation(null)
+    }
+
+    // Peripheral binding modal handlers
+    const handleOpenPeripheralBindingModal = (stationId) => {
+        setPeripheralBindingStationId(stationId)
+        setIsPeripheralBindingModalOpen(true)
+    }
+
+    const handleClosePeripheralBindingModal = () => {
+        setIsPeripheralBindingModalOpen(false)
+        setPeripheralBindingStationId(null)
+    }
+
+    const handlePeripheralBindingSuccess = () => {
+        // Close modal first
+        handleClosePeripheralBindingModal()
+        
+        // Show success alert if needed
+        setAlert({
+            show: true,
+            type: 'success',
+            message: 'Peripherals assigned successfully!'
+        })
+        
+        // Auto-hide alert after 3 seconds
+        setTimeout(() => {
+            setAlert({ show: false, type: '', message: '' })
+        }, 3000)
+
+        // Delay the station refresh to avoid race conditions
+        setTimeout(() => {
+            dispatch(fetchStations())
+        }, 1500)
     }
 
     // Options for select dropdowns
@@ -484,6 +522,7 @@ export default function StationsTableSection() {
             console.log('Reason:', reason);
             console.log('Notes:', notes);
             console.log('Station ID:', editFormData.id);
+            console.log('Serial Number:', unbindAsset.serialNumber);
             
             // We should use the provided assetId directly, as it comes from the unbindAsset object
             // that we set when opening the modal
@@ -501,6 +540,7 @@ export default function StationsTableSection() {
             const requestData = {
                 asset_type: assetType, // Use the exact string as provided - must be monitor, system_unit, or peripheral
                 asset_id: actualAssetId, // Now always using the parsed integer ID
+                serial_number: unbindAsset.serialNumber, // Include serial number for proper unbinding
                 unbind_reason: reason,
                 notes: notes
             };
@@ -1527,12 +1567,101 @@ export default function StationsTableSection() {
 
                                     {/* Peripherals Assignment Section */}
                                     <div className="mb-6">
-                                        <h4 className="font-medium text-gray-900 mb-3">Assign Peripherals</h4>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-medium text-gray-900">Assign Peripherals</h4>
+                                            <Button
+                                                type="button"
+                                                variant="primary"
+                                                size="sm"
+                                                onClick={() => handleOpenPeripheralBindingModal(editFormData.id)}
+                                            >
+                                                Assign with Serial Numbers
+                                            </Button>
+                                        </div>
                                         <div className="border border-gray-200 rounded-lg p-3">
                                             <>
-                                                {editFormData.assigned_peripherals && editFormData.assigned_peripherals.length > 0 && (
+                                                {/* Show currently assigned peripherals with serial numbers */}
+                                                {editFormData.station_assets && editFormData.station_assets.length > 0 && (
                                                     <div className="mb-4">
-                                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Currently Selected:</h5>
+                                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Currently Assigned:</h5>
+                                                        <div className="space-y-2">
+                                                            {editFormData.station_assets
+                                                                .filter(asset => asset.asset_type === 'peripheral' && asset.unassigned_at === null)
+                                                                .map(asset => {
+                                                                    const peripheral = Array.isArray(allAvailablePeripherals) ? 
+                                                                        allAvailablePeripherals.find(p => p.id === asset.asset_id) : null;
+                                                                    return peripheral ? (
+                                                                        <div key={`${asset.asset_id}-${asset.serial_number || 'no-serial'}`} className="flex items-center justify-between bg-green-50 p-3 rounded border border-green-200">
+                                                                            <div className="flex-1">
+                                                                                <div className="text-sm font-medium text-gray-800">
+                                                                                    {peripheral.type} - {peripheral.brand} {peripheral.model}
+                                                                                </div>
+                                                                                {asset.serial_number && (
+                                                                                    <div className="text-xs text-gray-600 mt-1">
+                                                                                        Serial: {asset.serial_number}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                                    Assigned: {new Date(asset.assigned_at).toLocaleDateString()}
+                                                                                </div>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setUnbindAsset({
+                                                                                        type: 'peripheral',
+                                                                                        id: asset.asset_id,
+                                                                                        name: `${peripheral.brand} ${peripheral.model}${asset.serial_number ? ` (Serial: ${asset.serial_number})` : ''}`,
+                                                                                        serialNumber: asset.serial_number
+                                                                                    });
+                                                                                    setIsUnbindModalOpen(true);
+                                                                                }}
+                                                                                className="ml-3 px-3 py-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 rounded transition-colors"
+                                                                            >
+                                                                                Unbind
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div key={`${asset.asset_id}-${asset.serial_number || 'no-serial'}`} className="flex items-center justify-between bg-gray-50 p-3 rounded border border-gray-200">
+                                                                            <div className="flex-1">
+                                                                                <div className="text-sm font-medium text-gray-800">
+                                                                                    Peripheral ID: {asset.asset_id}
+                                                                                </div>
+                                                                                {asset.serial_number && (
+                                                                                    <div className="text-xs text-gray-600 mt-1">
+                                                                                        Serial: {asset.serial_number}
+                                                                                    </div>
+                                                                                )}
+                                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                                    Assigned: {new Date(asset.assigned_at).toLocaleDateString()}
+                                                                                </div>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setUnbindAsset({
+                                                                                        type: 'peripheral',
+                                                                                        id: asset.asset_id,
+                                                                                        name: `Peripheral ID: ${asset.asset_id}${asset.serial_number ? ` (Serial: ${asset.serial_number})` : ''}`,
+                                                                                        serialNumber: asset.serial_number
+                                                                                    });
+                                                                                    setIsUnbindModalOpen(true);
+                                                                                }}
+                                                                                className="ml-3 px-3 py-1 text-xs bg-red-100 text-red-700 hover:bg-red-200 rounded transition-colors"
+                                                                            >
+                                                                                Unbind
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Legacy: Show from assigned_peripherals array if no station_assets data */}
+                                                {(!editFormData.station_assets || editFormData.station_assets.filter(asset => asset.asset_type === 'peripheral' && asset.unassigned_at === null).length === 0) && editFormData.assigned_peripherals && editFormData.assigned_peripherals.length > 0 && (
+                                                    <div className="mb-4">
+                                                        <h5 className="text-sm font-medium text-gray-700 mb-2">Currently Selected (Legacy):</h5>
                                                         <div className="space-y-2">
                                                             {editFormData.assigned_peripherals.map(peripheralId => {
                                                                 const peripheral = Array.isArray(allAvailablePeripherals) ? 
@@ -1776,6 +1905,17 @@ export default function StationsTableSection() {
                         </div>
                     )}
                 </div>
+            </Modal>
+
+            {/* Peripheral Binding with Serials Modal */}
+            <Modal isOpen={isPeripheralBindingModalOpen} onClose={handleClosePeripheralBindingModal}>
+                {peripheralBindingStationId && (
+                    <PeripheralBindingWithSerialsSection
+                        stationId={peripheralBindingStationId}
+                        onClose={handleClosePeripheralBindingModal}
+                        onSuccess={handlePeripheralBindingSuccess}
+                    />
+                )}
             </Modal>
         </div>
     )

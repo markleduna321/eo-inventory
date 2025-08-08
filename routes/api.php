@@ -54,6 +54,7 @@ Route::apiResource('locations', LocationController::class);
 Route::get('stations/available-monitors', [StationController::class, 'getAvailableMonitors']);
 Route::get('stations/available-system-units', [StationController::class, 'getAvailableSystemUnits']);
 Route::get('stations/available-peripherals', [StationController::class, 'getAvailablePeripherals']);
+Route::get('stations/available-peripherals-with-serials', [StationController::class, 'getAvailablePeripheralsWithSerials']);
 Route::get('stations/locations', [StationController::class, 'getLocations']);
 Route::get('stations/qr/{qrCode}', [StationController::class, 'showByQrCode']);
 Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);

@@ -201,6 +201,9 @@ class StationController extends Controller
             }
 
             // Handle peripheral assignments if provided
+            // NOTE: Peripheral assignments are now handled via dedicated assignment API
+            // This syncing logic interferes with individual peripheral assignments
+            /*
             if (isset($validated['assigned_peripherals'])) {
                 // Get current assignments
                 $currentPeripherals = $station->stationAssets()
@@ -227,6 +230,7 @@ class StationController extends Controller
                     }
                 }
             }
+            */
 
             return response()->json([
                 'message' => 'Station updated successfully',
@@ -318,6 +322,7 @@ class StationController extends Controller
     {
         $peripherals = Peripheral::where('status', 'active')
             ->where('available_stock', '>', 0)  // Only show peripherals with available stock
+            ->where('uses_serial_numbers', false)  // Exclude peripherals that use serial numbers
             ->orderBy('type')
             ->orderBy('brand')
             ->orderBy('model')
@@ -376,24 +381,80 @@ class StationController extends Controller
      */
     public function assignAsset(Request $request, Station $station)
     {
-        $validated = $request->validate([
-            'asset_type' => 'required|in:monitor,system_unit',
-            'asset_id' => 'required|integer'
-        ]);
-
-        try {
-            $assignment = $station->assignAsset($validated['asset_type'], $validated['asset_id']);
-            
-            return response()->json([
-                'message' => 'Asset assigned successfully',
-                'assignment' => $assignment
+        // Handle both single asset assignment and bulk peripheral assignments
+        if ($request->has('assignments') && $request->input('asset_type') === 'peripheral') {
+            // Bulk peripheral assignment with serial numbers
+            $validated = $request->validate([
+                'asset_type' => 'required|in:peripheral',
+                'assignments' => 'required|array|min:1',
+                'assignments.*.peripheral_id' => 'required|integer|exists:peripherals,id',
+                'assignments.*.serial_number' => 'nullable|string|max:100'
             ]);
 
-        } catch (\Exception $e) {
+            Log::info('Bulk peripheral assignment started', ['station_id' => $station->id, 'assignments' => $validated['assignments']]);
+
+            $successfulAssignments = [];
+            $errors = [];
+
+            foreach ($validated['assignments'] as $assignment) {
+                try {
+                    Log::info('Attempting assignment', ['assignment' => $assignment]);
+                    $result = $station->assignAsset(
+                        'peripheral', 
+                        $assignment['peripheral_id'],
+                        $assignment['serial_number'] ?? null
+                    );
+                    Log::info('Assignment successful', ['result' => $result]);
+                    $successfulAssignments[] = $result;
+                } catch (\Exception $e) {
+                    Log::error('Assignment failed', ['assignment' => $assignment, 'error' => $e->getMessage()]);
+                    $errors[] = [
+                        'peripheral_id' => $assignment['peripheral_id'],
+                        'serial_number' => $assignment['serial_number'] ?? null,
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            if (count($errors) > 0 && count($successfulAssignments) === 0) {
+                return response()->json([
+                    'message' => 'Failed to assign any peripherals',
+                    'errors' => $errors
+                ], 400);
+            }
+
             return response()->json([
-                'message' => 'Failed to assign asset',
-                'error' => $e->getMessage()
-            ], 400);
+                'message' => count($successfulAssignments) . ' peripheral(s) assigned successfully' . 
+                           (count($errors) > 0 ? ', ' . count($errors) . ' failed' : ''),
+                'assignments' => $successfulAssignments,
+                'errors' => $errors
+            ]);
+        } else {
+            // Single asset assignment (original behavior)
+            $validated = $request->validate([
+                'asset_type' => 'required|in:monitor,system_unit,peripheral',
+                'asset_id' => 'required|integer',
+                'serial_number' => 'nullable|string|max:100' // For peripheral serial number assignment
+            ]);
+
+            try {
+                $assignment = $station->assignAsset(
+                    $validated['asset_type'], 
+                    $validated['asset_id'],
+                    $validated['serial_number'] ?? null
+                );
+                
+                return response()->json([
+                    'message' => 'Asset assigned successfully',
+                    'assignment' => $assignment->load('station')
+                ]);
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'message' => 'Failed to assign asset',
+                    'error' => $e->getMessage()
+                ], 400);
+            }
         }
     }
 
@@ -405,6 +466,7 @@ class StationController extends Controller
         $validated = $request->validate([
             'asset_type' => 'required|in:monitor,system_unit,peripheral',
             'asset_id' => 'required|integer',
+            'serial_number' => 'nullable|string|max:100', // For peripheral serial number unassignment
             'unbind_reason' => 'nullable|in:' . implode(',', [
                 StationHistory::REASON_DAMAGED,
                 StationHistory::REASON_FOR_REPAIR,
@@ -416,9 +478,10 @@ class StationController extends Controller
         try {
             $assignment = $station->unassignAsset(
                 $validated['asset_type'], 
-                $validated['asset_id'], 
-                $request->input('unbind_reason'), 
-                $request->input('notes')
+                $validated['asset_id'],
+                $validated['serial_number'] ?? null,
+                $validated['unbind_reason'] ?? null, 
+                $validated['notes'] ?? null
             );
             
             return response()->json([
@@ -551,5 +614,42 @@ class StationController extends Controller
             'message' => 'Peripherals assigned successfully',
             'success_count' => $successCount
         ]);
+    }
+
+    /**
+     * Get available peripherals with their serial numbers for station assignment
+     */
+    public function getAvailablePeripheralsWithSerials()
+    {
+        $peripherals = Peripheral::where('status', 'active')
+            ->where('available_stock', '>', 0)
+            ->where('uses_serial_numbers', true)  // Only include peripherals that use serial numbers
+            ->with(['serialNumbers' => function($query) {
+                $query->where('status', 'available');
+            }])
+            ->get()
+            ->map(function($peripheral) {
+                return [
+                    'id' => $peripheral->id,
+                    'type' => $peripheral->type,
+                    'brand' => $peripheral->brand,
+                    'model' => $peripheral->model,
+                    'description' => $peripheral->description,
+                    'available_stock' => $peripheral->available_stock,
+                    'uses_serial_numbers' => $peripheral->uses_serial_numbers,
+                    'serial_numbers' => $peripheral->uses_serial_numbers 
+                        ? $peripheral->serialNumbers->map(function($serial) {
+                            return [
+                                'id' => $serial->id,
+                                'serial_number' => $serial->serial_number,
+                                'unit_price' => $serial->unit_price,
+                                'status' => $serial->status
+                            ];
+                        })
+                        : []
+                ];
+            });
+
+        return response()->json($peripherals);
     }
 }
