@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
@@ -80,6 +80,28 @@ export default function PeripheralTableSection() {
         ]
     }
 
+    // Helper function to calculate stock status
+    const calculateStockStatus = (peripheral) => {
+        const availableStock = peripheral.available_stock || 0
+        if (availableStock <= 0) {
+            return 'Out of Stock'
+        } else if (availableStock <= 5) {
+            return 'Low Stock'
+        } else {
+            return 'In Stock'
+        }
+    }
+
+    // Enhanced peripherals with calculated stock status
+    const enhancedPeripherals = useMemo(() => {
+        if (!peripherals || !Array.isArray(peripherals)) return []
+        
+        return peripherals.map(peripheral => ({
+            ...peripheral,
+            stock_status: calculateStockStatus(peripheral)
+        }))
+    }, [peripherals])
+
     const {
         searchTerm,
         handleSearchChange,
@@ -88,7 +110,7 @@ export default function PeripheralTableSection() {
         clearFilters,
         filteredData,
         filterStats
-    } = useTableFilters(peripherals, searchableFields, filterOptions, 'created_at')
+    } = useTableFilters(enhancedPeripherals, searchableFields, filterOptions, 'created_at')
 
     useEffect(() => {
         dispatch(fetchPeripherals())

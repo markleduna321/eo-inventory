@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import AdminLayout from '../layout'
 import PeripheralTableSection from './_sections/peripheral-table-section'
 import CreatePeripheralsSection from './_sections/create-peripherals-section'
-import { ComputerDesktopIcon, DeviceTabletIcon, PrinterIcon, CubeIcon, ArrowDownCircleIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { CubeIcon, ArrowDownCircleIcon } from '@heroicons/react/24/outline'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchPeripherals } from '@/app/redux/peripheral/peripheralSlice'
 
@@ -21,21 +21,29 @@ export default function PeripheralsPage() {
                 total: 0,
                 inStock: 0,
                 lowStock: 0,
-                outOfStock: 0,
-                keyboards: 0,
-                mice: 0
+                outOfStock: 0
             }
         }
         
         const peripheralArray = peripherals.data || peripherals
         
+        // Calculate stock status based on available_stock
+        const calculateStockStatus = (peripheral) => {
+            const availableStock = peripheral.available_stock || 0
+            if (availableStock <= 0) {
+                return 'Out of Stock'
+            } else if (availableStock <= 5) {
+                return 'Low Stock'
+            } else {
+                return 'In Stock'
+            }
+        }
+        
         return {
             total: peripheralArray.length,
-            inStock: peripheralArray.filter(p => p.stock_status === 'In Stock').length,
-            lowStock: peripheralArray.filter(p => p.stock_status === 'Low Stock').length,
-            outOfStock: peripheralArray.filter(p => p.stock_status === 'Out of Stock').length,
-            keyboards: peripheralArray.filter(p => p.type && p.type.toLowerCase() === 'keyboard').length,
-            mice: peripheralArray.filter(p => p.type && p.type.toLowerCase() === 'mouse').length,
+            inStock: peripheralArray.filter(p => calculateStockStatus(p) === 'In Stock').length,
+            lowStock: peripheralArray.filter(p => calculateStockStatus(p) === 'Low Stock').length,
+            outOfStock: peripheralArray.filter(p => calculateStockStatus(p) === 'Out of Stock').length
         }
     }
     
@@ -59,7 +67,7 @@ export default function PeripheralsPage() {
                 </div>
                 
                 {/* Peripheral Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 p-4 rounded-xl shadow">
                         <div className="flex items-center justify-between">
                             <div>
@@ -101,26 +109,6 @@ export default function PeripheralsPage() {
                             <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold">0</span>
                             </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-4 rounded-xl shadow">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm font-medium text-purple-600">Keyboards</div>
-                                <div className="text-2xl font-bold text-purple-900">{stats.keyboards}</div>
-                            </div>
-                            <DeviceTabletIcon className="w-8 h-8 text-purple-500" />
-                        </div>
-                    </div>
-                    
-                    <div className="bg-gradient-to-br from-teal-50 to-cyan-100 p-4 rounded-xl shadow">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm font-medium text-teal-600">Mice</div>
-                                <div className="text-2xl font-bold text-teal-900">{stats.mice}</div>
-                            </div>
-                            <ComputerDesktopIcon className="w-8 h-8 text-teal-500" />
                         </div>
                     </div>
                 </div>
