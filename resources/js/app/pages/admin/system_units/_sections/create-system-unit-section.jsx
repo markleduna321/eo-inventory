@@ -34,6 +34,7 @@ export default function CreateSystemUnitSection() {
         model: '',
         description: '',
         operating_system: '',
+        mac_address: '',
         status: 'available',
         location: '',
         assigned_to: '',
@@ -72,6 +73,7 @@ export default function CreateSystemUnitSection() {
             model: '',
             description: '',
             operating_system: '',
+            mac_address: '',
             status: 'available',
             location: '',
             assigned_to: '',
@@ -402,19 +404,37 @@ export default function CreateSystemUnitSection() {
                                 </div>
                             </div>
 
-                            {/* Operating System */}
-                            <div>
-                                <label htmlFor="operating_system" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Operating System
-                                </label>
-                                <InputTextComponent
-                                    id="operating_system"
-                                    name="operating_system"
-                                    type="text"
-                                    placeholder="e.g. Windows 11 Pro, Ubuntu 22.04"
-                                    value={formData.operating_system}
-                                    onChange={(e) => handleInputChange('operating_system', e.target.value)}
-                                />
+                            {/* Operating System and MAC Address */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="operating_system" className="block text-sm font-medium text-gray-700 mb-1">
+                                        Operating System
+                                    </label>
+                                    <InputTextComponent
+                                        id="operating_system"
+                                        name="operating_system"
+                                        type="text"
+                                        placeholder="e.g. Windows 11 Pro, Ubuntu 22.04"
+                                        value={formData.operating_system}
+                                        onChange={(e) => handleInputChange('operating_system', e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="mac_address" className="block text-sm font-medium text-gray-700 mb-1">
+                                        MAC Address
+                                    </label>
+                                    <InputTextComponent
+                                        id="mac_address"
+                                        name="mac_address"
+                                        type="text"
+                                        placeholder="e.g. 00:1B:44:11:3A:B7 or 00-1B-44-11-3A-B7"
+                                        value={formData.mac_address}
+                                        onChange={(e) => handleInputChange('mac_address', e.target.value)}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Specifications (Pre-built) or Components (Custom-built) */}

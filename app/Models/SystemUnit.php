@@ -19,6 +19,7 @@ class SystemUnit extends Model
         'model',
         'description',
         'operating_system',
+        'mac_address',
         'status',
         'location',
         'station_id',

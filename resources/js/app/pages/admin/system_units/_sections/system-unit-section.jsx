@@ -31,6 +31,7 @@ export default function SystemUnitTableSection() {
         brand: '',
         model: '',
         operating_system: '',
+        mac_address: '',
         status: '',
         location: '',
         description: '',
@@ -126,6 +127,7 @@ export default function SystemUnitTableSection() {
             brand: unit.brand || '',
             model: unit.model || '',
             operating_system: unit.operating_system || '',
+            mac_address: unit.mac_address || '',
             status: unit.status || '',
             location: unit.location || '',
             description: unit.description || '',
@@ -603,6 +605,12 @@ export default function SystemUnitTableSection() {
                                 scope="col"
                                 className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
                             >
+                                MAC Address
+                            </th>
+                            <th
+                                scope="col"
+                                className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                            >
                                 Status
                             </th>
                             <th
@@ -629,7 +637,7 @@ export default function SystemUnitTableSection() {
                     <tbody className="divide-y divide-gray-200 bg-white">
                         {filteredUnits.length === 0 ? (
                             <tr>
-                                <td colSpan="10" className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan="11" className="px-6 py-8 text-center text-gray-500">
                                     {systemUnits.length === 0
                                         ? 'No system units found.'
                                         : 'No units match the current filters.'}
@@ -667,6 +675,15 @@ export default function SystemUnitTableSection() {
                                         </td>
                                         <td className="px-3 py-4 text-sm text-gray-500">
                                             {unit.operating_system || 'N/A'}
+                                        </td>
+                                        <td className="px-3 py-4 text-sm text-gray-500">
+                                            {unit.mac_address ? (
+                                                <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                                    {unit.mac_address}
+                                                </span>
+                                            ) : (
+                                                'N/A'
+                                            )}
                                         </td>
                                         <td className="px-3 py-4 text-sm whitespace-nowrap">
                                             {getStatusBadge(unit.status)}
@@ -914,6 +931,14 @@ export default function SystemUnitTableSection() {
                                                 <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
                                                 <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
                                                 <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
+                                                {selectedUnit.mac_address && (
+                                                    <div>
+                                                        <span className="font-medium">MAC Address:</span> 
+                                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded ml-2">
+                                                            {selectedUnit.mac_address}
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -1114,6 +1139,19 @@ export default function SystemUnitTableSection() {
                                                 value={editForm.operating_system}
                                                 onChange={(e) => setEditForm({...editForm, operating_system: e.target.value})}
                                             />
+                                        </div>
+                                        
+                                        <div>
+                                            <label htmlFor="mac_address" className="block text-sm font-medium text-gray-700">MAC Address</label>
+                                            <InputTextComponent
+                                                id="mac_address"
+                                                value={editForm.mac_address}
+                                                onChange={(e) => setEditForm({...editForm, mac_address: e.target.value})}
+                                                placeholder="XX:XX:XX:XX:XX:XX"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
+                                            </p>
                                         </div>
                                         
                                         <div>
