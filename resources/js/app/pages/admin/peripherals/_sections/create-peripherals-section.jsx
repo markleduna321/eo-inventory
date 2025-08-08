@@ -144,6 +144,7 @@ export default function CreatePeripheralsSection() {
         { label: 'Headset', value: 'headset' },
         { label: 'Printer', value: 'printer' },
         { label: 'Scanner', value: 'scanner' },
+        { label: 'UPS', value: 'ups' },
         { label: 'External Hard Drive', value: 'external_hdd' },
         { label: 'Other', value: 'other' }
     ]
@@ -164,7 +165,7 @@ export default function CreatePeripheralsSection() {
         { label: 'HikVision', value: 'HikVision' },
         { label: 'Nvision', value: 'Nvision' },
         { label: 'Jabra', value: 'Jabra' },
-        { label: 'Creative', value: 'Creative' }
+        { label: 'Rapoo', value: 'Rapoo' }
     ]
 
     const locations = [
