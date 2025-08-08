@@ -1116,36 +1116,49 @@ export default function StationsTableSection() {
                 isOpen={isEditModalOpen}
                 onClose={handleCloseEdit}
             >
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 max-h-[90vh] overflow-y-auto">
-                    <div className="sm:flex sm:items-start">
-                        <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                            <h3 className="text-base font-semibold text-gray-900 mb-4 sticky top-0 bg-white z-10" id="modal-title">
+                <div className="flex flex-col h-[85vh] w-full max-w-4xl bg-white rounded-lg shadow-lg">
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-lg">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
                                 Edit Station
                             </h3>
-                            
-                            {/* Tabs */}
-                            <div className="border-b border-gray-200 mb-4">
-                                <nav className="-mb-px flex space-x-8">
-                                    <button
-                                        type="button"
-                                        className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${!activeTab || activeTab === 'details' ? 'border-indigo-500 text-indigo-600' : ''}`}
-                                        onClick={() => setActiveTab('details')}
-                                    >
-                                        Details
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'history' ? 'border-indigo-500 text-indigo-600' : ''}`}
-                                        onClick={() => setActiveTab('history')}
-                                    >
-                                        History
-                                    </button>
-                                </nav>
-                            </div>
-                            
-                            <div className="mt-2">
+                            <button
+                                onClick={handleCloseEdit}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        {/* Tabs */}
+                        <div className="border-b border-gray-200 mt-4">
+                            <nav className="-mb-px flex space-x-8">
+                                <button
+                                    type="button"
+                                    className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${!activeTab || activeTab === 'details' ? 'border-indigo-500 text-indigo-600' : ''}`}
+                                    onClick={() => setActiveTab('details')}
+                                >
+                                    Details
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'history' ? 'border-indigo-500 text-indigo-600' : ''}`}
+                                    onClick={() => setActiveTab('history')}
+                                >
+                                    History
+                                </button>
+                            </nav>
+                        </div>
+                    </div>
+                    
+                    {/* Scrollable Content */}
+                    <div className="overflow-y-auto px-6 py-6 flex-1 min-h-0">
+                        <div className="mt-2">
                                 {(!activeTab || activeTab === 'details') && (
-                                    <form onSubmit={handleEditSubmit} className="space-y-6">
+                                    <form id="edit-station-form" onSubmit={handleEditSubmit} className="space-y-6">
                                     {editErrors.general && (
                                         <Alert type="error" message={editErrors.general} />
                                     )}
@@ -1682,25 +1695,7 @@ export default function StationsTableSection() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-end gap-3 pt-4 pb-2 sticky bottom-0 bg-white border-t mt-6">
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={handleCloseEdit}
-                                            disabled={editLoading}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            variant="primary"
-                                            disabled={editLoading}
-                                            onClick={() => console.log('Update button clicked', editLoading, editFormData)}
-                                        >
-                                            {editLoading ? 'Updating...' : 'Update Station'}
-                                        </Button>
-                                    </div>
-                                </form>
+                                    </form>
                                 )}
                                 
                                 {activeTab === 'history' && (
@@ -1712,6 +1707,28 @@ export default function StationsTableSection() {
                                     </div>
                                 )}
                             </div>
+                    </div>
+                    
+                    {/* Footer */}
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0 rounded-b-lg">
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={handleCloseEdit}
+                                disabled={editLoading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={editLoading}
+                                form="edit-station-form"
+                                onClick={() => console.log('Update button clicked', editLoading, editFormData)}
+                            >
+                                {editLoading ? 'Updating...' : 'Update Station'}
+                            </Button>
                         </div>
                     </div>
                 </div>

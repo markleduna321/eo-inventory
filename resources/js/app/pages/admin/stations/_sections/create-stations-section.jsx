@@ -240,14 +240,24 @@ export default function CreateStationsSection() {
             </Button>
 
             <Modal isOpen={isModalOpen} onClose={closeModal}>
-                <div className="flex flex-col h-[80vh] w-full max-w-2xl bg-white rounded-lg shadow-lg">
+                <div className="flex flex-col h-[85vh] w-full max-w-4xl bg-white rounded-lg shadow-lg">
                     {/* Header */}
                     <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10 rounded-t-lg">
-                        <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
-                            Add New Station
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
+                                Add New Station
+                            </h3>
+                            <button
+                                onClick={closeModal}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                         {alert.show && (
-                            <div className="mt-2">
+                            <div className="mt-3">
                                 <Alert
                                     type={alert.type}
                                     message={alert.message}
@@ -257,7 +267,7 @@ export default function CreateStationsSection() {
                         )}
                     </div>
                     {/* Scrollable Content */}
-                    <div className="overflow-y-auto px-6 py-4 flex-1 min-h-0">
+                    <div className="overflow-y-auto px-6 py-6 flex-1 min-h-0">
                         <form id="add-station-form" onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* ...existing code for form fields... */}
@@ -676,23 +686,25 @@ export default function CreateStationsSection() {
                         </form>
                     </div>
                     {/* Footer */}
-                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0 rounded-b-lg flex justify-end gap-3">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={closeModal}
-                            disabled={loading}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            disabled={loading}
-                            form="add-station-form"
-                        >
-                            {loading ? 'Creating...' : 'Create Station'}
-                        </Button>
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0 rounded-b-lg">
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={closeModal}
+                                disabled={loading}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={loading}
+                                form="add-station-form"
+                            >
+                                {loading ? 'Creating...' : 'Create Station'}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </Modal>

@@ -282,9 +282,9 @@ export default function CreateSystemUnitSection() {
             </Button>
 
             <Modal isOpen={isModalOpen} onClose={closeModal}>
-                <div className="bg-white max-h-[90vh] flex flex-col">
+                <div className="bg-white max-h-[90vh] max-w-4xl w-full flex flex-col rounded-lg">
                     {/* Fixed Header */}
-                    <div className="px-4 pt-5 sm:p-6 pb-4 border-b border-gray-200">
+                    <div className="px-4 pt-5 sm:px-6 pb-4 border-b border-gray-200">
                         <h3 className="text-base font-semibold text-gray-900" id="modal-title">
                             Add New System Unit
                         </h3>

@@ -1085,217 +1085,231 @@ export default function SystemUnitTableSection() {
             {/* Edit Modal */}
             <Modal isOpen={editModalOpen} onClose={closeEditModal}>
                 {selectedUnit && (
-                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                        <div className="sm:flex sm:items-start">
-                            <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                    Edit System Unit - {selectedUnit.system_name}
-                                </h3>
-                                
-                                <form onSubmit={handleEditSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label htmlFor="system_name" className="block text-sm font-medium text-gray-700">System Name</label>
-                                            <InputTextComponent
-                                                id="system_name"
-                                                value={editForm.system_name}
-                                                onChange={(e) => setEditForm({...editForm, system_name: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="serial_number" className="block text-sm font-medium text-gray-700">Serial Number</label>
-                                            <InputTextComponent
-                                                id="serial_number"
-                                                value={editForm.serial_number}
-                                                onChange={(e) => setEditForm({...editForm, serial_number: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand</label>
-                                            <InputTextComponent
-                                                id="brand"
-                                                value={editForm.brand}
-                                                onChange={(e) => setEditForm({...editForm, brand: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="model" className="block text-sm font-medium text-gray-700">Model</label>
-                                            <InputTextComponent
-                                                id="model"
-                                                value={editForm.model}
-                                                onChange={(e) => setEditForm({...editForm, model: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="operating_system" className="block text-sm font-medium text-gray-700">Operating System</label>
-                                            <InputTextComponent
-                                                id="operating_system"
-                                                value={editForm.operating_system}
-                                                onChange={(e) => setEditForm({...editForm, operating_system: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="mac_address" className="block text-sm font-medium text-gray-700">MAC Address</label>
-                                            <InputTextComponent
-                                                id="mac_address"
-                                                value={editForm.mac_address}
-                                                onChange={(e) => setEditForm({...editForm, mac_address: e.target.value})}
-                                                placeholder="XX:XX:XX:XX:XX:XX"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                Format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
-                                            </p>
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
-                                            <SelectComponent
-                                                id="status"
-                                                value={editForm.status}
-                                                onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                                                options={[
-                                                    { value: 'available', label: 'Available' },
-                                                    { value: 'assigned', label: 'Assigned' },
-                                                    { value: 'retired', label: 'Retired' }
-                                                ]}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location</label>
-                                            <InputTextComponent
-                                                id="location"
-                                                value={editForm.location}
-                                                onChange={(e) => setEditForm({...editForm, location: e.target.value})}
-                                                required
-                                            />
-                                        </div>
-                                        
-                                        <div>
-                                            <label htmlFor="purchase_price" className="block text-sm font-medium text-gray-700">Price (₱)</label>
-                                            <InputTextComponent
-                                                id="purchase_price"
-                                                type="number"
-                                                step="0.01"
-                                                value={editForm.purchase_price}
-                                                onChange={(e) => setEditForm({...editForm, purchase_price: e.target.value})}
-                                                placeholder="0.00"
-                                            />
-                                        </div>
+                    <div className="bg-white max-h-[90vh] max-w-4xl w-full flex flex-col rounded-lg">
+                        {/* Fixed Header */}
+                        <div className="px-4 pt-5 sm:px-6 pb-4 border-b border-gray-200">
+                            <h3 className="text-base font-semibold text-gray-900" id="modal-title">
+                                Edit System Unit - {selectedUnit.system_name}
+                            </h3>
+                        </div>
 
-                                        <div className="col-span-2">
-                                            <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-                                            <textarea
-                                                id="description"
-                                                rows={3}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                                value={editForm.description || ''}
-                                                onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                                            />
-                                        </div>
-
-                                        <div className="col-span-2">
-                                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Notes</label>
-                                            <textarea
-                                                id="notes"
-                                                rows={2}
-                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                                                value={editForm.notes || ''}
-                                                onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
-                                            />
-                                        </div>
-                                        
-                                        <div className="col-span-2 mt-4">
-                                            <h4 className="font-medium text-gray-700 mb-2">Specifications</h4>
-                                            <div className="border rounded-md p-3 space-y-3">
-                                                {Object.entries(editForm.specifications || {}).map(([key, value], index) => (
-                                                    <div key={index} className="grid grid-cols-12 gap-2">
-                                                        <div className="col-span-4">
-                                                            <InputTextComponent
-                                                                value={key}
-                                                                onChange={(e) => {
-                                                                    const newSpecs = {...editForm.specifications};
-                                                                    const oldValue = newSpecs[key];
-                                                                    delete newSpecs[key];
-                                                                    newSpecs[e.target.value] = oldValue;
-                                                                    setEditForm({...editForm, specifications: newSpecs});
-                                                                }}
-                                                                placeholder="Key"
-                                                                className="text-sm"
-                                                            />
-                                                        </div>
-                                                        <div className="col-span-7">
-                                                            <InputTextComponent
-                                                                value={value}
-                                                                onChange={(e) => {
-                                                                    const newSpecs = {...editForm.specifications};
-                                                                    newSpecs[key] = e.target.value;
-                                                                    setEditForm({...editForm, specifications: newSpecs});
-                                                                }}
-                                                                placeholder="Value"
-                                                                className="text-sm"
-                                                            />
-                                                        </div>
-                                                        <div className="col-span-1 flex items-center justify-center">
-                                                            <button
-                                                                type="button"
-                                                                className="text-red-500 hover:text-red-700"
-                                                                onClick={() => {
-                                                                    const newSpecs = {...editForm.specifications};
-                                                                    delete newSpecs[key];
-                                                                    setEditForm({...editForm, specifications: newSpecs});
-                                                                }}
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center px-3 py-1 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none"
-                                                    onClick={() => {
-                                                        const newSpecs = {...editForm.specifications};
-                                                        newSpecs[`Spec ${Object.keys(newSpecs).length + 1}`] = '';
-                                                        setEditForm({...editForm, specifications: newSpecs});
-                                                    }}
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                                                    </svg>
-                                                    Add Specification
-                                                </button>
-                                            </div>
-                                        </div>
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6">
+                            <form id="edit-system-unit-form" className="space-y-4 py-4" onSubmit={handleEditSubmit}>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="edit_system_name" className="block text-sm font-medium text-gray-700 mb-1">System Name *</label>
+                                        <InputTextComponent
+                                            id="edit_system_name"
+                                            value={editForm.system_name}
+                                            onChange={(e) => setEditForm({...editForm, system_name: e.target.value})}
+                                            required
+                                        />
                                     </div>
                                     
-                                    <div className="pt-4 flex justify-end space-x-3">
-                                        <Button
-                                            type="button"
-                                            variant="secondary"
-                                            onClick={closeEditModal}
-                                        >
-                                            Cancel
-                                        </Button>
-                                        <Button
-                                            type="submit"
-                                            variant="primary"
-                                        >
-                                            Save Changes
-                                        </Button>
+                                    <div>
+                                        <label htmlFor="edit_serial_number" className="block text-sm font-medium text-gray-700 mb-1">Serial Number *</label>
+                                        <InputTextComponent
+                                            id="edit_serial_number"
+                                            value={editForm.serial_number}
+                                            onChange={(e) => setEditForm({...editForm, serial_number: e.target.value})}
+                                            required
+                                        />
                                     </div>
-                                </form>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_brand" className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                                        <InputTextComponent
+                                            id="edit_brand"
+                                            value={editForm.brand}
+                                            onChange={(e) => setEditForm({...editForm, brand: e.target.value})}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_model" className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                        <InputTextComponent
+                                            id="edit_model"
+                                            value={editForm.model}
+                                            onChange={(e) => setEditForm({...editForm, model: e.target.value})}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_operating_system" className="block text-sm font-medium text-gray-700 mb-1">Operating System</label>
+                                        <InputTextComponent
+                                            id="edit_operating_system"
+                                            value={editForm.operating_system}
+                                            onChange={(e) => setEditForm({...editForm, operating_system: e.target.value})}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_mac_address" className="block text-sm font-medium text-gray-700 mb-1">MAC Address</label>
+                                        <InputTextComponent
+                                            id="edit_mac_address"
+                                            value={editForm.mac_address}
+                                            onChange={(e) => setEditForm({...editForm, mac_address: e.target.value})}
+                                            placeholder="XX:XX:XX:XX:XX:XX"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
+                                        </p>
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_status" className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
+                                        <SelectComponent
+                                            id="edit_status"
+                                            value={editForm.status}
+                                            onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                                            options={[
+                                                { value: 'available', label: 'Available' },
+                                                { value: 'assigned', label: 'Assigned' },
+                                                { value: 'maintenance', label: 'Maintenance' },
+                                                { value: 'retired', label: 'Retired' }
+                                            ]}
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_location" className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+                                        <InputTextComponent
+                                            id="edit_location"
+                                            value={editForm.location}
+                                            onChange={(e) => setEditForm({...editForm, location: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_purchase_price" className="block text-sm font-medium text-gray-700 mb-1">Purchase Price (₱)</label>
+                                        <InputTextComponent
+                                            id="edit_purchase_price"
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.purchase_price}
+                                            onChange={(e) => setEditForm({...editForm, purchase_price: e.target.value})}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="edit_description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                    <textarea
+                                        id="edit_description"
+                                        rows={3}
+                                        className="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        value={editForm.description || ''}
+                                        onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                                        placeholder="System description..."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="edit_notes" className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                    <textarea
+                                        id="edit_notes"
+                                        rows={2}
+                                        className="mt-1 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                        value={editForm.notes || ''}
+                                        onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                                        placeholder="Additional notes..."
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-900 mb-2">Specifications</h4>
+                                    <div className="border rounded-md p-3 space-y-3 bg-gray-50">
+                                        {Object.entries(editForm.specifications || {}).map(([key, value], index) => (
+                                            <div key={index} className="grid grid-cols-12 gap-2">
+                                                <div className="col-span-4">
+                                                    <InputTextComponent
+                                                        value={key}
+                                                        onChange={(e) => {
+                                                            const newSpecs = {...editForm.specifications};
+                                                            const oldValue = newSpecs[key];
+                                                            delete newSpecs[key];
+                                                            newSpecs[e.target.value] = oldValue;
+                                                            setEditForm({...editForm, specifications: newSpecs});
+                                                        }}
+                                                        placeholder="Specification name"
+                                                        className="text-sm"
+                                                    />
+                                                </div>
+                                                <div className="col-span-7">
+                                                    <InputTextComponent
+                                                        value={value}
+                                                        onChange={(e) => {
+                                                            const newSpecs = {...editForm.specifications};
+                                                            newSpecs[key] = e.target.value;
+                                                            setEditForm({...editForm, specifications: newSpecs});
+                                                        }}
+                                                        placeholder="Specification value"
+                                                        className="text-sm"
+                                                    />
+                                                </div>
+                                                <div className="col-span-1 flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                        onClick={() => {
+                                                            const newSpecs = {...editForm.specifications};
+                                                            delete newSpecs[key];
+                                                            setEditForm({...editForm, specifications: newSpecs});
+                                                        }}
+                                                        title="Remove specification"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        
+                                        <button
+                                            type="button"
+                                            className="inline-flex items-center px-3 py-1 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                            onClick={() => {
+                                                const newSpecs = {...editForm.specifications};
+                                                newSpecs[`Spec ${Object.keys(newSpecs).length + 1}`] = '';
+                                                setEditForm({...editForm, specifications: newSpecs});
+                                            }}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                                            </svg>
+                                            Add Specification
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Fixed Footer */}
+                        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
+                            <div className="flex justify-end gap-3">
+                                <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="md"
+                                    onClick={closeEditModal}
+                                    disabled={loading}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="md"
+                                    disabled={loading}
+                                    form="edit-system-unit-form"
+                                >
+                                    {loading ? 'Saving...' : 'Save Changes'}
+                                </Button>
                             </div>
                         </div>
                     </div>
