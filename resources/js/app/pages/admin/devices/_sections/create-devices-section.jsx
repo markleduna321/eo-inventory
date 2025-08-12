@@ -277,297 +277,333 @@ export default function CreateDevicesSection({ editDevice = null, onClose = null
         </Button>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} width='w-2/5'>
-        <form onSubmit={handleSubmit} className="w-full">
-          <div className="space-y-4">
-            <div className='mb-2 text-2xl sticky top-0 bg-white pt-2 pb-2 z-10 border-b border-gray-200'>
-              <b>{editDevice ? 'Edit Device' : 'Add a new device'}</b>
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="serial_number" labelText="Serial Number"/>
-              <InputTextComponent
-                id="serial_number"
-                name="serial_number" 
-                type="text"
-                value={formData.serial_number}
-                required
-                onChange={handleInputChange}
-                />
-              {errors.serial_number && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.serial_number[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="device_type" labelText="Device Type"/>
-              <SelectComponent
-                id="device_type"
-                name="device_type"
-                options={deviceType}
-                value={formData.device_type}
-                onChange={handleInputChange}
-                required  
-              />
-              {errors.device_type && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.device_type[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="brand" labelText="Brand"/>
-              <SelectComponent
-                id="brand"
-                name="brand"
-                options={brand}
-                value={formData.brand}
-                onChange={handleInputChange}
-                required  
-              />
-              {errors.brand && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.brand[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="model" labelText="Model"/>
-              <InputTextComponent
-                id="model"
-                name="model" 
-                type="text"
-                value={formData.model}
-                onChange={handleInputChange}
-                required
-                />
-              {errors.model && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.model[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="operating_system" labelText="Operating System"/>
-              <InputTextComponent
-                id="operating_system"
-                name="operating_system" 
-                type="text"
-                value={formData.operating_system}
-                onChange={handleInputChange}
-                />
-              {errors.operating_system && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.operating_system[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="mac_address" labelText="MAC Address"/>
-              <InputTextComponent
-                id="mac_address"
-                name="mac_address" 
-                type="text"
-                value={formData.mac_address}
-                onChange={handleInputChange}
-                placeholder="e.g., 00:1B:44:11:3A:B7"
-                />
-              {errors.mac_address && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.mac_address[0]}
-                </div>
-              )}
-            </div>
-            
-            <div className="mb-3 border rounded-md p-3">
-              <h3 className="font-semibold mb-2">Device Specifications</h3>
-              
-              <div className="mb-2">
-                <InputLabelComponent htmlFor="specifications.cpu" labelText="CPU"/>
-                <InputTextComponent
-                  id="specifications.cpu"
-                  name="specifications.cpu" 
-                  type="text"
-                  value={formData.specifications?.cpu || ''}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Intel Core i7-11700K"
-                />
+      <Modal isOpen={isModalOpen} onClose={closeModal} width='w-4/5 max-w-4xl'>
+        <div className="max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <form onSubmit={handleSubmit} className="w-full">
+            <div className="space-y-0">
+              {/* Header */}
+              <div className='sticky top-0 bg-white px-6 pt-6 pb-4 z-10 border-b border-gray-200'>
+                <h2 className='text-2xl font-bold text-gray-900'>
+                  {editDevice ? 'Edit Device' : 'Add a new device'}
+                </h2>
               </div>
-              
-              <div className="mb-2">
-                <InputLabelComponent htmlFor="specifications.ram" labelText="RAM"/>
-                <InputTextComponent
-                  id="specifications.ram"
-                  name="specifications.ram" 
-                  type="text"
-                  value={formData.specifications?.ram || ''}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 16GB DDR4"
-                />
-              </div>
-              
-              <div className="mb-2">
-                <InputLabelComponent htmlFor="specifications.storage" labelText="Storage"/>
-                <InputTextComponent
-                  id="specifications.storage"
-                  name="specifications.storage" 
-                  type="text"
-                  value={formData.specifications?.storage || ''}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 512GB SSD"
-                />
-              </div>
-              
-              <div className="mb-0">
-                <InputLabelComponent htmlFor="specifications.gpu" labelText="GPU"/>
-                <InputTextComponent
-                  id="specifications.gpu"
-                  name="specifications.gpu" 
-                  type="text"
-                  value={formData.specifications?.gpu || ''}
-                  onChange={handleInputChange}
-                  placeholder="e.g., NVIDIA GeForce RTX 3060"
-                />
-              </div>
-            </div>
-            
-            {/* Price field */}
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="price" labelText="Price (₱)"/>
-              <InputTextComponent
-                id="price"
-                name="price" 
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.price}
-                onChange={handleInputChange}
-                placeholder="Enter price"
-                />
-              {errors.price && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.price[0]}
+
+              {/* Form Content */}
+              <div className="px-6 py-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-4">
+                    <div>
+                      <InputLabelComponent htmlFor="serial_number" labelText="Serial Number"/>
+                      <InputTextComponent
+                        id="serial_number"
+                        name="serial_number" 
+                        type="text"
+                        value={formData.serial_number}
+                        required
+                        onChange={handleInputChange}
+                        className="w-full"
+                        />
+                      {errors.serial_number && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.serial_number[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="device_type" labelText="Device Type"/>
+                      <SelectComponent
+                        id="device_type"
+                        name="device_type"
+                        options={deviceType}
+                        value={formData.device_type}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full"
+                      />
+                      {errors.device_type && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.device_type[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="brand" labelText="Brand"/>
+                      <SelectComponent
+                        id="brand"
+                        name="brand"
+                        options={brand}
+                        value={formData.brand}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full"
+                      />
+                      {errors.brand && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.brand[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="model" labelText="Model"/>
+                      <InputTextComponent
+                        id="model"
+                        name="model" 
+                        type="text"
+                        value={formData.model}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full"
+                        />
+                      {errors.model && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.model[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="operating_system" labelText="Operating System"/>
+                      <InputTextComponent
+                        id="operating_system"
+                        name="operating_system" 
+                        type="text"
+                        value={formData.operating_system}
+                        onChange={handleInputChange}
+                        className="w-full"
+                        />
+                      {errors.operating_system && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.operating_system[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="mac_address" labelText="MAC Address"/>
+                      <InputTextComponent
+                        id="mac_address"
+                        name="mac_address" 
+                        type="text"
+                        value={formData.mac_address}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 00:1B:44:11:3A:B7"
+                        className="w-full"
+                        />
+                      {errors.mac_address && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.mac_address[0]}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    {/* Device Specifications */}
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <h3 className="font-semibold mb-4 text-gray-900">Device Specifications</h3>
+                      
+                      <div className="space-y-3">
+                        <div>
+                          <InputLabelComponent htmlFor="specifications.cpu" labelText="CPU"/>
+                          <InputTextComponent
+                            id="specifications.cpu"
+                            name="specifications.cpu" 
+                            type="text"
+                            value={formData.specifications?.cpu || ''}
+                            onChange={handleInputChange}
+                            placeholder="e.g., Intel Core i7-11700K"
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <InputLabelComponent htmlFor="specifications.ram" labelText="RAM"/>
+                          <InputTextComponent
+                            id="specifications.ram"
+                            name="specifications.ram" 
+                            type="text"
+                            value={formData.specifications?.ram || ''}
+                            onChange={handleInputChange}
+                            placeholder="e.g., 16GB DDR4"
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <InputLabelComponent htmlFor="specifications.storage" labelText="Storage"/>
+                          <InputTextComponent
+                            id="specifications.storage"
+                            name="specifications.storage" 
+                            type="text"
+                            value={formData.specifications?.storage || ''}
+                            onChange={handleInputChange}
+                            placeholder="e.g., 512GB SSD"
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <InputLabelComponent htmlFor="specifications.gpu" labelText="GPU"/>
+                          <InputTextComponent
+                            id="specifications.gpu"
+                            name="specifications.gpu" 
+                            type="text"
+                            value={formData.specifications?.gpu || ''}
+                            onChange={handleInputChange}
+                            placeholder="e.g., NVIDIA GeForce RTX 3060"
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Fields */}
+                    <div>
+                      <InputLabelComponent htmlFor="price" labelText="Price (₱)"/>
+                      <InputTextComponent
+                        id="price"
+                        name="price" 
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.price}
+                        onChange={handleInputChange}
+                        placeholder="Enter price"
+                        className="w-full"
+                        />
+                      {errors.price && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.price[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="purchase_date" labelText="Purchase Date"/>
+                      <InputTextComponent
+                        id="purchase_date"
+                        name="purchase_date" 
+                        type="date"
+                        value={formData.purchase_date}
+                        onChange={handleInputChange}
+                        className="w-full"
+                        />
+                      {errors.purchase_date && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.purchase_date[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="warranty_expiry" labelText="Warranty Expiry"/>
+                      <InputTextComponent
+                        id="warranty_expiry"
+                        name="warranty_expiry" 
+                        type="date"
+                        value={formData.warranty_expiry}
+                        onChange={handleInputChange}
+                        className="w-full"
+                        />
+                      {errors.warranty_expiry && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.warranty_expiry[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="status" labelText="Status"/>
+                      <SelectComponent
+                        id="status"
+                        name="status"
+                        options={status}
+                        value={formData.status}
+                        onChange={handleInputChange}
+                        required
+                        className="w-full"
+                      />
+                      {errors.status && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.status[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <InputLabelComponent htmlFor="issued_to" labelText="Issued To (Optional)"/>
+                      <InputTextComponent
+                        id="issued_to"
+                        name="issued_to" 
+                        type="text"
+                        value={formData.issued_to}
+                        onChange={handleInputChange}
+                        className="w-full"
+                        />
+                      {errors.issued_to && (
+                        <div className="text-red-500 text-sm mt-1">
+                          {errors.issued_to[0]}
+                        </div>
+                      )}
+                    </div>
+
+                    <InputTextComponent
+                      id="received_by"
+                      name="received_by" 
+                      type="hidden"
+                      value={formData.received_by}
+                      onChange={handleInputChange}
+                      />
+                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Purchase Date field */}
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="purchase_date" labelText="Purchase Date"/>
-              <InputTextComponent
-                id="purchase_date"
-                name="purchase_date" 
-                type="date"
-                value={formData.purchase_date}
-                onChange={handleInputChange}
-                />
-              {errors.purchase_date && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.purchase_date[0]}
-                </div>
-              )}
-            </div>
-
-            {/* Warranty Expiry field */}
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="warranty_expiry" labelText="Warranty Expiry"/>
-              <InputTextComponent
-                id="warranty_expiry"
-                name="warranty_expiry" 
-                type="date"
-                value={formData.warranty_expiry}
-                onChange={handleInputChange}
-                />
-              {errors.warranty_expiry && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.warranty_expiry[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="status" labelText="Status"/>
-              <SelectComponent
-                id="status"
-                name="status"
-                options={status}
-                value={formData.status}
-                onChange={handleInputChange}
-                required  
-              />
-              {errors.status && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.status[0]}
-                </div>
-              )}
-            </div>
-
-            <div className='mb-3'>
-              <InputLabelComponent htmlFor="issued_to" labelText="Issued To (Optional)"/>
-              <InputTextComponent
-                id="issued_to"
-                name="issued_to" 
-                type="text"
-                value={formData.issued_to}
-                onChange={handleInputChange}
-                />
-              {errors.issued_to && (
-                <div className="text-red-500 text-sm mt-1">
-                  {errors.issued_to[0]}
-                </div>
-              )}
-            </div>
-
-            <InputTextComponent
-              id="received_by"
-              name="received_by" 
-              type="hidden"
-              value={formData.received_by}
-              onChange={handleInputChange}
-              />
-
-            {/* General Error Message */}
-            {error && (
-              <div className="mb-3 text-red-500 text-sm">
-                {typeof error === 'string' 
-                  ? error 
-                  : typeof error === 'object' && error !== null && error.message 
-                    ? error.message 
-                    : errors.general && Array.isArray(errors.general) 
-                      ? errors.general[0] 
-                      : 'An error occurred while saving the device.'}
+                {/* General Error Message */}
+                {error && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="text-red-600 text-sm">
+                      {typeof error === 'string' 
+                        ? error 
+                        : typeof error === 'object' && error !== null && error.message 
+                          ? error.message 
+                          : errors.general && Array.isArray(errors.general) 
+                            ? errors.general[0] 
+                            : 'An error occurred while saving the device.'}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* Buttons - Sticky at bottom */}
-            <div className='sticky bottom-0 bg-white pt-4 border-t border-gray-200 mt-6'>
-              <div className='flex justify-end gap-2'>
-                <Button
-                  type='submit'
-                  variant='primary'
-                  size='md'
-                  disabled={loading}
-                >
-                  {loading ? 'Saving...' : 'Save'}
-                </Button>
-
-                <Button
-                  type='button'
-                  variant='danger'
-                  size='md'
-                  onClick={closeModal}>
-                  Cancel
-                </Button>
+              {/* Footer Buttons */}
+              <div className='sticky bottom-0 bg-white px-6 pt-4 pb-6 border-t border-gray-200'>
+                <div className='flex justify-end gap-3'>
+                  <Button
+                    type='button'
+                    variant='secondary'
+                    size='md'
+                    onClick={closeModal}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                  
+                  <Button
+                    type='submit'
+                    variant='primary'
+                    size='md'
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : (editDevice ? 'Update Device' : 'Save Device')}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </form>
+          </form>
+        </div>
       </Modal>
     </div>
   );
