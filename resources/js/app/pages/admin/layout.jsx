@@ -27,6 +27,7 @@ import {
   DocumentChartBarIcon,
   DocumentDuplicateIcon,
   DocumentIcon,
+  DocumentTextIcon,
   FolderIcon,
   FolderOpenIcon,
   HomeIcon,
@@ -110,7 +111,11 @@ export default function Layout({ children }) {
         }, {
           label: "Item Request",
           icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/request_item"
+          link: "/admin/device-requests"
+        }, {
+          label: "Liability Forms",
+          icon: <DocumentTextIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/liability-forms"
         },
       ]
     },

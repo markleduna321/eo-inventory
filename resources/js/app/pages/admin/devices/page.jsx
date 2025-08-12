@@ -5,6 +5,8 @@ import CreateDevicesSection from './_sections/create-devices-section'
 import { ComputerDesktopIcon, DeviceTabletIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline'
 import { useDispatch, useSelector } from 'react-redux'
 import { get_devices_thunk } from './_redux/devices-thunk'
+import { Link } from '@inertiajs/react'
+import Button from '@/app/pages/components/button'
 
 export default function DevicesPage() {
     const dispatch = useDispatch()

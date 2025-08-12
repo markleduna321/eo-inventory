@@ -108,4 +108,39 @@ class Device extends Model
             }
         });
     }
+
+    // Relationships
+    public function requests()
+    {
+        return $this->hasMany(DeviceRequest::class);
+    }
+
+    public function liabilityForms()
+    {
+        return $this->hasMany(LiabilityForm::class);
+    }
+
+    public function currentRequest()
+    {
+        return $this->hasOne(DeviceRequest::class)->where('status', 'approved')->latest();
+    }
+
+    // Helper methods
+    public function isAvailable(): bool
+    {
+        return empty($this->issued_to) && $this->status === 'Working';
+    }
+
+    public function hasPendingRequest(): bool
+    {
+        return $this->requests()->where('status', 'pending')->exists();
+    }
+
+    public function getCurrentAssignee()
+    {
+        if ($this->currentRequest && $this->currentRequest->assignee) {
+            return $this->currentRequest->assignee;
+        }
+        return null;
+    }
 }

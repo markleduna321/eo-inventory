@@ -2,13 +2,14 @@ import Button from '@/app/pages/components/button'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
 import Modal from '@/app/pages/components/modal'
 import TableFilter from '@/app/pages/components/table-filter'
-import { ArrowDownCircleIcon, PrinterIcon, EyeIcon, PencilIcon, TrashIcon, QrCodeIcon } from '@heroicons/react/24/outline'
+import { ArrowDownCircleIcon, PrinterIcon, EyeIcon, PencilIcon, TrashIcon, QrCodeIcon, UserIcon } from '@heroicons/react/24/outline'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { get_devices_thunk, delete_device_thunk } from '../_redux/devices-thunk'
 import { setSelectedDevice, clearSelectedDevice } from '../_redux/devices-slice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 import CreateDevicesSection from './create-devices-section'
+import { Link } from '@inertiajs/react'
 
 export default function DeviceTableSection() {
     const dispatch = useDispatch()
@@ -151,6 +152,30 @@ export default function DeviceTableSection() {
         )
     }
 
+    const getAvailabilityBadge = (device) => {
+        const isAvailable = !device.issued_to && device.status === 'Working'
+        
+        if (isAvailable) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Available
+                </span>
+            )
+        } else if (device.issued_to) {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Assigned
+                </span>
+            )
+        } else {
+            return (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Unavailable
+                </span>
+            )
+        }
+    }
+
     if (loading) {
         return (
             <div className="mt-8 flow-root bg-white p-5 rounded-lg">
@@ -263,6 +288,9 @@ export default function DeviceTableSection() {
                                         Status
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                                        Availability
+                                    </th>
+                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                         Price
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -308,6 +336,9 @@ export default function DeviceTableSection() {
                                                 {getStatusBadge(device.status)}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
+                                                {getAvailabilityBadge(device)}
+                                            </td>
+                                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {device.price ? `₱${parseFloat(device.price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
                                             </td>
                                             <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-500">
@@ -327,6 +358,21 @@ export default function DeviceTableSection() {
                                                     >
                                                         <EyeIcon className="h-4 w-4" />
                                                     </Button>
+                                                    
+                                                    {/* Request button - only show for available devices */}
+                                                    {!device.issued_to && device.status === 'Working' && (
+                                                        <Link href={`/admin/device-requests/create?device_id=${device.id}`}>
+                                                            <Button
+                                                                type="button"
+                                                                variant="secondary"
+                                                                size="sm"
+                                                                title="Request Device"
+                                                            >
+                                                                <UserIcon className="h-4 w-4" />
+                                                            </Button>
+                                                        </Link>
+                                                    )}
+                                                    
                                                     <Button
                                                         type="button"
                                                         variant="success"

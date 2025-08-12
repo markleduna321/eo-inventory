@@ -5,6 +5,9 @@ use App\Http\Controllers\StationController;
 use App\Http\Controllers\SystemUnitController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\DeviceRequestController;
+use App\Http\Controllers\LiabilityFormController;
+use App\Http\Controllers\PublicLiabilityFormController;
 use App\Models\User;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -107,6 +110,32 @@ Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function (
         return Inertia::render('admin/request_item/page'); 
     });
 
+    // Device Request Routes
+    Route::prefix('device-requests')->name('device-requests.')->group(function () {
+        Route::get('/', [DeviceRequestController::class, 'index'])->name('index');
+        Route::get('/create', [DeviceRequestController::class, 'create'])->name('create');
+        Route::post('/', [DeviceRequestController::class, 'store'])->name('store');
+        Route::get('/{deviceRequest}', [DeviceRequestController::class, 'show'])->name('show');
+        Route::post('/{deviceRequest}/approve', [DeviceRequestController::class, 'approve'])->name('approve');
+        Route::post('/{deviceRequest}/reject', [DeviceRequestController::class, 'reject'])->name('reject');
+        Route::post('/{deviceRequest}/complete', [DeviceRequestController::class, 'complete'])->name('complete');
+        Route::post('/{deviceRequest}/cancel', [DeviceRequestController::class, 'cancel'])->name('cancel');
+    });
+
+    // Liability Form Routes
+    Route::prefix('liability-forms')->name('liability-forms.')->group(function () {
+        Route::get('/', [LiabilityFormController::class, 'index'])->name('index');
+        Route::get('/create-public', [LiabilityFormController::class, 'showCreatePublic'])->name('create-public');
+        Route::post('/create-public', [LiabilityFormController::class, 'createPublic'])->name('store-public');
+        Route::get('/{deviceRequest}/create', [LiabilityFormController::class, 'create'])->name('create');
+        Route::post('/{deviceRequest}', [LiabilityFormController::class, 'store'])->name('store');
+        Route::get('/{liabilityForm}', [LiabilityFormController::class, 'show'])->name('show');
+        Route::get('/{liabilityForm}/download', [LiabilityFormController::class, 'download'])->name('download');
+    });
+
+    // API endpoint for available devices
+    Route::get('/api/devices/available', [DeviceRequestController::class, 'getAvailableDevices'])->name('api.devices.available');
+
     Route::get('purchase_request', function () {
         return Inertia::render('admin/purchase_request/page'); 
     });
@@ -131,6 +160,14 @@ Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function (
             ]);
         });
     });
+});
+
+// Public Liability Form Routes (no auth required)
+Route::prefix('liability-form')->name('public.liability-forms.')->group(function () {
+    Route::get('/{token}', [PublicLiabilityFormController::class, 'show'])->name('show');
+    Route::post('/{token}/verify', [PublicLiabilityFormController::class, 'verify'])->name('verify');
+    Route::post('/{token}/complete', [PublicLiabilityFormController::class, 'store'])->name('store');
+    Route::get('/{token}/download', [PublicLiabilityFormController::class, 'download'])->name('download');
 });
 
 // QR Code routes (public access for scanning)
