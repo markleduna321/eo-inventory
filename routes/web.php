@@ -24,20 +24,25 @@ use Inertia\Inertia;
 |
 */
 
-Route::middleware('redirectBasedOnRole')->get('/', function () {
-    return Inertia::render('login/page');
-})->name('login');
+Route::get('/', function () {
+    return redirect()->route('login');
+})->name('welcome');
 
-Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function () {
+// CSRF token refresh endpoint
+Route::post('/csrf-refresh', [App\Http\Controllers\CsrfController::class, 'refresh'])
+    ->middleware('web')
+    ->name('csrf.refresh');
+
+Route::middleware('auth')->prefix('admin')->group(function () {
     
     Route::get('dashboard', function () {
         return Inertia::render('admin/dashboard/page');
-    });
+    })->middleware('permission:dashboard_view');
 
     Route::prefix('user_management')->group(function () {
         Route::get('/', function () {
         return Inertia::render('admin/user_management/page');
-        });
+        })->middleware('permission:users_view');
 
         /* Route::get('/{id}', function ($id) {
             $user = Profiling::find($id);
@@ -112,14 +117,30 @@ Route::middleware('auth:sanctum', 'role:1,2')->prefix('admin')->group(function (
 
     // Device Request Routes
     Route::prefix('device-requests')->name('device-requests.')->group(function () {
-        Route::get('/', [DeviceRequestController::class, 'index'])->name('index');
-        Route::get('/create', [DeviceRequestController::class, 'create'])->name('create');
-        Route::post('/', [DeviceRequestController::class, 'store'])->name('store');
-        Route::get('/{deviceRequest}', [DeviceRequestController::class, 'show'])->name('show');
-        Route::post('/{deviceRequest}/approve', [DeviceRequestController::class, 'approve'])->name('approve');
-        Route::post('/{deviceRequest}/reject', [DeviceRequestController::class, 'reject'])->name('reject');
-        Route::post('/{deviceRequest}/complete', [DeviceRequestController::class, 'complete'])->name('complete');
-        Route::post('/{deviceRequest}/cancel', [DeviceRequestController::class, 'cancel'])->name('cancel');
+        Route::get('/', [DeviceRequestController::class, 'index'])
+            ->middleware('permission:requests_view')
+            ->name('index');
+        Route::get('/create', [DeviceRequestController::class, 'create'])
+            ->middleware('permission:requests_create')
+            ->name('create');
+        Route::post('/', [DeviceRequestController::class, 'store'])
+            ->middleware('permission:requests_create')
+            ->name('store');
+        Route::get('/{deviceRequest}', [DeviceRequestController::class, 'show'])
+            ->middleware('permission:requests_view')
+            ->name('show');
+        Route::post('/{deviceRequest}/approve', [DeviceRequestController::class, 'approve'])
+            ->middleware('permission:requests_approve')
+            ->name('approve');
+        Route::post('/{deviceRequest}/reject', [DeviceRequestController::class, 'reject'])
+            ->middleware('permission:requests_approve')
+            ->name('reject');
+        Route::post('/{deviceRequest}/complete', [DeviceRequestController::class, 'complete'])
+            ->middleware('permission:requests_manage')
+            ->name('complete');
+        Route::post('/{deviceRequest}/cancel', [DeviceRequestController::class, 'cancel'])
+            ->middleware('permission:requests_manage')
+            ->name('cancel');
     });
 
     // Liability Form Routes
@@ -204,7 +225,7 @@ Route::get('/devices/qr/{qrCode}', [DeviceController::class, 'showByQrCode'])
 Route::get('/devices/{device}/qr-image', [DeviceController::class, 'generateQrCode'])
     ->name('devices.qr-image');
 
-Route::middleware('auth:sanctum', 'role:3')->prefix('user')->group(function () {
+Route::middleware('auth', 'role:3,5,6,10,11')->prefix('user')->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('user/dashboard/page');
     });
@@ -227,6 +248,7 @@ Route::middleware('auth:sanctum', 'role:3')->prefix('user')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     // Web-based user endpoint for frontend forms

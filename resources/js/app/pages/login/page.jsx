@@ -1,6 +1,6 @@
 import LoginFormSection from "./_sections/login-form-section";
 
-export default function Login() {
+export default function Login({ status, canResetPassword }) {
   return (
     <>
       <div className="flex min-h-screen items-center justify-center py-12 px-6">
@@ -16,7 +16,7 @@ export default function Login() {
             </h2>
           </div>
 
-          <LoginFormSection />
+          <LoginFormSection status={status} canResetPassword={canResetPassword} />
         </div>
       </div>
 

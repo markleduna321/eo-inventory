@@ -22,7 +22,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
@@ -39,11 +39,28 @@ function classNames(...classes) {
 }
 
 export default function UserLayout({ children }) {
-  const { auth } = usePage().props;
+  const { auth, csrf_token } = usePage().props;
   const user = auth?.user;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navItems, setNavItems] = useState(navigation);
+
+  // Handle logout with CSRF token refresh fallback
+      const handleLogout = async () => {
+        try {
+            // Simple logout using Inertia's post method with proper CSRF handling
+            router.post('/logout', {}, {
+                onFinish: () => {
+                    // Ensure we redirect to home after logout
+                    window.location.href = '/';
+                }
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Fallback: redirect to home page
+            window.location.href = '/';
+        }
+    };
 
   useEffect(() => {
     const currentPath = window.location.pathname;
@@ -244,12 +261,12 @@ export default function UserLayout({ children }) {
                     ))} */}
 
                     <MenuItem>
-                      <Link
-                        method="post" href={route('logout')} as="button"
-                        className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
                       >
                         Sign Out
-                      </Link>
+                      </button>
                     </MenuItem>
                   </MenuItems>
                 </Menu>

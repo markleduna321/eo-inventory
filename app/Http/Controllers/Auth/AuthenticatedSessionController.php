@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Login', [
+        return Inertia::render('login/page', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
         ]);
@@ -39,15 +39,9 @@ class AuthenticatedSessionController extends Controller
             $user->update(['is_online' => true, 'updated_at' => now()]);
         }
 
-        // Role-based redirection
-        if (Auth::user()->role_id == 1) {
-            return redirect()->intended(RouteServiceProvider::ADMIN);
-        } else if (Auth::user()->role_id == 2) {
-            return redirect()->intended(RouteServiceProvider::ADMIN); // Asset Manager goes to admin
-        } else {
-            // For all other roles, redirect to admin dashboard as fallback
-            return redirect()->intended(RouteServiceProvider::ADMIN);
-        }
+        // All users redirect to admin dashboard
+        // Access control is handled by permissions on individual pages
+        return redirect()->intended(RouteServiceProvider::ADMIN);
     }
 
     /**
@@ -55,16 +49,22 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $user = auth()->user(); // Get the authenticated user first
+        // Update user's online status before logout
+        $user = auth()->user();
         if ($user) {
-            $user->update(['is_online' => false, 'updated_at' => now()]); // Update is_online status
+            $user->is_online = false;
+            $user->save();
         }
 
-        Auth::guard('web')->logout(); // Log out the user
+        // Log out the user
+        Auth::guard('web')->logout();
 
-        $request->session()->invalidate(); // Invalidate the session
-        $request->session()->regenerateToken(); // Regenerate CSRF token
+        // Invalidate the session 
+        $request->session()->invalidate();
+        
+        // Regenerate the session token
+        $request->session()->regenerateToken();
 
-        return redirect('/'); // Redirect to the login or home page
+        return redirect('/')->with('message', 'You have been logged out successfully.');
     }
 }

@@ -2,15 +2,68 @@ import React, { useState } from 'react'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import InputTextComponent from '@/app/pages/components/input-text-component'
+import store from '@/app/store/store'
+import { get_roles_thunk, create_role_thunk } from '../_redux/roles-thunk'
 
 export default function RoleCreateSection() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [selectedPermissions, setSelectedPermissions] = useState([])
+    const [processing, setProcessing] = useState(false)
+    const [errors, setErrors] = useState({})
+
+    const [formData, setFormData] = useState({
+        name: '',
+        level: '',
+        description: '',
+        status: 'Active'
+    })
 
     const openModal = () => setIsModalOpen(true)
     const closeModal = () => {
         setIsModalOpen(false)
         setSelectedPermissions([])
+        setFormData({
+            name: '',
+            level: '',
+            description: '',
+            status: 'Active'
+        })
+        setErrors({})
+    }
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setProcessing(true)
+        setErrors({})
+        
+        try {
+            // Prepare role data
+            const roleData = {
+                ...formData,
+                permissions: selectedPermissions
+            }
+
+            // Use the Redux thunk to create the role
+            const result = await store.dispatch(create_role_thunk(roleData))
+            
+            if (result.status === 201) {
+                closeModal()
+                // Refresh roles list
+                store.dispatch(get_roles_thunk())
+            } else {
+                // Handle validation errors
+                if (result.data && result.data.errors) {
+                    setErrors(result.data.errors)
+                } else {
+                    setErrors({ general: 'Failed to create role. Please try again.' })
+                }
+            }
+        } catch (error) {
+            console.error('Role creation error:', error)
+            setErrors({ general: 'An unexpected error occurred.' })
+        } finally {
+            setProcessing(false)
+        }
     }
 
     // Define all available permissions organized by module
@@ -119,7 +172,7 @@ export default function RoleCreateSection() {
                                 Create New Role
                             </h3>
                             <div className="mt-2">
-                                <form className="space-y-6">
+                                <form onSubmit={handleSubmit} className="space-y-6">
                                     {/* Basic Role Information */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
@@ -131,17 +184,23 @@ export default function RoleCreateSection() {
                                                 name="role_name"
                                                 type="text"
                                                 placeholder="e.g. Asset Manager, IT Technician"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({...formData, name: e.target.value})}
                                                 required
                                             />
+                                            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                                         </div>
                                         <div>
                                             <label htmlFor="role_level" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Role Level
+                                                Role Level *
                                             </label>
                                             <select 
                                                 id="role_level"
                                                 name="role_level"
+                                                value={formData.level}
+                                                onChange={(e) => setFormData({...formData, level: e.target.value})}
                                                 className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                                required
                                             >
                                                 <option value="">Select Level</option>
                                                 <option value="1">Level 1 - Basic User</option>
@@ -150,6 +209,7 @@ export default function RoleCreateSection() {
                                                 <option value="4">Level 4 - Manager</option>
                                                 <option value="5">Level 5 - Administrator</option>
                                             </select>
+                                            {errors.level && <p className="text-red-500 text-sm mt-1">{errors.level}</p>}
                                         </div>
                                     </div>
 
@@ -161,9 +221,12 @@ export default function RoleCreateSection() {
                                             id="role_description"
                                             name="role_description"
                                             rows={2}
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({...formData, description: e.target.value})}
                                             className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                                             placeholder="Describe the role's responsibilities and purpose..."
                                         />
+                                        {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
                                     </div>
 
                                     {/* Permissions Section */}
@@ -214,23 +277,24 @@ export default function RoleCreateSection() {
                                                 <strong>Selected Permissions:</strong> {selectedPermissions.length} permissions selected
                                             </p>
                                         </div>
+                                        {errors.permissions && <p className="text-red-500 text-sm mt-1">{errors.permissions}</p>}
                                     </div>
 
-                                    {/* Hidden field for created_by - will be set to current user */}
-                                    <input type="hidden" name="created_by" value="current_user" />
-                                    <input type="hidden" name="permissions" value={JSON.stringify(selectedPermissions)} />
+                                    {/* General error display */}
+                                    {errors.general && <p className="text-red-500 text-sm">{errors.general}</p>}
                                 </form>
                             </div>
 
                             {/* Buttons */}
                             <div className='flex float-end gap-2 mt-6'>
                                 <Button
-                                    type='button'
+                                    type='submit'
                                     variant='primary'
                                     size='md'
-                                    disabled={selectedPermissions.length === 0}
+                                    disabled={selectedPermissions.length === 0 || processing || !formData.name || !formData.level}
+                                    onClick={handleSubmit}
                                 >
-                                    Create Role
+                                    {processing ? 'Creating...' : 'Create Role'}
                                 </Button>
 
                                 <Button

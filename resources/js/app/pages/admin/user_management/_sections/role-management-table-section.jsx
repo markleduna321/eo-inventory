@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import Button from '@/app/pages/components/button'
+import RoleViewSection from './role-view-section'
+import RoleEditSection from './role-edit-section'
 
 export default function RoleManagementTableSection() {
     const dispatch = useDispatch()
@@ -14,6 +16,11 @@ export default function RoleManagementTableSection() {
     const [searchTerm, setSearchTerm] = useState('')
     const [levelFilter, setLevelFilter] = useState('')
     const [statusFilter, setStatusFilter] = useState('')
+
+    // Modal states
+    const [isViewModalOpen, setIsViewModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [selectedRole, setSelectedRole] = useState(null)
 
     // Calculate actual user counts for each role
     const getRealUserCount = (roleId) => {
@@ -98,8 +105,30 @@ export default function RoleManagementTableSection() {
         return summary || 'No permissions'
     }
 
+    // Handle modal actions
+    const handleViewRole = (role) => {
+        setSelectedRole({...role, userCount: getRealUserCount(role.id)})
+        setIsViewModalOpen(true)
+    }
+
+    const handleEditRole = (role) => {
+        setSelectedRole({...role, userCount: getRealUserCount(role.id)})
+        setIsEditModalOpen(true)
+    }
+
+    const closeViewModal = () => {
+        setIsViewModalOpen(false)
+        setSelectedRole(null)
+    }
+
+    const closeEditModal = () => {
+        setIsEditModalOpen(false)
+        setSelectedRole(null)
+    }
+
     return (
-        <div className='bg-white shadow-md rounded-md mt-4 p-4'>
+        <>
+            <div className='bg-white shadow-md rounded-md mt-4 p-4'>
             <div className='flex justify-between items-center mb-4'>
                 <div>
                     <h2 className='text-xl font-semibold text-gray-800'>System Roles</h2>
@@ -227,6 +256,7 @@ export default function RoleManagementTableSection() {
                                                 type='button'
                                                 variant='secondary'
                                                 size='sm'
+                                                onClick={() => handleViewRole(role)}
                                             >
                                                 View
                                             </Button>
@@ -236,6 +266,7 @@ export default function RoleManagementTableSection() {
                                                         type='button'
                                                         variant='primary'
                                                         size='sm'
+                                                        onClick={() => handleEditRole(role)}
                                                     >
                                                         Edit
                                                     </Button>
@@ -287,5 +318,19 @@ export default function RoleManagementTableSection() {
                 </div>
             </div>
         </div>
+
+        {/* Modals */}
+        <RoleViewSection 
+            role={selectedRole}
+            isOpen={isViewModalOpen}
+            onClose={closeViewModal}
+        />
+
+        <RoleEditSection 
+            role={selectedRole}
+            isOpen={isEditModalOpen}
+            onClose={closeEditModal}
+        />
+        </>
     )
 }

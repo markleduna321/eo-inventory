@@ -39,7 +39,9 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
+import { hasAnyPermission, PERMISSIONS } from '@/app/utils/permissions';
+import ProfileEditSection from './_components/profile-edit-section';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
@@ -63,19 +65,179 @@ function classNames(...classes) {
 }
 
 export default function Layout({ children }) {
-  const { auth } = usePage().props;
+  const { auth, csrf_token } = usePage().props;
   const user = auth?.user;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [navItems, setNavItems] = useState(navigation);
   const [openItems, setOpenItems] = useState({});
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const [isAssetsOpen, setIsAssetsOpen] = useState(false);
   const [isAssetsOpen1, setIsAssetsOpen1] = useState(false);
 
+  // Handle profile modal
+  const handleOpenProfile = () => {
+    setIsProfileModalOpen(true);
+  };
+
+  const handleCloseProfile = () => {
+    setIsProfileModalOpen(false);
+  };
+
+  // Handle logout with CSRF token refresh fallback
+      const handleLogout = async () => {
+        try {
+            // Simple logout using Inertia's post method with proper CSRF handling
+            router.post('/logout', {}, {
+                onFinish: () => {
+                    // Ensure we redirect to home after logout
+                    window.location.href = '/';
+                }
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Fallback: redirect to home page
+            window.location.href = '/';
+        }
+    };
+
   function isChildActive(children, currentPath) {
     return children?.some(child => child.link === currentPath);
   }
+
+  // Define sidenav first before using it
+  const sidenav = [
+    {
+      label: "Dashboard",
+      icon: <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/dashboard",
+      requiredPermissions: [PERMISSIONS.DASHBOARD_VIEW]
+    },
+    {
+      label: "User Management",
+      icon: <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/user_management",
+      requiredPermissions: [PERMISSIONS.USERS_VIEW, PERMISSIONS.ROLES_VIEW]
+    },
+    {
+      label: "Request",
+      icon: <BellAlertIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "",
+      requiredPermissions: [PERMISSIONS.REQUESTS_VIEW, PERMISSIONS.PURCHASE_REQUESTS_VIEW],
+      children: [
+        {
+          label: "Purchase Request",
+          icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/purchase_request",
+          requiredPermissions: [PERMISSIONS.PURCHASE_REQUESTS_VIEW]
+        }, {
+          label: "Item Request",
+          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/device-requests",
+          requiredPermissions: [PERMISSIONS.REQUESTS_VIEW]
+        }, {
+          label: "Liability Forms",
+          icon: <DocumentTextIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/liability-forms",
+          requiredPermissions: [PERMISSIONS.REQUESTS_VIEW]
+        },
+      ]
+    },
+    {
+      label: "Assets",
+      icon: <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "",
+      requiredPermissions: [PERMISSIONS.ASSETS_VIEW],
+      children: [
+        {
+          label: "Devices",
+          icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/devices",
+          requiredPermissions: [PERMISSIONS.DEVICES_MANAGE]
+        }, {
+          label: "System Units",
+          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/system_units",
+          requiredPermissions: [PERMISSIONS.SYSTEM_UNITS_MANAGE]
+        }, {
+          label: "Monitors",
+          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/monitors",
+          requiredPermissions: [PERMISSIONS.MONITORS_MANAGE]
+        }, {
+          label: "Peripherals",
+          icon: <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/peripherals",
+          requiredPermissions: [PERMISSIONS.PERIPHERALS_MANAGE]
+        }, {
+          label: "Parts and Accessories",
+          icon: <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/parts_and_accessories",
+          requiredPermissions: [PERMISSIONS.PARTS_MANAGE]
+        },
+
+      ]
+    },
+    {
+      label: "Reports",
+      icon: <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/reports",
+      requiredPermissions: [PERMISSIONS.REPORTS_VIEW]
+    },
+    {
+      label: "Stations",
+      icon: <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/stations",
+      requiredPermissions: [PERMISSIONS.STATIONS_VIEW]
+    },
+    {
+      label: "Locations",
+      icon: <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+      link: "/admin/locations",
+      requiredPermissions: [PERMISSIONS.LOCATIONS_VIEW]
+    },
+  ]
+
+  // Filter navigation items based on user permissions
+  const filterNavByPermissions = (navItems, user) => {
+    if (!user || !user.role) {
+      return [];
+    }
+
+    // Super Administrator should have access to everything
+    if (user.role.name === 'Super Administrator' || user.role.level === 5) {
+      return navItems;
+    }
+
+    return navItems.filter(item => {
+      // If no permissions required, show the item
+      if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
+        return true;
+      }
+
+      // Check if user has any of the required permissions
+      const hasPermission = hasAnyPermission(user, item.requiredPermissions);
+
+      if (item.children) {
+        // Filter children based on permissions
+        item.children = item.children.filter(child => {
+          if (!child.requiredPermissions || child.requiredPermissions.length === 0) {
+            return true;
+          }
+          return hasAnyPermission(user, child.requiredPermissions);
+        });
+
+        // Show parent if it has permission OR if any children have permission
+        return hasPermission || item.children.length > 0;
+      }
+
+      return hasPermission;
+    });
+  };
+
+  // Get filtered navigation items
+  const filteredSidenav = filterNavByPermissions(sidenav, user);
 
   useEffect(() => {
     const currentPath = window.location.pathname;
@@ -88,84 +250,6 @@ export default function Layout({ children }) {
     setNavItems(updatedNavItems);
   }, []);
 
-  const sidenav = [
-    {
-      label: "Dashboard",
-      icon: <ChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "/admin/dashboard"
-    },
-    {
-      label: "User Management",
-      icon: <UserGroupIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "/admin/user_management"
-    },
-    {
-      label: "Request",
-      icon: <BellAlertIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "",
-      children: [
-        {
-          label: "Purchase Request",
-          icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/purchase_request"
-        }, {
-          label: "Item Request",
-          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/device-requests"
-        }, {
-          label: "Liability Forms",
-          icon: <DocumentTextIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/liability-forms"
-        },
-      ]
-    },
-    {
-      label: "Assets",
-      icon: <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "",
-      children: [
-        {
-          label: "Devices",
-          icon: <DevicePhoneMobileIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/devices"
-        }, {
-          label: "System Units",
-          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/system_units"
-        }, {
-          label: "Monitors",
-          icon: <ComputerDesktopIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/monitors"
-        }, {
-          label: "Peripherals",
-          icon: <DeviceTabletIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/peripherals"
-        }, {
-          label: "Parts and Accessories",
-          icon: <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-          link: "/admin/parts_and_accessories"
-        },
-
-      ]
-    },
-    {
-      label: "Reports",
-      icon: <DocumentChartBarIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "/admin/reports"
-    },
-    {
-      label: "Stations",
-      icon: <BuildingOffice2Icon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "/admin/stations"
-    },
-    {
-      label: "Locations",
-      icon: <MapPinIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
-      link: "/admin/locations"
-    },
-  ]
-
-
   const toggleOpen = (index) => {
     setOpenItems((prev) => ({
       ...prev,
@@ -176,13 +260,13 @@ export default function Layout({ children }) {
   useEffect(() => {
     const currentPath = window.location.pathname;
     const initialOpenItems = {};
-    sidenav.forEach((item, i) => {
+    filteredSidenav.forEach((item, i) => {
       if (item.children && isChildActive(item.children, currentPath)) {
         initialOpenItems[i] = true;
       }
     });
     setOpenItems(initialOpenItems);
-  }, []);
+  }, [user]); // Add user as dependency
 
   return (
     <>
@@ -216,7 +300,7 @@ export default function Layout({ children }) {
                 </div>
                 <nav className="flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col">
-                    {sidenav.map((item, i) => (
+                    {filteredSidenav.map((item, i) => (
                       <div key={i}>
                         <Link
                           href={item.link || "#"}
@@ -280,7 +364,7 @@ export default function Layout({ children }) {
             </div>
             <nav className="flex flex-1 flex-col">
               <ul role="list" className="flex flex-1 flex-col">
-                {sidenav.map((item, i) => (
+                {filteredSidenav.map((item, i) => (
                   <div key={i}>
                     <Link
                       href={item.link || "#"}
@@ -392,26 +476,24 @@ export default function Layout({ children }) {
                   </MenuButton>
                   <MenuItems
                     transition
-                    className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
+                    className="absolute right-0 z-10 mt-2.5 w-40 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 transition focus:outline-none data-[closed]:scale-95 data-[closed]:transform data-[closed]:opacity-0 data-[enter]:duration-100 data-[leave]:duration-75 data-[enter]:ease-out data-[leave]:ease-in"
                   >
-                    {/* {userNavigation.map((item) => (
-                      <MenuItem key={item.name}>
-                        <Link
-                        method="post" href={route('logout')} as="button"
-                          className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
-                        >
-                          {item.name}
-                        </Link>
-                      </MenuItem>
-                    ))} */}
+                    <MenuItem>
+                      <button
+                        onClick={handleOpenProfile}
+                        className="block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
+                      >
+                        Edit Profile
+                      </button>
+                    </MenuItem>
 
                     <MenuItem>
-                      <Link
-                        method="post" href={route('logout')} as="button"
-                        className="block px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900 data-[focus]:bg-gray-50"
                       >
                         Sign Out
-                      </Link>
+                      </button>
                     </MenuItem>
                   </MenuItems>
                 </Menu>
@@ -423,6 +505,12 @@ export default function Layout({ children }) {
             <div className="px-4 sm:px-6 lg:px-8">{children}</div>
           </main>
         </div>
+
+        {/* Profile Edit Modal */}
+        <ProfileEditSection 
+          isOpen={isProfileModalOpen}
+          onClose={handleCloseProfile}
+        />
       </div>
     </>
   );

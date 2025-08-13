@@ -20,7 +20,7 @@ export default function LoginFormSection({ status, canResetPassword }) {
     const submit = (e) => {
         e.preventDefault();
 
-        post(route('auth_login'));
+        post(route('login'));
     };
     return (
         <form onSubmit={submit}>
