@@ -103,6 +103,10 @@ Route::middleware('auth')->prefix('admin')->group(function () {
         return Inertia::render('admin/parts/page'); 
     });
 
+    Route::get('other_assets', function () {
+        return Inertia::render('admin/other_assets/page'); 
+    })->middleware('permission:assets_view');
+
     Route::get('locations', function () {
         return Inertia::render('admin/locations/page'); 
     });

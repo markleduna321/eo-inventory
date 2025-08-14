@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\OtherAssetController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\LocationController;
@@ -89,6 +90,11 @@ Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCo
 Route::post('system-units/{systemUnit}/assign', [SystemUnitController::class, 'assign']);
 Route::post('system-units/{systemUnit}/return', [SystemUnitController::class, 'returnUnit']);
 Route::apiResource('system-units', SystemUnitController::class);
+
+// Other Assets routes
+Route::get('other-assets/dropdown-options', [OtherAssetController::class, 'getDropdownOptions']);
+Route::post('other-assets/add-dropdown-option', [OtherAssetController::class, 'addDropdownOption']);
+Route::apiResource('other-assets', OtherAssetController::class);
 
 // Dashboard routes (temporary - no auth for testing)
 Route::get('dashboard/stats', [DashboardController::class, 'getStats']);

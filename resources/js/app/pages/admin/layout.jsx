@@ -175,6 +175,11 @@ export default function Layout({ children }) {
           icon: <CogIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
           link: "/admin/parts_and_accessories",
           requiredPermissions: [PERMISSIONS.PARTS_MANAGE]
+        }, {
+          label: "Other Assets",
+          icon: <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/other_assets",
+          requiredPermissions: [PERMISSIONS.ASSETS_VIEW]
         },
 
       ]
