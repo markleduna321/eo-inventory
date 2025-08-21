@@ -165,6 +165,8 @@ export default function CreatePeripheralsSection() {
         { label: 'HikVision', value: 'HikVision' },
         { label: 'Nvision', value: 'Nvision' },
         { label: 'Jabra', value: 'Jabra' },
+        { label: 'Ablerex', value: 'Ablerex' },
+        { label: 'Mplus', value: 'Mplus' },
         { label: 'Rapoo', value: 'Rapoo' }
     ]
 
