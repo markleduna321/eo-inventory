@@ -463,7 +463,7 @@ export default function StationsTableSection() {
         }
     }
 
-    const handlePeripheralSelection = (peripheral) => {
+    const handlePeripheralSelection = async (peripheral) => {
         console.log('Peripheral selection called with:', peripheral);
         console.log('Current editFormData.assigned_peripherals:', editFormData.assigned_peripherals);
         
@@ -504,12 +504,54 @@ export default function StationsTableSection() {
             });
             setIsUnbindModalOpen(true);
         } 
-        // If not assigned, add it (bind)
+        // If not assigned, add it (bind) - Call API directly
         else {
-            setEditFormData(prev => ({
-                ...prev,
-                assigned_peripherals: [...(prev.assigned_peripherals || []), peripheralId]
-            }));
+            console.log('Assigning peripheral via API:', peripheralId);
+            try {
+                const response = await axios.post(`/api/stations/${editFormData.id}/assign-peripherals`, {
+                    peripheral_ids: [peripheralId]
+                });
+                
+                console.log('Assignment response:', response.data);
+                
+                // Update local state to reflect the assignment
+                setEditFormData(prev => ({
+                    ...prev,
+                    assigned_peripherals: [...(prev.assigned_peripherals || []), peripheralId]
+                }));
+                
+                // Refresh the station data to get updated assignments
+                try {
+                    const stationResponse = await axios.get(`/api/stations/${editFormData.id}`);
+                    const updatedStation = stationResponse.data;
+                    
+                    // Update the station_assets in form data
+                    setEditFormData(prev => ({
+                        ...prev,
+                        station_assets: updatedStation.station_assets || []
+                    }));
+                } catch (error) {
+                    console.error('Error refreshing station data:', error);
+                }
+                
+                // Show success message
+                setAlert({
+                    show: true,
+                    type: 'success',
+                    message: 'Peripheral assigned successfully!'
+                });
+                
+                // Refresh available peripherals to update stock counts
+                await dispatch(fetchAvailablePeripherals());
+                
+            } catch (error) {
+                console.error('Error assigning peripheral:', error);
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Failed to assign peripheral: ' + (error.response?.data?.message || error.message)
+                });
+            }
         }
     }
 
@@ -1382,7 +1424,7 @@ export default function StationsTableSection() {
                                                 <h5 className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Peripherals</h5>
                                                 <div className="space-y-2">
                                                     {assignedPeripheralDetails.map(peripheral => (
-                                                        <div key={peripheral.id} className="flex items-center justify-between bg-white p-2 rounded border">
+                                                        <div key={`${peripheral.id}-${peripheral.serial_number || 'no-serial'}`} className="flex items-center justify-between bg-white p-2 rounded border">
                                                             <span className="text-sm text-gray-700">
                                                                 {peripheral.brand} {peripheral.model} - {peripheral.serial_number}
                                                             </span>
@@ -1725,7 +1767,7 @@ export default function StationsTableSection() {
                                                                                 const isDisabled = data.available_stock <= 0 && !isAssigned;
                                                                                 
                                                                                 return (
-                                                                                    <div key={brandModel} className="px-3 py-2 border-b last:border-0">
+                                                                                    <div key={data.id} className="px-3 py-2 border-b last:border-0">
                                                                                         <div className="flex justify-between items-center">
                                                                                             <div>
                                                                                                 <div className="text-sm">{brandModel}</div>

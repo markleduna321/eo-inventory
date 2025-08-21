@@ -138,11 +138,12 @@ class Station extends Model
                     ->count();
 
                 $peripheral = \App\Models\Peripheral::find($assetId);
-                if (!$peripheral || $currentAssignments >= $peripheral->available_stock) {
+                if (!$peripheral || $peripheral->available_stock <= 0) {
                     Log::warning('No available stock for assignment', [
                         'peripheral_id' => $assetId,
                         'current_assignments' => $currentAssignments,
-                        'available_stock' => $peripheral ? $peripheral->available_stock : 'N/A'
+                        'available_stock' => $peripheral ? $peripheral->available_stock : 'N/A',
+                        'deployed_stock' => $peripheral ? $peripheral->deployed_stock : 'N/A'
                     ]);
                     throw new \Exception('No available stock for this peripheral');
                 }
@@ -505,7 +506,8 @@ class Station extends Model
                                 ->first();
                             if ($peripheralSerial) {
                                 $peripheralSerial->markDamaged('Damaged during station unbinding');
-                                // Update peripheral stock counts
+                                // Use the peripheral's markDamaged method for proper stock management
+                                // This will move from available to damaged stock appropriately
                                 $asset->decrement('deployed_stock');
                                 $asset->increment('damaged_stock');
                                 
@@ -516,8 +518,14 @@ class Station extends Model
                                 }
                             }
                         } else {
-                            // Legacy: for peripherals without serial tracking
-                            $asset->update(['status' => 'inactive']);
+                            // For peripherals without serial tracking - properly handle damaged stock
+                            $asset->decrement('deployed_stock');
+                            $asset->increment('damaged_stock');
+                            
+                            // Keep peripheral active if it still has available stock
+                            if ($asset->available_stock <= 0) {
+                                $asset->update(['status' => 'inactive']);
+                            }
                         }
                         break;
                 }
@@ -554,7 +562,7 @@ class Station extends Model
                                     'station_id' => null,
                                     'returned_at' => now()
                                 ]);
-                                // Update peripheral stock counts
+                                // Update peripheral stock counts - move from deployed to neither available nor damaged
                                 $asset->decrement('deployed_stock');
                                 // Don't increment available_stock since it's in maintenance
                                 
@@ -565,8 +573,14 @@ class Station extends Model
                                 }
                             }
                         } else {
-                            // Legacy: for peripherals without serial tracking
-                            $asset->update(['status' => 'inactive']);
+                            // For peripherals without serial tracking - move to maintenance
+                            $asset->decrement('deployed_stock');
+                            // Don't increment available_stock since it's under repair
+                            
+                            // Keep peripheral active if it still has available stock
+                            if ($asset->available_stock <= 0) {
+                                $asset->update(['status' => 'inactive']);
+                            }
                         }
                         break;
                 }
@@ -618,9 +632,9 @@ class Station extends Model
                             
                         if ($peripheralSerial) {
                             $peripheralSerial->returnToStock();
-                            // Update peripheral stock counts
-                            $asset->decrement('deployed_stock');
-                            $asset->increment('available_stock');
+                            // For peripherals with serial numbers, use the returnStock method
+                            // which properly handles the stock counts
+                            $asset->returnStock(1);
                         }
                     } else {
                         // Return 1 unit of this peripheral (legacy behavior)

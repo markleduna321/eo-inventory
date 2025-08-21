@@ -575,10 +575,20 @@ class StationController extends Controller
      */
     public function assignPeripherals(Request $request, Station $station)
     {
+        Log::info('=== ASSIGN PERIPHERALS API CALLED ===', [
+            'station_id' => $station->id,
+            'station_name' => $station->name,
+            'request_data' => $request->all(),
+            'user_agent' => $request->header('User-Agent'),
+            'ip' => $request->ip()
+        ]);
+        
         $validated = $request->validate([
             'peripheral_ids' => 'required|array',
             'peripheral_ids.*' => 'exists:peripherals,id',
         ]);
+        
+        Log::info('Validation passed', ['validated_data' => $validated]);
         
         $successCount = 0;
         $errors = [];
@@ -587,22 +597,44 @@ class StationController extends Controller
             try {
                 $peripheral = Peripheral::findOrFail($peripheralId);
                 
+                Log::info('Processing peripheral', [
+                    'peripheral_id' => $peripheralId,
+                    'brand_model' => $peripheral->brand . ' ' . $peripheral->model,
+                    'available_stock' => $peripheral->available_stock,
+                    'uses_serial_numbers' => $peripheral->uses_serial_numbers
+                ]);
+                
                 // Check if the peripheral has available stock
                 if ($peripheral->available_stock <= 0) {
-                    $errors[] = "Peripheral {$peripheral->brand} {$peripheral->model} is out of stock";
+                    $error = "Peripheral {$peripheral->brand} {$peripheral->model} is out of stock";
+                    $errors[] = $error;
+                    Log::warning('Peripheral out of stock', ['error' => $error]);
                     continue;
                 }
                 
                 // Assign peripheral to station
-                $station->assignAsset('peripheral', $peripheralId);
+                Log::info('About to assign peripheral to station');
+                $assignment = $station->assignAsset('peripheral', $peripheralId);
+                Log::info('Peripheral assigned successfully', ['assignment_id' => $assignment->id]);
                 $successCount++;
                 
             } catch (\Exception $e) {
-                $errors[] = $e->getMessage();
+                $error = $e->getMessage();
+                $errors[] = $error;
+                Log::error('Failed to assign peripheral', [
+                    'peripheral_id' => $peripheralId,
+                    'error' => $error,
+                    'exception_file' => $e->getFile(),
+                    'exception_line' => $e->getLine()
+                ]);
             }
         }
         
         if (count($errors) > 0) {
+            Log::warning('Some peripherals could not be assigned', [
+                'errors' => $errors,
+                'success_count' => $successCount
+            ]);
             return response()->json([
                 'message' => 'Some peripherals could not be assigned',
                 'errors' => $errors,
@@ -610,6 +642,7 @@ class StationController extends Controller
             ], 422);
         }
         
+        Log::info('All peripherals assigned successfully', ['success_count' => $successCount]);
         return response()->json([
             'message' => 'Peripherals assigned successfully',
             'success_count' => $successCount

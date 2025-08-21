@@ -28,6 +28,11 @@ Route::get('/', function () {
     return redirect()->route('login');
 })->name('welcome');
 
+// Test API route
+Route::get('/test-api', function () {
+    return view('test-api');
+});
+
 // CSRF token refresh endpoint
 Route::post('/csrf-refresh', [App\Http\Controllers\CsrfController::class, 'refresh'])
     ->middleware('web')
