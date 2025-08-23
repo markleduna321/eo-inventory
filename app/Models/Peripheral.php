@@ -129,4 +129,29 @@ class Peripheral extends Model
         }
         return false;
     }
+
+    /**
+     * Recalculate stock counts based on serial numbers for peripherals that use them.
+     * This ensures the stock columns stay in sync with actual serial records.
+     */
+    public function recalculateStockFromSerials()
+    {
+        if (!$this->uses_serial_numbers) {
+            return false;
+        }
+
+        $availableCount = $this->serialNumbers()->where('status', 'available')->count();
+        $deployedCount = $this->serialNumbers()->where('status', 'deployed')->count();
+        $damagedCount = $this->serialNumbers()->where('status', 'damaged')->count();
+        $totalCount = $availableCount + $deployedCount + $damagedCount;
+
+        $this->update([
+            'available_stock' => $availableCount,
+            'deployed_stock' => $deployedCount,
+            'damaged_stock' => $damagedCount,
+            'total_stock' => $totalCount
+        ]);
+
+        return true;
+    }
 }

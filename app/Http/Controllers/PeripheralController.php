@@ -75,7 +75,7 @@ class PeripheralController extends Controller
 
     public function show(Peripheral $peripheral)
     {
-        return response()->json($peripheral->load('deliveries'));
+        return response()->json($peripheral->load(['deliveries', 'serialNumbers']));
     }
 
     public function update(Request $request, Peripheral $peripheral)

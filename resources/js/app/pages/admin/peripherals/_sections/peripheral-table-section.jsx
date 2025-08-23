@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import axios from 'axios'
 import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import Alert from '@/app/pages/components/alert'
@@ -20,7 +21,9 @@ export default function PeripheralTableSection() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [isStockModalOpen, setIsStockModalOpen] = useState(false)
     const [isReturnModalOpen, setIsReturnModalOpen] = useState(false)
+    const [isSerialEditModalOpen, setIsSerialEditModalOpen] = useState(false)
     const [selectedPeripheral, setSelectedPeripheral] = useState(null)
+    const [selectedSerial, setSelectedSerial] = useState(null)
     const [activeTab, setActiveTab] = useState('details') // 'details' or 'history'
     
     // Pagination states
@@ -31,6 +34,7 @@ export default function PeripheralTableSection() {
     const [editForm, setEditForm] = useState({})
     const [stockForm, setStockForm] = useState({})
     const [returnForm, setReturnForm] = useState({})
+    const [serialEditForm, setSerialEditForm] = useState({})
     
     // Alert state
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
@@ -197,18 +201,46 @@ export default function PeripheralTableSection() {
     }
 
     // Modal handlers
-    const handleEdit = (peripheral) => {
-        setSelectedPeripheral(peripheral)
-        setEditForm({
-            type: peripheral.type,
-            brand: peripheral.brand,
-            model: peripheral.model,
-            description: peripheral.description || '',
-            unit_price: peripheral.unit_price || '',
-            location: peripheral.location,
-            status: peripheral.status,
-            notes: peripheral.notes || ''
-        })
+    const handleEdit = async (peripheral) => {
+        try {
+            // Fetch fresh peripheral data with serial numbers
+            const response = await axios.get(`/api/peripherals/${peripheral.id}`)
+            const freshPeripheral = response.data
+            
+            // Ensure serial_numbers is mapped correctly from serialNumbers
+            if (freshPeripheral.serialNumbers && !freshPeripheral.serial_numbers) {
+                freshPeripheral.serial_numbers = freshPeripheral.serialNumbers
+            }
+            
+            console.log('Fresh peripheral data:', freshPeripheral) // Debug log
+            
+            setSelectedPeripheral(freshPeripheral)
+            setEditForm({
+                type: freshPeripheral.type,
+                brand: freshPeripheral.brand,
+                model: freshPeripheral.model,
+                description: freshPeripheral.description || '',
+                unit_price: freshPeripheral.unit_price || '',
+                location: freshPeripheral.location,
+                status: freshPeripheral.status,
+                notes: freshPeripheral.notes || ''
+            })
+        } catch (error) {
+            console.error('Error fetching fresh peripheral data:', error)
+            // Fallback to original data if API fails
+            setSelectedPeripheral(peripheral)
+            setEditForm({
+                type: peripheral.type,
+                brand: peripheral.brand,
+                model: peripheral.model,
+                description: peripheral.description || '',
+                unit_price: peripheral.unit_price || '',
+                location: peripheral.location,
+                status: peripheral.status,
+                notes: peripheral.notes || ''
+            })
+        }
+        
         setActiveTab('details')
         dispatch(fetchDeliveryHistory(peripheral.id))
         setIsEditModalOpen(true)
@@ -302,6 +334,89 @@ export default function PeripheralTableSection() {
         setIsReturnModalOpen(false)
         setSelectedPeripheral(null)
         setReturnForm({})
+    }
+
+    // Serial edit handlers
+    const openSerialEditModal = (serial) => {
+        setSelectedSerial(serial)
+        setSerialEditForm({
+            serial_number: serial.serial_number,
+            unit_price: serial.unit_price || '',
+            notes: serial.notes || ''
+        })
+        setIsSerialEditModalOpen(true)
+    }
+
+    const closeSerialEditModal = () => {
+        setIsSerialEditModalOpen(false)
+        setSelectedSerial(null)
+        setSerialEditForm({})
+    }
+
+    const handleSerialUpdate = async () => {
+        try {
+            const response = await axios.put(`/api/peripheral-serials/${selectedSerial.id}`, serialEditForm)
+            
+            if (response.data.success) {
+                // Update the selected peripheral's serial numbers
+                const updatedSerials = selectedPeripheral.serial_numbers.map(serial => 
+                    serial.id === selectedSerial.id ? response.data.data : serial
+                )
+                setSelectedPeripheral({
+                    ...selectedPeripheral,
+                    serial_numbers: updatedSerials
+                })
+                
+                // Show success message
+                setAlert({ show: true, type: 'success', message: response.data.message })
+                closeSerialEditModal()
+            }
+        } catch (error) {
+            console.error('Error updating serial:', error)
+            setAlert({ 
+                show: true, 
+                type: 'error', 
+                message: error.response?.data?.message || 'Failed to update serial number' 
+            })
+        }
+    }
+
+    const handleSerialDelete = async (serial) => {
+        if (!confirm(`Are you sure you want to delete serial number "${serial.serial_number}"? This action cannot be undone.`)) {
+            return
+        }
+
+        try {
+            const response = await axios.delete(`/api/peripheral-serials/${serial.id}`)
+            
+            if (response.data.success) {
+                // Force refresh peripherals first
+                await dispatch(fetchPeripherals())
+                
+                // Get fresh peripheral data
+                const freshResponse = await axios.get(`/api/peripherals/${selectedPeripheral.id}`)
+                const freshPeripheral = freshResponse.data
+                
+                // Ensure serial_numbers is mapped correctly
+                if (freshPeripheral.serialNumbers && !freshPeripheral.serial_numbers) {
+                    freshPeripheral.serial_numbers = freshPeripheral.serialNumbers
+                }
+                
+                setSelectedPeripheral(freshPeripheral)
+                
+                // Show success message
+                setAlert({ show: true, type: 'success', message: response.data.message })
+                
+                console.log('Updated peripheral after deletion:', freshPeripheral)
+            }
+        } catch (error) {
+            console.error('Error deleting serial:', error)
+            setAlert({ 
+                show: true, 
+                type: 'error', 
+                message: error.response?.data?.message || 'Failed to delete serial number' 
+            })
+        }
     }
 
     if (loading && peripherals.length === 0) {
@@ -898,6 +1013,22 @@ export default function PeripheralTableSection() {
                                                                         </div>
                                                                     )}
                                                                 </div>
+                                                                <div className="flex items-center gap-2 ml-4">
+                                                                    <button
+                                                                        onClick={() => openSerialEditModal(serial)}
+                                                                        className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                        title="Edit Serial Number"
+                                                                    >
+                                                                        <PencilIcon className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleSerialDelete(serial)}
+                                                                        className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-lg transition-colors"
+                                                                        title="Delete Serial Number"
+                                                                    >
+                                                                        <TrashIcon className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -1207,6 +1338,80 @@ export default function PeripheralTableSection() {
                                 </div>
                             </form>
                         </div>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Serial Edit Modal */}
+            <Modal isOpen={isSerialEditModalOpen} onClose={closeSerialEditModal}>
+                <div className="bg-white rounded-lg shadow-lg w-full max-w-md">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                            Edit Serial Number
+                        </h3>
+                    </div>
+                    <div className="p-6">
+                        <form onSubmit={(e) => { e.preventDefault(); handleSerialUpdate(); }}>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Serial Number
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={serialEditForm.serial_number || ''}
+                                        onChange={(e) => setSerialEditForm({
+                                            ...serialEditForm,
+                                            serial_number: e.target.value
+                                        })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Enter serial number"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Unit Price
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={serialEditForm.unit_price || ''}
+                                        onChange={(e) => setSerialEditForm({
+                                            ...serialEditForm,
+                                            unit_price: e.target.value
+                                        })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="0.00"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Notes
+                                    </label>
+                                    <textarea
+                                        value={serialEditForm.notes || ''}
+                                        onChange={(e) => setSerialEditForm({
+                                            ...serialEditForm,
+                                            notes: e.target.value
+                                        })}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                        placeholder="Optional notes..."
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <Button type="button" variant="secondary" onClick={closeSerialEditModal}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" variant="primary">
+                                    Update Serial
+                                </Button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </Modal>

@@ -9,6 +9,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\StationController;
 use App\Http\Controllers\StationHistoryController;
 use App\Http\Controllers\PeripheralController;
+use App\Http\Controllers\PeripheralSerialController;
 use App\Http\Controllers\PartController;
 use App\Http\Controllers\SystemUnitController;
 use App\Http\Controllers\SystemUnitStatsController;
@@ -79,6 +80,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('peripherals/{peripheral}/mark-damaged', [PeripheralController::class, 'markDamaged']);
     Route::get('peripherals/{peripheral}/delivery-history', [PeripheralController::class, 'deliveryHistory']);
     Route::apiResource('peripherals', PeripheralController::class);
+    
+    // Peripheral Serial management routes
+    Route::put('peripheral-serials/{peripheralSerial}', [PeripheralSerialController::class, 'update']);
+    Route::delete('peripheral-serials/{peripheralSerial}', [PeripheralSerialController::class, 'destroy']);
 });
 
 // Parts management routes

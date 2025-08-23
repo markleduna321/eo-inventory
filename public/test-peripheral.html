@@ -1,0 +1,41 @@
+<!-- Simple test page to check peripheral data -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Peripheral Test</title>
+</head>
+<body>
+    <h1>Peripheral Data Test - Fixed Version</h1>
+    <div id="result"></div>
+    
+    <script>
+        fetch('/api/peripherals')
+            .then(response => response.json())
+            .then(data => {
+                const peripheral16 = data.find(p => p.id === 16);
+                if (peripheral16) {
+                    document.getElementById('result').innerHTML = `
+                        <h2>Peripheral ID 16 (${peripheral16.brand} ${peripheral16.model})</h2>
+                        <p><strong>Available Stock:</strong> ${peripheral16.available_stock}</p>
+                        <p><strong>Deployed Stock:</strong> ${peripheral16.deployed_stock}</p>
+                        <p><strong>Damaged Stock:</strong> ${peripheral16.damaged_stock}</p>
+                        <p><strong>Total Stock:</strong> ${peripheral16.total_stock}</p>
+                        <p><strong>Uses Serial Numbers:</strong> ${peripheral16.uses_serial_numbers}</p>
+                        <p><strong>Serial Numbers Count:</strong> ${peripheral16.serial_numbers ? peripheral16.serial_numbers.length : 'N/A'}</p>
+                        <h3>Raw Data:</h3>
+                        <pre>${JSON.stringify(peripheral16, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = '<p>Peripheral ID 16 not found</p>';
+                }
+                
+                console.log('All peripherals:', data);
+                console.log('Peripheral 16:', peripheral16);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>
