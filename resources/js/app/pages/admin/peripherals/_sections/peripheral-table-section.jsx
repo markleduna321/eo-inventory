@@ -39,6 +39,9 @@ export default function PeripheralTableSection() {
     // Alert state
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
     const [serialValidation, setSerialValidation] = useState({ duplicates: [], errors: [] })
+    
+    // Serial search state
+    const [serialSearchTerm, setSerialSearchTerm] = useState('')
 
     // Validation functions
     const validateSerialNumbers = (serialNumbers) => {
@@ -321,6 +324,7 @@ export default function PeripheralTableSection() {
         setSelectedPeripheral(null)
         setEditForm({})
         setActiveTab('details')
+        setSerialSearchTerm('') // Reset search when closing modal
     }
 
     const closeStockModal = () => {
@@ -961,11 +965,91 @@ export default function PeripheralTableSection() {
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h4 className="font-medium text-gray-900">Serial Numbers</h4>
                                                     <span className="text-sm text-gray-500">
-                                                        Total: {selectedPeripheral.serial_numbers.length}
+                                                        {(() => {
+                                                            const filteredSerials = selectedPeripheral.serial_numbers.filter(serial => 
+                                                                !serialSearchTerm || 
+                                                                serial.serial_number?.toLowerCase().includes(serialSearchTerm.toLowerCase()) ||
+                                                                serial.status?.toLowerCase().includes(serialSearchTerm.toLowerCase()) ||
+                                                                serial.deployed_to?.toLowerCase().includes(serialSearchTerm.toLowerCase()) ||
+                                                                serial.notes?.toLowerCase().includes(serialSearchTerm.toLowerCase())
+                                                            );
+                                                            const totalCount = selectedPeripheral.serial_numbers.length;
+                                                            const filteredCount = filteredSerials.length;
+                                                            return serialSearchTerm 
+                                                                ? `Showing ${filteredCount} of ${totalCount}` 
+                                                                : `Total: ${totalCount}`;
+                                                        })()}
                                                     </span>
                                                 </div>
+                                                
+                                                {/* Search input for serial numbers */}
+                                                <div className="mb-4">
+                                                    <div className="relative">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search serial numbers..."
+                                                            value={serialSearchTerm}
+                                                            onChange={(e) => setSerialSearchTerm(e.target.value)}
+                                                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                                        />
+                                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                            <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                            </svg>
+                                                        </div>
+                                                        {serialSearchTerm && (
+                                                            <button
+                                                                onClick={() => setSerialSearchTerm('')}
+                                                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                                            >
+                                                                <svg className="h-4 w-4 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
                                                 <div className="grid grid-cols-1 gap-3">
-                                                    {selectedPeripheral.serial_numbers.map((serial, index) => (
+                                                    {(() => {
+                                                        const filteredSerials = selectedPeripheral.serial_numbers.filter(serial => 
+                                                            !serialSearchTerm || 
+                                                            serial.serial_number?.toLowerCase().includes(serialSearchTerm.toLowerCase()) ||
+                                                            serial.status?.toLowerCase().includes(serialSearchTerm.toLowerCase()) ||
+                                                            serial.deployed_to?.toLowerCase().includes(serialSearchTerm.toLowerCase()) ||
+                                                            serial.notes?.toLowerCase().includes(serialSearchTerm.toLowerCase())
+                                                        );
+                                                        
+                                                        if (filteredSerials.length === 0) {
+                                                            return (
+                                                                <div className="text-center py-8">
+                                                                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100">
+                                                                        <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                                                                        {serialSearchTerm ? 'No serial numbers found' : 'No serial numbers'}
+                                                                    </h3>
+                                                                    <p className="mt-1 text-sm text-gray-500">
+                                                                        {serialSearchTerm 
+                                                                            ? `No serial numbers match "${serialSearchTerm}". Try a different search term.`
+                                                                            : 'No serial numbers have been added to this peripheral yet.'
+                                                                        }
+                                                                    </p>
+                                                                    {serialSearchTerm && (
+                                                                        <button
+                                                                            onClick={() => setSerialSearchTerm('')}
+                                                                            className="mt-3 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                                                        >
+                                                                            Clear search
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        }
+                                                        
+                                                        return filteredSerials.map((serial, index) => (
                                                         <div key={serial.id || index} className="border rounded-lg p-4 bg-gray-50">
                                                             <div className="flex items-center justify-between">
                                                                 <div className="flex-1">
@@ -1031,7 +1115,8 @@ export default function PeripheralTableSection() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    ))}
+                                                        ));
+                                                    })()}
                                                 </div>
                                             </div>
                                         ) : (
