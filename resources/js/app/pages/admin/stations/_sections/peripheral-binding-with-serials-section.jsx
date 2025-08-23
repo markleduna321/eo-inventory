@@ -38,7 +38,11 @@ export default function PeripheralBindingWithSerialsSection({ stationId, onClose
             filtered = filtered.filter(p => 
                 p.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 p.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.type?.toLowerCase().includes(searchTerm.toLowerCase())
+                p.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                // Search through serial numbers
+                (p.serial_numbers && p.serial_numbers.some(serial => 
+                    serial.serial_number?.toLowerCase().includes(searchTerm.toLowerCase())
+                ))
             )
         }
         
@@ -177,7 +181,7 @@ export default function PeripheralBindingWithSerialsSection({ stationId, onClose
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search by brand or model"
+                        placeholder="Search by brand, model, or serial number"
                         className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     />
                 </div>
@@ -202,8 +206,33 @@ export default function PeripheralBindingWithSerialsSection({ stationId, onClose
                                 <div className="p-3">
                                     <p className="text-sm font-medium text-gray-700 mb-2">Select Serial Numbers:</p>
                                     <div className="space-y-2">
-                                        {peripheral.serial_numbers && peripheral.serial_numbers.length > 0 ? (
-                                            peripheral.serial_numbers.map((serial) => (
+                                        {(() => {
+                                            if (!peripheral.serial_numbers || peripheral.serial_numbers.length === 0) {
+                                                return <p className="text-sm text-gray-500">No available serial numbers</p>;
+                                            }
+                                            
+                                            // Filter serial numbers based on search term
+                                            const filteredSerials = peripheral.serial_numbers.filter(serial => {
+                                                if (!searchTerm) return true; // No search term, show all
+                                                
+                                                // Check if peripheral matched by brand/model/type (not serial)
+                                                const peripheralMatchedByNonSerial = 
+                                                    peripheral.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                    peripheral.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                    peripheral.type?.toLowerCase().includes(searchTerm.toLowerCase());
+                                                
+                                                // If peripheral matched by brand/model/type, show all serials
+                                                if (peripheralMatchedByNonSerial) return true;
+                                                
+                                                // Otherwise, only show serials that match the search term
+                                                return serial.serial_number?.toLowerCase().includes(searchTerm.toLowerCase());
+                                            });
+                                            
+                                            if (filteredSerials.length === 0) {
+                                                return <p className="text-sm text-gray-500">No serial numbers match your search</p>;
+                                            }
+                                            
+                                            return filteredSerials.map((serial) => (
                                                 <div key={serial.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-medium">{serial.serial_number}</span>
@@ -222,10 +251,8 @@ export default function PeripheralBindingWithSerialsSection({ stationId, onClose
                                                         {isPeripheralSelected(peripheral.id, serial.serial_number) ? "Remove" : "Select"}
                                                     </Button>
                                                 </div>
-                                            ))
-                                        ) : (
-                                            <p className="text-sm text-gray-500">No available serial numbers</p>
-                                        )}
+                                            ));
+                                        })()}
                                     </div>
                                 </div>
                             ) : (
