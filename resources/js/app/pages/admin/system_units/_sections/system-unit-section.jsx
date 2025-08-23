@@ -728,28 +728,7 @@ export default function SystemUnitTableSection() {
                                                 >
                                                     <QrCodeIcon className="h-4 w-4" />
                                                 </Button>
-                                                {unit.status === 'available' && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="warning"
-                                                        size="sm"
-                                                        onClick={() => openAssignModal(unit)}
-                                                        title="Assign to User"
-                                                    >
-                                                        <ComputerDesktopIcon className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                                {unit.status === 'assigned' && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="info"
-                                                        size="sm"
-                                                        onClick={() => openAssignModal(unit)}
-                                                        title="Return Unit"
-                                                    >
-                                                        <ComputerDesktopIcon className="h-4 w-4" />
-                                                    </Button>
-                                                )}
+                                                
                                                 <Button
                                                     type="button"
                                                     variant="secondary"

@@ -35,21 +35,24 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/users', [UserController::class, 'getUsers']);
-Route::resource('usermanagement', UserController::class);
+// Protected routes that require authentication
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/users', [UserController::class, 'getUsers']);
+    Route::resource('usermanagement', UserController::class);
 
-// Role management routes
-Route::apiResource('roles', RoleController::class);
+    // Role management routes
+    Route::apiResource('roles', RoleController::class);
 
-// Device management routes
-Route::apiResource('devices', DeviceController::class);
+    // Device management routes
+    Route::apiResource('devices', DeviceController::class);
 
-// Monitor management routes
-Route::apiResource('monitors', MonitorController::class);
+    // Monitor management routes
+    Route::apiResource('monitors', MonitorController::class);
 
-// Location management routes
-Route::get('locations/statistics', [LocationController::class, 'statistics']);
-Route::apiResource('locations', LocationController::class);
+    // Location management routes
+    Route::get('locations/statistics', [LocationController::class, 'statistics']);
+    Route::apiResource('locations', LocationController::class);
+});
 
 // Station management routes
 Route::get('stations/available-monitors', [StationController::class, 'getAvailableMonitors']);
@@ -58,43 +61,55 @@ Route::get('stations/available-peripherals', [StationController::class, 'getAvai
 Route::get('stations/available-peripherals-with-serials', [StationController::class, 'getAvailablePeripheralsWithSerials']);
 Route::get('stations/locations', [StationController::class, 'getLocations']);
 Route::get('stations/qr/{qrCode}', [StationController::class, 'showByQrCode']);
-Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
-Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);
-Route::post('stations/{station}/assign-peripherals', [StationController::class, 'assignPeripherals']);
-Route::get('stations/{station}/history', [StationHistoryController::class, 'index']);
-Route::apiResource('stations', StationController::class);
+
+// Protected station routes that require authentication
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('stations/{station}/assign-asset', [StationController::class, 'assignAsset']);
+    Route::post('stations/{station}/unassign-asset', [StationController::class, 'unassignAsset']);
+    Route::post('stations/{station}/assign-peripherals', [StationController::class, 'assignPeripherals']);
+    Route::get('stations/{station}/history', [StationHistoryController::class, 'index']);
+    Route::apiResource('stations', StationController::class);
+});
 
 // Peripheral management routes
-Route::post('peripherals/{peripheral}/add-stock', [PeripheralController::class, 'addStock']);
-Route::post('peripherals/{peripheral}/deploy-stock', [PeripheralController::class, 'deployStock']);
-Route::post('peripherals/{peripheral}/return-stock', [PeripheralController::class, 'returnStock']);
-Route::post('peripherals/{peripheral}/mark-damaged', [PeripheralController::class, 'markDamaged']);
-Route::get('peripherals/{peripheral}/delivery-history', [PeripheralController::class, 'deliveryHistory']);
-Route::apiResource('peripherals', PeripheralController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('peripherals/{peripheral}/add-stock', [PeripheralController::class, 'addStock']);
+    Route::post('peripherals/{peripheral}/deploy-stock', [PeripheralController::class, 'deployStock']);
+    Route::post('peripherals/{peripheral}/return-stock', [PeripheralController::class, 'returnStock']);
+    Route::post('peripherals/{peripheral}/mark-damaged', [PeripheralController::class, 'markDamaged']);
+    Route::get('peripherals/{peripheral}/delivery-history', [PeripheralController::class, 'deliveryHistory']);
+    Route::apiResource('peripherals', PeripheralController::class);
+});
 
 // Parts management routes
-Route::get('parts/types', [PartController::class, 'getPartTypes']);
-Route::get('parts/{part}/items', [PartController::class, 'getItems']);
-Route::get('parts/{part}/delivery-history', [PartController::class, 'deliveryHistory']);
-Route::post('parts/{part}/add-stock', [PartController::class, 'addStock']);
-Route::post('parts/{part}/remove-stock', [PartController::class, 'removeStock']);
-Route::post('parts/{part}/items/{item}/assign', [PartController::class, 'assignItem']);
-Route::post('parts/{part}/items/{item}/return', [PartController::class, 'returnItem']);
-Route::apiResource('parts', PartController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('parts/types', [PartController::class, 'getPartTypes']);
+    Route::get('parts/{part}/items', [PartController::class, 'getItems']);
+    Route::get('parts/{part}/delivery-history', [PartController::class, 'deliveryHistory']);
+    Route::post('parts/{part}/add-stock', [PartController::class, 'addStock']);
+    Route::post('parts/{part}/remove-stock', [PartController::class, 'removeStock']);
+    Route::post('parts/{part}/items/{item}/assign', [PartController::class, 'assignItem']);
+    Route::post('parts/{part}/items/{item}/return', [PartController::class, 'returnItem']);
+    Route::apiResource('parts', PartController::class);
+});
 
 // System Unit management routes
-Route::get('system-units/stats', [SystemUnitStatsController::class, 'index']);
-Route::get('system-units/available-parts', [SystemUnitController::class, 'getAvailableParts']);
-Route::get('system-units/with-qr', [SystemUnitController::class, 'indexWithQr']);
-Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCode']);
-Route::post('system-units/{systemUnit}/assign', [SystemUnitController::class, 'assign']);
-Route::post('system-units/{systemUnit}/return', [SystemUnitController::class, 'returnUnit']);
-Route::apiResource('system-units', SystemUnitController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('system-units/stats', [SystemUnitStatsController::class, 'index']);
+    Route::get('system-units/available-parts', [SystemUnitController::class, 'getAvailableParts']);
+    Route::get('system-units/with-qr', [SystemUnitController::class, 'indexWithQr']);
+    Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCode']);
+    Route::post('system-units/{systemUnit}/assign', [SystemUnitController::class, 'assign']);
+    Route::post('system-units/{systemUnit}/return', [SystemUnitController::class, 'returnUnit']);
+    Route::apiResource('system-units', SystemUnitController::class);
+});
 
 // Other Assets routes
-Route::get('other-assets/dropdown-options', [OtherAssetController::class, 'getDropdownOptions']);
-Route::post('other-assets/add-dropdown-option', [OtherAssetController::class, 'addDropdownOption']);
-Route::apiResource('other-assets', OtherAssetController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('other-assets/dropdown-options', [OtherAssetController::class, 'getDropdownOptions']);
+    Route::post('other-assets/add-dropdown-option', [OtherAssetController::class, 'addDropdownOption']);
+    Route::apiResource('other-assets', OtherAssetController::class);
+});
 
 // Dashboard routes (temporary - no auth for testing)
 Route::get('dashboard/stats', [DashboardController::class, 'getStats']);

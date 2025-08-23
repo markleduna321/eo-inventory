@@ -381,9 +381,6 @@ export default function PeripheralTableSection() {
                                         Stock Status
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                                        Unit Price (₱)
-                                    </th>
-                                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                                         Location
                                     </th>
                                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
@@ -442,9 +439,6 @@ export default function PeripheralTableSection() {
                                                 {getStockStatusBadge(peripheral.stock_status)}
                                             </td>
                                             <td className="px-3 py-4 text-sm text-gray-500">
-                                                {peripheral.unit_price ? `₱${parseFloat(peripheral.unit_price).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A'}
-                                            </td>
-                                            <td className="px-3 py-4 text-sm text-gray-500">
                                                 {peripheral.location.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                             </td>
                                             <td className="px-3 py-4 text-sm text-gray-500">
@@ -461,17 +455,7 @@ export default function PeripheralTableSection() {
                                                     >
                                                         <PlusIcon className="h-4 w-4" />
                                                     </Button>
-                                                    {peripheral.deployed_stock > 0 && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="warning"
-                                                            size="sm"
-                                                            onClick={() => handleReturn(peripheral)}
-                                                            title="Return Stock"
-                                                        >
-                                                            <ArrowUturnLeftIcon className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
+                                                    
                                                     <Button
                                                         type="button"
                                                         variant="primary"
