@@ -33,8 +33,14 @@ export default function SystemUnitTableSection() {
     const [qrModalOpen, setQrModalOpen] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     
+    // History state
+    const [systemUnitHistory, setSystemUnitHistory] = useState([])
+    const [historyLoading, setHistoryLoading] = useState(false)
+    const [activeTab, setActiveTab] = useState('details') // 'details' or 'history'
+    
     // Edit form state
     const [editForm, setEditForm] = useState({
+        unit_type: '',
         system_name: '',
         serial_number: '',
         brand: '',
@@ -43,9 +49,11 @@ export default function SystemUnitTableSection() {
         mac_address: '',
         status: '',
         location: '',
+        received_by: '',
         description: '',
         notes: '',
-        specifications: {}
+        specifications: {},
+        purchase_price: ''
     })
 
     // Edit form validation states
@@ -133,6 +141,30 @@ export default function SystemUnitTableSection() {
     const openDetailsModal = (unit) => {
         setSelectedUnit(unit)
         setDetailsModalOpen(true)
+        setActiveTab('details') // Reset to details tab
+        fetchSystemUnitHistory(unit.id) // Fetch history when opening modal
+    }
+    
+    // Function to fetch system unit history
+    const fetchSystemUnitHistory = async (systemUnitId) => {
+        setHistoryLoading(true)
+        try {
+            const response = await fetch(`/api/system-units/${systemUnitId}/history`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            if (response.ok) {
+                const historyData = await response.json()
+                setSystemUnitHistory(historyData)
+            } else {
+                console.error('Failed to fetch system unit history')
+                setSystemUnitHistory({ history: [], total_events: 0 })
+            }
+        } catch (error) {
+            console.error('Error fetching system unit history:', error)
+            setSystemUnitHistory({ history: [], total_events: 0 })
+        } finally {
+            setHistoryLoading(false)
+        }
     }
     
     const handleEditClick = (unit) => {
@@ -150,6 +182,7 @@ export default function SystemUnitTableSection() {
         
         // Initialize edit form with current unit values
         setEditForm({
+            unit_type: unit.unit_type || '',
             system_name: unit.system_name || '',
             serial_number: unit.serial_number || '',
             brand: unit.brand || '',
@@ -158,6 +191,7 @@ export default function SystemUnitTableSection() {
             mac_address: unit.mac_address || '',
             status: unit.status || '',
             location: unit.location || '',
+            received_by: unit.received_by || '',
             description: unit.description || '',
             notes: unit.notes || '',
             specifications: unit.specifications || {},
@@ -1074,161 +1108,300 @@ export default function SystemUnitTableSection() {
             {/* Details Modal */}
             <Modal isOpen={detailsModalOpen} onClose={closeDetailsModal}>
                 {selectedUnit && (
-                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                    <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 max-w-6xl w-full">
                         <div className="sm:flex sm:items-start">
                             <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
                                     System Unit Details - {selectedUnit.system_name}
                                 </h3>
                                 
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Tab Navigation */}
+                                <div className="border-b border-gray-200 mb-6">
+                                    <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                                        <button
+                                            onClick={() => setActiveTab('details')}
+                                            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                                                activeTab === 'details'
+                                                    ? 'border-indigo-500 text-indigo-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            Details
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('history')}
+                                            className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                                                activeTab === 'history'
+                                                    ? 'border-indigo-500 text-indigo-600'
+                                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            History
+                                            {systemUnitHistory && systemUnitHistory.total_events > 0 && (
+                                                <span className="ml-2 bg-gray-100 text-gray-900 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                                    {systemUnitHistory.total_events}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </nav>
+                                </div>
+
+                                {/* Tab Content */}
+                                {activeTab === 'details' && (
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    <div><span className="font-medium">ID:</span> #{selectedUnit.id}</div>
+                                                    <div><span className="font-medium">Serial Number:</span> {selectedUnit.serial_number}</div>
+                                                    <div><span className="font-medium">System Name:</span> {selectedUnit.system_name}</div>
+                                                    <div><span className="font-medium">Type:</span> {getUnitTypeBadge(selectedUnit.unit_type)}</div>
+                                                    {selectedUnit.brand && <div><span className="font-medium">Brand:</span> {selectedUnit.brand}</div>}
+                                                    {selectedUnit.model && <div><span className="font-medium">Model:</span> {selectedUnit.model}</div>}
+                                                    <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
+                                                    <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
+                                                    <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
+                                                    {selectedUnit.mac_address && (
+                                                        <div>
+                                                            <span className="font-medium">MAC Address:</span> 
+                                                            <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded ml-2">
+                                                                {selectedUnit.mac_address}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    <div><span className="font-medium">Purchase Price:</span> ₱{parseFloat(selectedUnit.purchase_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                                                    <div><span className="font-medium">Supplier:</span> {selectedUnit.supplier || 'N/A'}</div>
+                                                    <div><span className="font-medium">Purchase Date:</span> {selectedUnit.purchase_date || 'N/A'}</div>
+                                                    <div><span className="font-medium">Warranty Expiry:</span> {selectedUnit.warranty_expiry || 'N/A'}</div>
+                                                    <div><span className="font-medium">Received By:</span> {selectedUnit.received_by}</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Assignment Information */}
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 mb-3">Assignment Information</h4>
+                                                <div className="space-y-2 text-sm">
+                                                    {selectedUnit.station ? (
+                                                        <>
+                                                            <div><span className="font-medium">Station:</span> {selectedUnit.station.name}</div>
+                                                            <div><span className="font-medium">Station Type:</span> {selectedUnit.station.type}</div>
+                                                            <div><span className="font-medium">Department:</span> {selectedUnit.station.department}</div>
+                                                            {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div className="text-gray-500">Not assigned to any station</div>
+                                                            {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Specifications/Components */}
                                         <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">ID:</span> #{selectedUnit.id}</div>
-                                                <div><span className="font-medium">Serial Number:</span> {selectedUnit.serial_number}</div>
-                                                <div><span className="font-medium">System Name:</span> {selectedUnit.system_name}</div>
-                                                <div><span className="font-medium">Type:</span> {getUnitTypeBadge(selectedUnit.unit_type)}</div>
-                                                {selectedUnit.brand && <div><span className="font-medium">Brand:</span> {selectedUnit.brand}</div>}
-                                                {selectedUnit.model && <div><span className="font-medium">Model:</span> {selectedUnit.model}</div>}
-                                                <div><span className="font-medium">Status:</span> {getStatusBadge(selectedUnit.status)}</div>
-                                                <div><span className="font-medium">Location:</span> {selectedUnit.location}</div>
-                                                <div><span className="font-medium">Operating System:</span> {selectedUnit.operating_system || 'N/A'}</div>
-                                                {selectedUnit.mac_address && (
-                                                    <div>
-                                                        <span className="font-medium">MAC Address:</span> 
-                                                        <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded ml-2">
-                                                            {selectedUnit.mac_address}
-                                                        </span>
+                                            <h4 className="font-medium text-gray-900 mb-3">
+                                                {selectedUnit.unit_type === 'pre_built' ? 'Specifications' : 'Components'}
+                                            </h4>
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                                {selectedUnit.unit_type === 'pre_built' ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {Object.entries(selectedUnit.specifications || {}).map(([key, value]) => (
+                                                            value && (
+                                                                <div key={key} className="text-sm">
+                                                                    <span className="font-medium capitalize">{key === 'psu' ? 'Power Supply' : key}:</span> {value}
+                                                                </div>
+                                                            )
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {selectedUnit.part_items && selectedUnit.part_items.length > 0 ? (
+                                                            selectedUnit.part_items.map((item) => (
+                                                                <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded border">
+                                                                    <div>
+                                                                        <div className="font-medium capitalize">{item.pivot.component_role}</div>
+                                                                        <div className="text-sm text-gray-600">
+                                                                            {item.part.brand} {item.part.model}
+                                                                            {item.serial_number && ` (SN: ${item.serial_number})`}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-sm text-gray-500">
+                                                                        ₱{parseFloat(item.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <p className="text-gray-500">No components tracked for this system unit.</p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Purchase Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                <div><span className="font-medium">Purchase Price:</span> ₱{parseFloat(selectedUnit.purchase_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                                                <div><span className="font-medium">Supplier:</span> {selectedUnit.supplier || 'N/A'}</div>
-                                                <div><span className="font-medium">Purchase Date:</span> {selectedUnit.purchase_date || 'N/A'}</div>
-                                                <div><span className="font-medium">Warranty Expiry:</span> {selectedUnit.warranty_expiry || 'N/A'}</div>
-                                                <div><span className="font-medium">Received By:</span> {selectedUnit.received_by}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Assignment Information */}
-                                        <div>
-                                            <h4 className="font-medium text-gray-900 mb-3">Assignment Information</h4>
-                                            <div className="space-y-2 text-sm">
-                                                {selectedUnit.station ? (
-                                                    <>
-                                                        <div><span className="font-medium">Station:</span> {selectedUnit.station.name}</div>
-                                                        <div><span className="font-medium">Station Type:</span> {selectedUnit.station.type}</div>
-                                                        <div><span className="font-medium">Department:</span> {selectedUnit.station.department}</div>
-                                                        {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div className="text-gray-500">Not assigned to any station</div>
-                                                        {selectedUnit.assigned_to && <div><span className="font-medium">Assigned To:</span> {selectedUnit.assigned_to}</div>}
-                                                    </>
+                                        {/* Description and Notes */}
+                                        {(selectedUnit.description || selectedUnit.notes) && (
+                                            <div>
+                                                {selectedUnit.description && (
+                                                    <div className="mb-3">
+                                                        <h4 className="font-medium text-gray-900 mb-2">Description</h4>
+                                                        <p className="text-sm text-gray-600">{selectedUnit.description}</p>
+                                                    </div>
+                                                )}
+                                                {selectedUnit.notes && (
+                                                    <div>
+                                                        <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
+                                                        <p className="text-sm text-gray-600">{selectedUnit.notes}</p>
+                                                    </div>
                                                 )}
                                             </div>
-                                        </div>
-                                    </div>
+                                        )}
 
-                                    {/* Specifications/Components */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">
-                                            {selectedUnit.unit_type === 'pre_built' ? 'Specifications' : 'Components'}
-                                        </h4>
-                                        <div className="bg-gray-50 rounded-lg p-4">
-                                            {selectedUnit.unit_type === 'pre_built' ? (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    {Object.entries(selectedUnit.specifications || {}).map(([key, value]) => (
-                                                        value && (
-                                                            <div key={key} className="text-sm">
-                                                                <span className="font-medium capitalize">{key === 'psu' ? 'Power Supply' : key}:</span> {value}
-                                                            </div>
-                                                        )
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {selectedUnit.part_items && selectedUnit.part_items.length > 0 ? (
-                                                        selectedUnit.part_items.map((item) => (
-                                                            <div key={item.id} className="flex justify-between items-center bg-white p-3 rounded border">
-                                                                <div>
-                                                                    <div className="font-medium capitalize">{item.pivot.component_role}</div>
-                                                                    <div className="text-sm text-gray-600">
-                                                                        {item.part.brand} {item.part.model}
-                                                                        {item.serial_number && ` (SN: ${item.serial_number})`}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="text-sm text-gray-500">
-                                                                    ₱{parseFloat(item.unit_price || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                                                                </div>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <p className="text-gray-500">No components tracked for this system unit.</p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Description and Notes */}
-                                    {(selectedUnit.description || selectedUnit.notes) && (
+                                        {/* QR Code Section */}
                                         <div>
-                                            {selectedUnit.description && (
-                                                <div className="mb-3">
-                                                    <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                                                    <p className="text-sm text-gray-600">{selectedUnit.description}</p>
-                                                </div>
-                                            )}
-                                            {selectedUnit.notes && (
-                                                <div>
-                                                    <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
-                                                    <p className="text-sm text-gray-600">{selectedUnit.notes}</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* QR Code Section */}
-                                    <div>
-                                        <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
-                                        <div className="bg-gray-50 rounded-lg p-4">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="text-sm">
-                                                    <p className="text-gray-600 mb-2">Scan or share this QR code to view system unit details:</p>
-                                                    <p className="font-mono text-xs text-gray-500">QR Code: {selectedUnit.qr_code || 'Generating...'}</p>
-                                                </div>
-                                                <div className="flex space-x-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleShowQrCode(selectedUnit)}
-                                                        className="flex items-center space-x-2"
-                                                    >
-                                                        <QrCodeIcon className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="primary"
-                                                        size="sm"
-                                                        onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image?download=1`, '_blank')}
-                                                        className="flex items-center space-x-2"
-                                                    >
-                                                        <ArrowDownCircleIcon className="h-4 w-4" />
-                                                        <span>Download</span>
-                                                    </Button>
+                                            <h4 className="font-medium text-gray-900 mb-3">QR Code</h4>
+                                            <div className="bg-gray-50 rounded-lg p-4">
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="text-sm">
+                                                        <p className="text-gray-600 mb-2">Scan or share this QR code to view system unit details:</p>
+                                                        <p className="font-mono text-xs text-gray-500">QR Code: {selectedUnit.qr_code || 'Generating...'}</p>
+                                                    </div>
+                                                    <div className="flex space-x-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleShowQrCode(selectedUnit)}
+                                                            className="flex items-center space-x-2"
+                                                        >
+                                                            <QrCodeIcon className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="primary"
+                                                            size="sm"
+                                                            onClick={() => window.open(`/system-units/${selectedUnit.id}/qr-image?download=1`, '_blank')}
+                                                            className="flex items-center space-x-2"
+                                                        >
+                                                            <ArrowDownCircleIcon className="h-4 w-4" />
+                                                            <span>Download</span>
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
+
+                                {activeTab === 'history' && (
+                                    <div className="space-y-4">
+                                        {historyLoading ? (
+                                            <div className="flex justify-center items-center py-8">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                                <span className="ml-2 text-gray-600">Loading history...</span>
+                                            </div>
+                                        ) : systemUnitHistory && systemUnitHistory.history && systemUnitHistory.history.length > 0 ? (
+                                            <div className="flow-root">
+                                                <ul role="list" className="-mb-8">
+                                                    {systemUnitHistory.history.map((event, eventIdx) => (
+                                                        <li key={event.id}>
+                                                            <div className="relative pb-8">
+                                                                {eventIdx !== systemUnitHistory.history.length - 1 ? (
+                                                                    <span
+                                                                        className="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200"
+                                                                        aria-hidden="true"
+                                                                    />
+                                                                ) : null}
+                                                                <div className="relative flex space-x-3">
+                                                                    <div>
+                                                                        <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${
+                                                                            event.color === 'green' ? 'bg-green-500' :
+                                                                            event.color === 'blue' ? 'bg-blue-500' :
+                                                                            event.color === 'orange' ? 'bg-orange-500' :
+                                                                            event.color === 'red' ? 'bg-red-500' :
+                                                                            event.color === 'purple' ? 'bg-purple-500' :
+                                                                            event.color === 'yellow' ? 'bg-yellow-500' :
+                                                                            'bg-gray-500'
+                                                                        }`}>
+                                                                            {event.icon === 'plus-circle' && (
+                                                                                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            )}
+                                                                            {event.icon === 'arrow-right-circle' && (
+                                                                                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            )}
+                                                                            {event.icon === 'arrow-left-circle' && (
+                                                                                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.707-8.707l3-3a1 1 0 011.414 1.414L9.414 9H13a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            )}
+                                                                            {event.icon === 'exclamation-circle' && (
+                                                                                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            )}
+                                                                            {event.icon === 'cog' && (
+                                                                                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                                                                                </svg>
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div>
+                                                                            <div className="text-sm">
+                                                                                <span className="font-medium text-gray-900">{event.title}</span>
+                                                                            </div>
+                                                                            <p className="mt-0.5 text-sm text-gray-500">{event.description}</p>
+                                                                        </div>
+                                                                        
+                                                                        {/* Event Details */}
+                                                                        {event.details && Object.keys(event.details).length > 0 && (
+                                                                            <div className="mt-2 bg-gray-50 rounded-lg p-3">
+                                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                                                    {Object.entries(event.details).map(([key, value]) => (
+                                                                                        value && value !== 'N/A' && (
+                                                                                            <div key={key} className="text-xs">
+                                                                                                <span className="font-medium text-gray-700">{key}:</span>
+                                                                                                <span className="ml-1 text-gray-600">{value}</span>
+                                                                                            </div>
+                                                                                        )
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        
+                                                                        <div className="mt-2 flex items-center space-x-2 text-xs text-gray-500">
+                                                                            <span>{event.date} at {event.time}</span>
+                                                                            <span>•</span>
+                                                                            <span>{event.user}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <h3 className="mt-2 text-sm font-medium text-gray-900">No history available</h3>
+                                                <p className="mt-1 text-sm text-gray-500">There are no recorded events for this system unit yet.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
 
                                 <div className="flex justify-end mt-6">
                                     <Button
@@ -1262,6 +1435,21 @@ export default function SystemUnitTableSection() {
                             <form id="edit-system-unit-form" className="space-y-4 py-4" onSubmit={handleEditSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
+                                        <label htmlFor="edit_unit_type" className="block text-sm font-medium text-gray-700 mb-1">Unit Type *</label>
+                                        <SelectComponent
+                                            id="edit_unit_type"
+                                            value={editForm.unit_type}
+                                            onChange={(e) => setEditForm({...editForm, unit_type: e.target.value})}
+                                            options={[
+                                                { value: '', label: 'Select Unit Type' },
+                                                { value: 'pre_built', label: 'Pre-built' },
+                                                { value: 'custom_built', label: 'Custom Built' }
+                                            ]}
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
                                         <label htmlFor="edit_system_name" className="block text-sm font-medium text-gray-700 mb-1">System Name *</label>
                                         <InputTextComponent
                                             id="edit_system_name"
@@ -1277,6 +1465,16 @@ export default function SystemUnitTableSection() {
                                             id="edit_serial_number"
                                             value={editForm.serial_number}
                                             onChange={(e) => setEditForm({...editForm, serial_number: e.target.value})}
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label htmlFor="edit_received_by" className="block text-sm font-medium text-gray-700 mb-1">Received By *</label>
+                                        <InputTextComponent
+                                            id="edit_received_by"
+                                            value={editForm.received_by}
+                                            onChange={(e) => setEditForm({...editForm, received_by: e.target.value})}
                                             required
                                         />
                                     </div>

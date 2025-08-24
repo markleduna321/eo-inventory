@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\SystemUnit;
+use App\Models\SystemUnitAuditLog;
 use App\Models\Part;
 use App\Models\PartItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
@@ -89,6 +91,17 @@ class SystemUnitController extends Controller
             }
         }
 
+        // Log the creation event in audit log
+        $user = Auth::user();
+        $userName = $user ? $user->name : 'System';
+        $userId = $user ? $user->id : null;
+        
+        \App\Models\SystemUnitAuditLog::logCreation(
+            $systemUnit,
+            $userName,
+            $userId
+        );
+
         return response()->json($systemUnit->load(['partItems.part']), 201);
     }
 
@@ -116,6 +129,7 @@ class SystemUnitController extends Controller
             'status' => 'sometimes|in:available,assigned,maintenance,retired',
             'location' => 'sometimes|string|max:255',
             'assigned_to' => 'nullable|string|max:255',
+            'received_by' => 'sometimes|string|max:255',
             'purchase_price' => 'nullable|numeric|min:0',
             'supplier' => 'nullable|string|max:255',
             'purchase_date' => 'nullable|date',
@@ -123,6 +137,43 @@ class SystemUnitController extends Controller
             'notes' => 'nullable|string',
             'specifications' => 'nullable|array',
         ]);
+
+        // Track the user who made the changes
+        $user = Auth::user();
+        $userName = $user ? $user->name : 'System';
+        $userId = $user ? $user->id : null;
+        
+        // Get the original values before updating
+        $originalValues = $systemUnit->getOriginal();
+        
+        // Track all field changes in audit log
+        foreach ($validated as $field => $newValue) {
+            $oldValue = $originalValues[$field] ?? null;
+            
+            // Only log if value actually changed
+            if ($oldValue != $newValue) {
+                if ($field === 'status') {
+                    // Special handling for status changes
+                    \App\Models\SystemUnitAuditLog::logStatusChange(
+                        $systemUnit,
+                        $oldValue,
+                        $newValue,
+                        $userName,
+                        $userId
+                    );
+                } else {
+                    // Log other field updates
+                    \App\Models\SystemUnitAuditLog::logFieldUpdate(
+                        $systemUnit,
+                        $field,
+                        $oldValue,
+                        $newValue,
+                        $userName,
+                        $userId
+                    );
+                }
+            }
+        }
 
         $systemUnit->update($validated);
 
@@ -312,5 +363,243 @@ class SystemUnitController extends Controller
         $isDuplicate = $query->exists();
 
         return response()->json(['isDuplicate' => $isDuplicate]);
+    }
+
+    /**
+     * Get comprehensive history for a system unit
+     */
+    public function history(SystemUnit $systemUnit): JsonResponse
+    {
+        $history = [];
+        $currentUser = Auth::user();
+        $currentUserName = $currentUser ? $currentUser->name : 'System';
+        
+        // 1. Creation/Delivery Event
+        $history[] = [
+            'id' => 'creation-' . $systemUnit->id,
+            'type' => 'created',
+            'title' => 'System Unit Created',
+            'description' => "System unit '{$systemUnit->system_name}' was added to inventory",
+            'details' => [
+                'Serial Number' => $systemUnit->serial_number,
+                'Brand' => $systemUnit->brand,
+                'Model' => $systemUnit->model,
+                'Location' => $systemUnit->location,
+                'Received By' => $systemUnit->received_by,
+                'Purchase Price' => $systemUnit->purchase_price ? '₱' . number_format($systemUnit->purchase_price, 2) : 'N/A'
+            ],
+            'user' => $systemUnit->received_by,
+            'timestamp' => $systemUnit->created_at->toISOString(),
+            'date' => $systemUnit->created_at->format('M j, Y'),
+            'time' => $systemUnit->created_at->format('g:i A'),
+            'icon' => 'plus-circle',
+            'color' => 'green'
+        ];
+
+        // 2. Station Assignment History
+        // Get ALL assignments from station_assets table (both active and inactive)
+        $assignments = \DB::table('station_assets')
+            ->join('stations', 'station_assets.station_id', '=', 'stations.id')
+            ->where('station_assets.asset_id', $systemUnit->id)
+            ->where('station_assets.asset_type', 'system_unit')
+            ->orderBy('station_assets.created_at', 'desc')
+            ->select([
+                'station_assets.*',
+                'stations.name as station_name',
+                'stations.type as station_type',
+                'stations.department'
+            ])
+            ->get();
+
+        foreach ($assignments as $assignment) {
+            $assignmentDate = \Carbon\Carbon::parse($assignment->created_at);
+            
+            // Add assignment event
+            $history[] = [
+                'id' => 'assignment-' . $assignment->id,
+                'type' => 'assigned',
+                'title' => 'Assigned to Station',
+                'description' => "Assigned to station '{$assignment->station_name}'",
+                'details' => [
+                    'Station' => $assignment->station_name,
+                    'Station Type' => $assignment->station_type,
+                    'Department' => $assignment->department,
+                    'Assigned By' => $assignment->assigned_by ?? $currentUserName,
+                    'Notes' => $assignment->notes ?? 'N/A'
+                ],
+                'user' => $assignment->assigned_by ?? $currentUserName,
+                'timestamp' => $assignmentDate->toISOString(),
+                'date' => $assignmentDate->format('M j, Y'),
+                'time' => $assignmentDate->format('g:i A'),
+                'icon' => 'arrow-right-circle',
+                'color' => 'blue'
+            ];
+            
+            // Add unassignment event if it exists
+            if ($assignment->unassigned_at) {
+                $unbindDate = \Carbon\Carbon::parse($assignment->unassigned_at);
+                $history[] = [
+                    'id' => 'unassignment-' . $assignment->id,
+                    'type' => 'unassigned',
+                    'title' => 'Unbound from Station',
+                    'description' => "Unbound from station '{$assignment->station_name}'",
+                    'details' => [
+                        'Station' => $assignment->station_name,
+                        'Reason' => $assignment->unbind_reason ?? 'N/A',
+                        'Unbound By' => $assignment->unassigned_by ?? $currentUserName,
+                        'Notes' => $assignment->notes ?? 'N/A'
+                    ],
+                    'user' => $assignment->unassigned_by ?? $currentUserName,
+                    'timestamp' => $unbindDate->toISOString(),
+                    'date' => $unbindDate->format('M j, Y'),
+                    'time' => $unbindDate->format('g:i A'),
+                    'icon' => 'arrow-left-circle',
+                    'color' => 'orange'
+                ];
+            }
+        }
+
+        // 3. Audit Log Events (Status Changes and Field Updates)
+        $auditLogs = $systemUnit->auditLogs()
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($auditLogs as $auditLog) {
+            $logDate = \Carbon\Carbon::parse($auditLog->created_at);
+            
+            if ($auditLog->event_type === 'status_change') {
+                $statusLabels = [
+                    'available' => 'Available',
+                    'assigned' => 'Assigned', 
+                    'maintenance' => 'Under Maintenance',
+                    'retired' => 'Retired'
+                ];
+                
+                $statusColors = [
+                    'available' => 'green',
+                    'assigned' => 'blue',
+                    'maintenance' => 'yellow',
+                    'retired' => 'red'
+                ];
+
+                $history[] = [
+                    'id' => 'audit-' . $auditLog->id,
+                    'type' => 'status_change',
+                    'title' => 'Status Changed',
+                    'description' => $auditLog->description,
+                    'details' => [
+                        'Previous Status' => $statusLabels[$auditLog->old_value] ?? $auditLog->old_value,
+                        'New Status' => $statusLabels[$auditLog->new_value] ?? $auditLog->new_value,
+                        'Changed By' => $auditLog->user_name,
+                        'Reason' => $auditLog->metadata['reason'] ?? 'N/A'
+                    ],
+                    'user' => $auditLog->user_name,
+                    'timestamp' => $logDate->toISOString(),
+                    'date' => $logDate->format('M j, Y'),
+                    'time' => $logDate->format('g:i A'),
+                    'icon' => 'arrow-path',
+                    'color' => $statusColors[$auditLog->new_value] ?? 'gray'
+                ];
+            } elseif ($auditLog->event_type === 'field_update') {
+                $history[] = [
+                    'id' => 'audit-' . $auditLog->id,
+                    'type' => 'field_update',
+                    'title' => 'Information Updated',
+                    'description' => $auditLog->description,
+                    'details' => [
+                        'Field' => $auditLog->field_name,
+                        'Previous Value' => $auditLog->old_value ?? 'N/A',
+                        'New Value' => $auditLog->new_value ?? 'N/A',
+                        'Updated By' => $auditLog->user_name
+                    ],
+                    'user' => $auditLog->user_name,
+                    'timestamp' => $logDate->toISOString(),
+                    'date' => $logDate->format('M j, Y'),
+                    'time' => $logDate->format('g:i A'),
+                    'icon' => 'pencil-square',
+                    'color' => 'blue'
+                ];
+            } elseif ($auditLog->event_type === 'creation') {
+                $history[] = [
+                    'id' => 'audit-' . $auditLog->id,
+                    'type' => 'created',
+                    'title' => 'System Unit Created',
+                    'description' => $auditLog->description,
+                    'details' => [
+                        'Serial Number' => $auditLog->metadata['serial_number'] ?? $systemUnit->serial_number,
+                        'Unit Type' => $auditLog->metadata['unit_type'] ?? $systemUnit->unit_type,
+                        'Model' => $auditLog->metadata['model'] ?? $systemUnit->model ?? 'N/A',
+                        'Manufacturer' => $auditLog->metadata['manufacturer'] ?? $systemUnit->manufacturer ?? 'N/A',
+                        'Created By' => $auditLog->user_name,
+                        'Initial Status' => 'Available'
+                    ],
+                    'user' => $auditLog->user_name,
+                    'timestamp' => $logDate->toISOString(),
+                    'date' => $logDate->format('M j, Y'),
+                    'time' => $logDate->format('g:i A'),
+                    'icon' => 'plus-circle',
+                    'color' => 'green'
+                ];
+            }
+        }
+
+        // 4. Component Changes (for custom built units)
+        if ($systemUnit->unit_type === 'custom_built') {
+            $componentHistory = \DB::table('part_item_system_unit')
+                ->join('part_items', 'part_item_system_unit.part_item_id', '=', 'part_items.id')
+                ->join('parts', 'part_items.part_id', '=', 'parts.id')
+                ->where('part_item_system_unit.system_unit_id', $systemUnit->id)
+                ->select([
+                    'part_item_system_unit.*',
+                    'part_items.serial_number as component_serial',
+                    'parts.brand',
+                    'parts.model',
+                    'parts.category'
+                ])
+                ->get();
+
+            foreach ($componentHistory as $component) {
+                $componentDate = \Carbon\Carbon::parse($component->created_at ?? $systemUnit->created_at);
+                
+                $history[] = [
+                    'id' => 'component-' . $component->part_item_id,
+                    'type' => 'component_added',
+                    'title' => 'Component Added',
+                    'description' => "Added {$component->category} component",
+                    'details' => [
+                        'Component Role' => ucfirst($component->component_role),
+                        'Brand' => $component->brand,
+                        'Model' => $component->model,
+                        'Serial Number' => $component->component_serial ?? 'N/A',
+                        'Category' => $component->category
+                    ],
+                    'user' => 'System',
+                    'timestamp' => $componentDate->toISOString(),
+                    'date' => $componentDate->format('M j, Y'),
+                    'time' => $componentDate->format('g:i A'),
+                    'icon' => 'cog',
+                    'color' => 'purple'
+                ];
+            }
+        }
+
+        // 5. Maintenance Events (placeholder for future implementation)
+        // This would come from a maintenance_logs table
+        
+        // Sort history by timestamp (most recent first)
+        usort($history, function($a, $b) {
+            return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+        });
+
+        return response()->json([
+            'history' => $history,
+            'total_events' => count($history),
+            'system_unit' => [
+                'id' => $systemUnit->id,
+                'system_name' => $systemUnit->system_name,
+                'serial_number' => $systemUnit->serial_number,
+                'current_status' => $systemUnit->status
+            ]
+        ]);
     }
 }

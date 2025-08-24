@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class SystemUnit extends Model
@@ -59,6 +60,14 @@ class SystemUnit extends Model
     public function station()
     {
         return $this->belongsTo(Station::class);
+    }
+
+    /**
+     * Get the audit logs for this system unit
+     */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(SystemUnitAuditLog::class);
     }
 
     /**
