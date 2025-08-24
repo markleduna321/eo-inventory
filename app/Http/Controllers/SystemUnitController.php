@@ -290,4 +290,27 @@ class SystemUnitController extends Controller
 
         return response()->json($systemUnits);
     }
+
+    /**
+     * Check if a serial number is already in use
+     */
+    public function checkDuplicateSerial(Request $request): JsonResponse
+    {
+        $serialNumber = $request->query('serial');
+        $excludeId = $request->query('exclude');
+
+        if (!$serialNumber) {
+            return response()->json(['isDuplicate' => false]);
+        }
+
+        $query = SystemUnit::where('serial_number', $serialNumber);
+        
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $isDuplicate = $query->exists();
+
+        return response()->json(['isDuplicate' => $isDuplicate]);
+    }
 }

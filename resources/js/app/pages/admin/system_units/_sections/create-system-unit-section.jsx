@@ -4,6 +4,17 @@ import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
+import InputError from '@/app/pages/components/InputError'
+import {
+    validateForm,
+    validateField,
+    getRealTimeValidation,
+    sanitizeFormData,
+    checkDuplicateSerial,
+    hasFormErrors,
+    validateSpecifications,
+    validateComponents
+} from '@/app/utils/systemUnitValidation'
 
 export default function CreateSystemUnitSection() {
     const { auth } = usePage().props
@@ -11,6 +22,16 @@ export default function CreateSystemUnitSection() {
     const [loading, setLoading] = useState(false)
     const [availableParts, setAvailableParts] = useState([])
     const [currentUser, setCurrentUser] = useState({ name: '' })
+    
+    // Validation states
+    const [errors, setErrors] = useState({})
+    const [backendErrors, setBackendErrors] = useState({})
+    const [isValidating, setIsValidating] = useState(false)
+    const [duplicateSerialCheck, setDuplicateSerialCheck] = useState({
+        isChecking: false,
+        isDuplicate: false,
+        lastChecked: ''
+    })
     
     // Get stored username if available (same approach as parts component)
     const storedUser = localStorage.getItem('userName') || '';
@@ -58,10 +79,27 @@ export default function CreateSystemUnitSection() {
         components: []
     })
 
-    const openModal = () => setModalOpen(true)
+    const openModal = () => {
+        setModalOpen(true)
+        setErrors({})
+        setBackendErrors({})
+        setDuplicateSerialCheck({
+            isChecking: false,
+            isDuplicate: false,
+            lastChecked: ''
+        })
+    }
+    
     const closeModal = () => {
         setModalOpen(false)
         resetForm()
+        setErrors({})
+        setBackendErrors({})
+        setDuplicateSerialCheck({
+            isChecking: false,
+            isDuplicate: false,
+            lastChecked: ''
+        })
     }
 
     const resetForm = () => {
@@ -141,13 +179,84 @@ export default function CreateSystemUnitSection() {
     }, [isModalOpen, formData.unit_type])
 
     const handleInputChange = (field, value) => {
+        console.log(`System Unit Validation - Field changed: ${field}, Value: ${value}`);
+        
         setFormData(prev => ({
             ...prev,
             [field]: value
         }))
+
+        // Clear backend error for this field
+        if (backendErrors[field]) {
+            setBackendErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors[field]
+                return newErrors
+            })
+        }
+
+        // Real-time validation with debounce for serial number
+        if (field === 'serial_number') {
+            // Clear existing duplicate check
+            setDuplicateSerialCheck(prev => ({
+                ...prev,
+                isDuplicate: false,
+                lastChecked: ''
+            }))
+
+            // Validate field format first
+            const validation = validateField(field, value)
+            setErrors(prev => ({
+                ...prev,
+                [field]: validation.isValid ? '' : validation.message
+            }))
+
+            // Check for duplicates if field is valid and not empty
+            if (validation.isValid && value && value.trim().length >= 3) {
+                const timeoutId = setTimeout(async () => {
+                    setDuplicateSerialCheck(prev => ({ ...prev, isChecking: true }))
+                    
+                    try {
+                        const isDuplicate = await checkDuplicateSerial(value.trim())
+                        setDuplicateSerialCheck({
+                            isChecking: false,
+                            isDuplicate,
+                            lastChecked: value.trim()
+                        })
+
+                        if (isDuplicate) {
+                            setErrors(prev => ({
+                                ...prev,
+                                [field]: 'This serial number is already in use'
+                            }))
+                        } else {
+                            // Clear error if no duplicate and field is valid
+                            setErrors(prev => ({
+                                ...prev,
+                                [field]: ''
+                            }))
+                        }
+                    } catch (error) {
+                        console.error('Error checking duplicate serial:', error)
+                        setDuplicateSerialCheck(prev => ({ ...prev, isChecking: false }))
+                    }
+                }, 500) // 500ms debounce
+
+                return () => clearTimeout(timeoutId)
+            }
+        } else {
+            // Regular field validation
+            const validation = validateField(field, value)
+            setErrors(prev => ({
+                ...prev,
+                [field]: validation.isValid ? '' : validation.message
+            }))
+        }
     }
 
     const handleSpecificationChange = (specKey, value) => {
+        console.log(`Specification changed: ${specKey}, Value: ${value}`);
+        
         setFormData(prev => ({
             ...prev,
             specifications: {
@@ -155,6 +264,37 @@ export default function CreateSystemUnitSection() {
                 [specKey]: value
             }
         }))
+
+        // Clear backend error for this specification field
+        if (backendErrors.specifications && backendErrors.specifications[specKey]) {
+            setBackendErrors(prev => {
+                const newErrors = { ...prev }
+                if (newErrors.specifications) {
+                    delete newErrors.specifications[specKey]
+                    if (Object.keys(newErrors.specifications).length === 0) {
+                        delete newErrors.specifications
+                    }
+                }
+                return newErrors
+            })
+        }
+
+        // Real-time validation for specification
+        const validation = getRealTimeValidation(`specifications.${specKey}`, formData)(value)
+        setErrors(prev => {
+            const newErrors = { ...prev }
+            if (!newErrors.specifications) {
+                newErrors.specifications = {}
+            }
+            newErrors.specifications[specKey] = validation.isValid ? '' : validation.message
+            
+            // Clean up empty specification errors
+            if (Object.values(newErrors.specifications).every(error => !error)) {
+                delete newErrors.specifications
+            }
+            
+            return newErrors
+        })
     }
 
     const addComponent = () => {
@@ -175,16 +315,83 @@ export default function CreateSystemUnitSection() {
     }
 
     const handleComponentChange = (index, field, value) => {
+        console.log(`Component changed: Index ${index}, Field: ${field}, Value: ${value}`);
+        
         const newComponents = [...formData.components]
         newComponents[index] = { ...newComponents[index], [field]: value }
         setFormData(prev => ({ ...prev, components: newComponents }))
+
+        // Clear backend error for this component field
+        if (backendErrors.components && backendErrors.components[index] && backendErrors.components[index][field]) {
+            setBackendErrors(prev => {
+                const newErrors = { ...prev }
+                if (newErrors.components && newErrors.components[index]) {
+                    delete newErrors.components[index][field]
+                    if (Object.keys(newErrors.components[index]).length === 0) {
+                        delete newErrors.components[index]
+                    }
+                    if (Object.keys(newErrors.components).length === 0) {
+                        delete newErrors.components
+                    }
+                }
+                return newErrors
+            })
+        }
+
+        // Validate components after change
+        const componentErrors = validateComponents(newComponents)
+        setErrors(prev => {
+            const newErrors = { ...prev }
+            if (Object.keys(componentErrors).length > 0) {
+                newErrors.components = componentErrors
+            } else {
+                delete newErrors.components
+            }
+            return newErrors
+        })
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        
+        console.log('System Unit Validation - Form submission started');
+        console.log('Form data:', formData);
+        
         setLoading(true)
+        setIsValidating(true)
+        setBackendErrors({})
 
         try {
+            // Client-side validation
+            const validationErrors = validateForm(formData)
+            console.log('Validation errors:', validationErrors);
+            
+            if (hasFormErrors(validationErrors)) {
+                setErrors(validationErrors)
+                setLoading(false)
+                setIsValidating(false)
+                console.log('Form validation failed, not submitting');
+                return
+            }
+
+            // Check for duplicate serial one more time before submission
+            if (formData.serial_number && formData.serial_number.trim()) {
+                const isDuplicate = await checkDuplicateSerial(formData.serial_number.trim())
+                if (isDuplicate) {
+                    setErrors(prev => ({
+                        ...prev,
+                        serial_number: 'This serial number is already in use'
+                    }))
+                    setLoading(false)
+                    setIsValidating(false)
+                    return
+                }
+            }
+
+            // Sanitize form data
+            const sanitizedData = sanitizeFormData(formData)
+            console.log('Sanitized data for submission:', sanitizedData);
+
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
             
             const headers = {
@@ -199,22 +406,44 @@ export default function CreateSystemUnitSection() {
             const response = await fetch('/api/system-units', {
                 method: 'POST',
                 headers: headers,
-                body: JSON.stringify(formData)
+                body: JSON.stringify(sanitizedData)
             })
 
+            const responseData = await response.json()
+            console.log('API Response:', response.status, responseData);
+
             if (response.ok) {
+                console.log('System unit created successfully');
                 closeModal()
                 window.location.reload() // Refresh to show new system unit
+            } else if (response.status === 422) {
+                // Handle validation errors from backend
+                console.log('Backend validation errors:', responseData.errors);
+                
+                if (responseData.errors) {
+                    setBackendErrors(responseData.errors)
+                    
+                    // Also set client-side errors for immediate display
+                    const formattedErrors = {}
+                    Object.keys(responseData.errors).forEach(field => {
+                        if (Array.isArray(responseData.errors[field])) {
+                            formattedErrors[field] = responseData.errors[field][0]
+                        } else {
+                            formattedErrors[field] = responseData.errors[field]
+                        }
+                    })
+                    setErrors(formattedErrors)
+                }
             } else {
-                const errorData = await response.json()
-                console.error('Failed to create system unit:', errorData)
-                alert('Failed to create system unit. Please check the form and try again.')
+                console.error('Failed to create system unit:', responseData)
+                alert(responseData.message || 'Failed to create system unit. Please check the form and try again.')
             }
         } catch (error) {
             console.error('Error creating system unit:', error)
             alert('An error occurred while creating the system unit.')
         } finally {
             setLoading(false)
+            setIsValidating(false)
         }
     }
 
@@ -270,6 +499,33 @@ export default function CreateSystemUnitSection() {
         return options
     }
 
+    // Helper function to get error message for a field
+    const getFieldError = (fieldName) => {
+        return backendErrors[fieldName] || errors[fieldName] || ''
+    }
+
+    // Helper function to get specification error
+    const getSpecificationError = (specKey) => {
+        return (backendErrors.specifications && backendErrors.specifications[specKey]) || 
+               (errors.specifications && errors.specifications[specKey]) || ''
+    }
+
+    // Helper function to get component error
+    const getComponentError = (index, field) => {
+        return (backendErrors.components && backendErrors.components[index] && backendErrors.components[index][field]) ||
+               (errors.components && errors.components[index] && errors.components[index][field]) || ''
+    }
+
+    // Helper function to check if form can be submitted
+    const canSubmitForm = () => {
+        const hasClientErrors = hasFormErrors(errors)
+        const hasBackendErrors = hasFormErrors(backendErrors)
+        const isCheckingSerial = duplicateSerialCheck.isChecking
+        const hasRequiredFields = formData.unit_type && formData.system_name && formData.status && formData.received_by
+        
+        return !hasClientErrors && !hasBackendErrors && !isCheckingSerial && hasRequiredFields && !loading
+    }
+
     return (
         <div>
             <Button
@@ -306,6 +562,9 @@ export default function CreateSystemUnitSection() {
                                     onChange={(e) => handleInputChange('unit_type', e.target.value)}
                                     required
                                 />
+                                {getFieldError('unit_type') && (
+                                    <InputError message={getFieldError('unit_type')} />
+                                )}
                                 <p className="text-xs text-gray-500 mt-1">
                                     Choose "Pre-built" for complete systems or "Custom Built" to assemble from parts inventory
                                 </p>
@@ -324,12 +583,22 @@ export default function CreateSystemUnitSection() {
                                         placeholder="e.g. Workstation 001"
                                         value={formData.system_name}
                                         onChange={(e) => handleInputChange('system_name', e.target.value)}
+                                        onBlur={(e) => handleInputChange('system_name', e.target.value)}
                                         required
                                     />
+                                    {getFieldError('system_name') && (
+                                        <InputError message={getFieldError('system_name')} />
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="serial_number" className="block text-sm font-medium text-gray-700 mb-1">
                                         Serial Number
+                                        {duplicateSerialCheck.isChecking && (
+                                            <span className="ml-2 text-blue-600 text-xs">
+                                                <i className="animate-spin inline-block w-3 h-3 border border-blue-600 border-t-transparent rounded-full mr-1"></i>
+                                                Checking...
+                                            </span>
+                                        )}
                                     </label>
                                     <InputTextComponent
                                         id="serial_number"
@@ -338,7 +607,16 @@ export default function CreateSystemUnitSection() {
                                         placeholder="Auto-generated if empty"
                                         value={formData.serial_number}
                                         onChange={(e) => handleInputChange('serial_number', e.target.value)}
+                                        onBlur={(e) => handleInputChange('serial_number', e.target.value)}
                                     />
+                                    {getFieldError('serial_number') && (
+                                        <InputError message={getFieldError('serial_number')} />
+                                    )}
+                                    {duplicateSerialCheck.isDuplicate && formData.serial_number && (
+                                        <div className="text-red-600 text-sm mt-1">
+                                            This serial number is already in use
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -356,7 +634,11 @@ export default function CreateSystemUnitSection() {
                                             placeholder="e.g. Dell, HP, Custom"
                                             value={formData.brand}
                                             onChange={(e) => handleInputChange('brand', e.target.value)}
+                                            onBlur={(e) => handleInputChange('brand', e.target.value)}
                                         />
+                                        {getFieldError('brand') && (
+                                            <InputError message={getFieldError('brand')} />
+                                        )}
                                     </div>
                                     <div>
                                         <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
@@ -369,7 +651,11 @@ export default function CreateSystemUnitSection() {
                                             placeholder="e.g. OptiPlex 7070"
                                             value={formData.model}
                                             onChange={(e) => handleInputChange('model', e.target.value)}
+                                            onBlur={(e) => handleInputChange('model', e.target.value)}
                                         />
+                                        {getFieldError('model') && (
+                                            <InputError message={getFieldError('model')} />
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -388,10 +674,13 @@ export default function CreateSystemUnitSection() {
                                         onChange={(e) => handleInputChange('status', e.target.value)}
                                         required
                                     />
+                                    {getFieldError('status') && (
+                                        <InputError message={getFieldError('status')} />
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                                        Location *
+                                        Location
                                     </label>
                                     <SelectComponent
                                         id="location"
@@ -399,8 +688,10 @@ export default function CreateSystemUnitSection() {
                                         options={locations}
                                         value={formData.location}
                                         onChange={(e) => handleInputChange('location', e.target.value)}
-                                        required
                                     />
+                                    {getFieldError('location') && (
+                                        <InputError message={getFieldError('location')} />
+                                    )}
                                 </div>
                             </div>
 
@@ -417,7 +708,11 @@ export default function CreateSystemUnitSection() {
                                         placeholder="e.g. Windows 11 Pro, Ubuntu 22.04"
                                         value={formData.operating_system}
                                         onChange={(e) => handleInputChange('operating_system', e.target.value)}
+                                        onBlur={(e) => handleInputChange('operating_system', e.target.value)}
                                     />
+                                    {getFieldError('operating_system') && (
+                                        <InputError message={getFieldError('operating_system')} />
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="mac_address" className="block text-sm font-medium text-gray-700 mb-1">
@@ -430,7 +725,11 @@ export default function CreateSystemUnitSection() {
                                         placeholder="e.g. 00:1B:44:11:3A:B7 or 00-1B-44-11-3A-B7"
                                         value={formData.mac_address}
                                         onChange={(e) => handleInputChange('mac_address', e.target.value)}
+                                        onBlur={(e) => handleInputChange('mac_address', e.target.value)}
                                     />
+                                    {getFieldError('mac_address') && (
+                                        <InputError message={getFieldError('mac_address')} />
+                                    )}
                                     <p className="text-xs text-gray-500 mt-1">
                                         Format: XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX
                                     </p>
@@ -451,10 +750,17 @@ export default function CreateSystemUnitSection() {
                                                     placeholder={`Enter ${key} details`}
                                                     value={value}
                                                     onChange={(e) => handleSpecificationChange(key, e.target.value)}
+                                                    onBlur={(e) => handleSpecificationChange(key, e.target.value)}
                                                 />
+                                                {getSpecificationError(key) && (
+                                                    <InputError message={getSpecificationError(key)} />
+                                                )}
                                             </div>
                                         ))}
                                     </div>
+                                    {errors.specifications && errors.specifications.general && (
+                                        <InputError message={errors.specifications.general} />
+                                    )}
                                 </div>
                             ) : (
                                 <div>
@@ -482,6 +788,9 @@ export default function CreateSystemUnitSection() {
                                                         onChange={(e) => handleComponentChange(index, 'component_role', e.target.value)}
                                                         required
                                                     />
+                                                    {getComponentError(index, 'component_role') && (
+                                                        <InputError message={getComponentError(index, 'component_role')} />
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -494,6 +803,9 @@ export default function CreateSystemUnitSection() {
                                                         required
                                                         disabled={!component.component_role}
                                                     />
+                                                    {getComponentError(index, 'part_item_id') && (
+                                                        <InputError message={getComponentError(index, 'part_item_id')} />
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className="flex justify-end">
@@ -513,6 +825,12 @@ export default function CreateSystemUnitSection() {
                                             Add components from your parts inventory to build this system unit.
                                         </p>
                                     )}
+                                    {errors.components && errors.components.general && (
+                                        <InputError message={errors.components.general} />
+                                    )}
+                                    {errors.components && errors.components.duplicateRoles && (
+                                        <InputError message={errors.components.duplicateRoles} />
+                                    )}
                                 </div>
                             )}
 
@@ -530,7 +848,11 @@ export default function CreateSystemUnitSection() {
                                         placeholder="0.00"
                                         value={formData.purchase_price}
                                         onChange={(e) => handleInputChange('purchase_price', e.target.value)}
+                                        onBlur={(e) => handleInputChange('purchase_price', e.target.value)}
                                     />
+                                    {getFieldError('purchase_price') && (
+                                        <InputError message={getFieldError('purchase_price')} />
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="supplier" className="block text-sm font-medium text-gray-700 mb-1">
@@ -543,7 +865,11 @@ export default function CreateSystemUnitSection() {
                                         placeholder="e.g. Dell Direct, Local Vendor"
                                         value={formData.supplier}
                                         onChange={(e) => handleInputChange('supplier', e.target.value)}
+                                        onBlur={(e) => handleInputChange('supplier', e.target.value)}
                                     />
+                                    {getFieldError('supplier') && (
+                                        <InputError message={getFieldError('supplier')} />
+                                    )}
                                 </div>
                             </div>
 
@@ -558,7 +884,11 @@ export default function CreateSystemUnitSection() {
                                         type="date"
                                         value={formData.purchase_date}
                                         onChange={(e) => handleInputChange('purchase_date', e.target.value)}
+                                        onBlur={(e) => handleInputChange('purchase_date', e.target.value)}
                                     />
+                                    {getFieldError('purchase_date') && (
+                                        <InputError message={getFieldError('purchase_date')} />
+                                    )}
                                 </div>
                                 <div>
                                     <label htmlFor="warranty_expiry" className="block text-sm font-medium text-gray-700 mb-1">
@@ -570,7 +900,11 @@ export default function CreateSystemUnitSection() {
                                         type="date"
                                         value={formData.warranty_expiry}
                                         onChange={(e) => handleInputChange('warranty_expiry', e.target.value)}
+                                        onBlur={(e) => handleInputChange('warranty_expiry', e.target.value)}
                                     />
+                                    {getFieldError('warranty_expiry') && (
+                                        <InputError message={getFieldError('warranty_expiry')} />
+                                    )}
                                 </div>
                             </div>
 
@@ -587,7 +921,11 @@ export default function CreateSystemUnitSection() {
                                         placeholder="User name or department"
                                         value={formData.assigned_to}
                                         onChange={(e) => handleInputChange('assigned_to', e.target.value)}
+                                        onBlur={(e) => handleInputChange('assigned_to', e.target.value)}
                                     />
+                                    {getFieldError('assigned_to') && (
+                                        <InputError message={getFieldError('assigned_to')} />
+                                    )}
                                 </div>
                             )}
 
@@ -604,7 +942,11 @@ export default function CreateSystemUnitSection() {
                                     placeholder="Description of the system unit..."
                                     value={formData.description}
                                     onChange={(e) => handleInputChange('description', e.target.value)}
+                                    onBlur={(e) => handleInputChange('description', e.target.value)}
                                 />
+                                {getFieldError('description') && (
+                                    <InputError message={getFieldError('description')} />
+                                )}
                             </div>
 
                             <div>
@@ -619,7 +961,11 @@ export default function CreateSystemUnitSection() {
                                     placeholder="Additional notes..."
                                     value={formData.notes}
                                     onChange={(e) => handleInputChange('notes', e.target.value)}
+                                    onBlur={(e) => handleInputChange('notes', e.target.value)}
                                 />
+                                {getFieldError('notes') && (
+                                    <InputError message={getFieldError('notes')} />
+                                )}
                             </div>
 
                             {/* Hidden field for received_by (controlled) */}
@@ -653,10 +999,10 @@ export default function CreateSystemUnitSection() {
                                     type="submit"
                                     variant="primary"
                                     size="md"
-                                    disabled={loading}
+                                    disabled={!canSubmitForm()}
                                     form="create-system-unit-form"
                                 >
-                                    {loading ? 'Saving...' : 'Save System Unit'}
+                                    {loading ? 'Saving...' : isValidating ? 'Validating...' : 'Save System Unit'}
                                 </Button>
                             </div>
                         </div>

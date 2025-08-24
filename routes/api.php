@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('system-units/stats', [SystemUnitStatsController::class, 'index']);
     Route::get('system-units/available-parts', [SystemUnitController::class, 'getAvailableParts']);
+    Route::get('system-units/check-duplicate-serial', [SystemUnitController::class, 'checkDuplicateSerial']);
     Route::get('system-units/with-qr', [SystemUnitController::class, 'indexWithQr']);
     Route::get('system-units/qr/{qrCode}', [SystemUnitController::class, 'showByQrCode']);
     Route::post('system-units/{systemUnit}/assign', [SystemUnitController::class, 'assign']);

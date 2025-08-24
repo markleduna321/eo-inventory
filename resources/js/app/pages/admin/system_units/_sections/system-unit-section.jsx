@@ -3,11 +3,20 @@ import Button from '@/app/pages/components/button'
 import Modal from '@/app/pages/components/modal'
 import DeleteConfirmationModal from '@/app/pages/components/delete-confirmation-modal'
 import InputTextComponent from '@/app/pages/components/input-text-component'
+import InputError from '@/app/pages/components/InputError'
 import SelectComponent from '@/app/pages/components/input-select'
 import QrScanner from './QrScanner'
 import { ArrowDownCircleIcon, EyeIcon, PrinterIcon, ComputerDesktopIcon, CpuChipIcon, QrCodeIcon, PencilIcon, TrashIcon, CameraIcon } from '@heroicons/react/24/outline'
 import PaginationSection from './pagination-section'
 import ActionButtonSection from './action-button-section'
+import {
+    validateForm,
+    validateField,
+    getRealTimeValidation,
+    sanitizeFormData,
+    checkDuplicateSerial,
+    hasFormErrors
+} from '@/app/utils/systemUnitValidation'
 
 export default function SystemUnitTableSection() {
     const [systemUnits, setSystemUnits] = useState([])
@@ -37,6 +46,16 @@ export default function SystemUnitTableSection() {
         description: '',
         notes: '',
         specifications: {}
+    })
+
+    // Edit form validation states
+    const [editErrors, setEditErrors] = useState({})
+    const [editBackendErrors, setEditBackendErrors] = useState({})
+    const [isEditValidating, setIsEditValidating] = useState(false)
+    const [editDuplicateSerialCheck, setEditDuplicateSerialCheck] = useState({
+        isChecking: false,
+        isDuplicate: false,
+        lastChecked: ''
     })
 
     // Filter states
@@ -120,6 +139,15 @@ export default function SystemUnitTableSection() {
         setSelectedUnit(unit)
         setEditModalOpen(true)
         
+        // Clear validation states
+        setEditErrors({})
+        setEditBackendErrors({})
+        setEditDuplicateSerialCheck({
+            isChecking: false,
+            isDuplicate: false,
+            lastChecked: ''
+        })
+        
         // Initialize edit form with current unit values
         setEditForm({
             system_name: unit.system_name || '',
@@ -145,6 +173,13 @@ export default function SystemUnitTableSection() {
     const closeEditModal = () => {
         setSelectedUnit(null)
         setEditModalOpen(false)
+        setEditErrors({})
+        setEditBackendErrors({})
+        setEditDuplicateSerialCheck({
+            isChecking: false,
+            isDuplicate: false,
+            lastChecked: ''
+        })
     }
     
     const handleShowQrCode = (unit) => {
@@ -161,7 +196,42 @@ export default function SystemUnitTableSection() {
         
         if (!selectedUnit) return
         
+        console.log('System Unit Edit Validation - Form submission started');
+        console.log('Edit form data:', editForm);
+        
+        setIsEditValidating(true)
+        setEditBackendErrors({})
+
         try {
+            // Client-side validation
+            const validationErrors = validateForm(editForm)
+            console.log('Edit validation errors:', validationErrors);
+            
+            if (hasFormErrors(validationErrors)) {
+                setEditErrors(validationErrors)
+                setIsEditValidating(false)
+                console.log('Form validation failed, not submitting');
+                return
+            }
+
+            // Check for duplicate serial if it changed
+            if (editForm.serial_number && editForm.serial_number.trim() && 
+                editForm.serial_number !== selectedUnit.serial_number) {
+                const isDuplicate = await checkDuplicateSerial(editForm.serial_number.trim(), selectedUnit.id)
+                if (isDuplicate) {
+                    setEditErrors(prev => ({
+                        ...prev,
+                        serial_number: 'This serial number is already in use'
+                    }))
+                    setIsEditValidating(false)
+                    return
+                }
+            }
+
+            // Sanitize form data
+            const sanitizedData = sanitizeFormData(editForm)
+            console.log('Sanitized edit data for submission:', sanitizedData);
+            
             const response = await fetch(`/api/system-units/${selectedUnit.id}`, {
                 method: 'PUT',
                 headers: {
@@ -169,11 +239,14 @@ export default function SystemUnitTableSection() {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
                 },
-                body: JSON.stringify(editForm)
+                body: JSON.stringify(sanitizedData)
             })
             
+            const responseData = await response.json()
+            console.log('Edit API Response:', response.status, responseData);
+            
             if (response.ok) {
-                const updatedUnit = await response.json()
+                console.log('System unit updated successfully');
                 
                 // Update the unit in the systemUnits list
                 setSystemUnits(prev => {
@@ -181,32 +254,51 @@ export default function SystemUnitTableSection() {
                         ? {
                             ...prev,
                             data: prev.data.map(unit => 
-                                unit.id === updatedUnit.id ? updatedUnit : unit
+                                unit.id === responseData.id ? responseData : unit
                             )
                         }
                         : Array.isArray(prev)
-                            ? prev.map(unit => unit.id === updatedUnit.id ? updatedUnit : unit)
+                            ? prev.map(unit => unit.id === responseData.id ? responseData : unit)
                             : prev;
                     
                     return newList;
                 });
                 
                 // Update the selectedUnit
-                setSelectedUnit(updatedUnit)
+                setSelectedUnit(responseData)
                 
                 // Show success message
                 alert('System unit updated successfully!');
                 
                 // Close the edit modal
                 setEditModalOpen(false)
+            } else if (response.status === 422) {
+                // Handle validation errors from backend
+                console.log('Backend edit validation errors:', responseData.errors);
+                
+                if (responseData.errors) {
+                    setEditBackendErrors(responseData.errors)
+                    
+                    // Also set client-side errors for immediate display
+                    const formattedErrors = {}
+                    Object.keys(responseData.errors).forEach(field => {
+                        if (Array.isArray(responseData.errors[field])) {
+                            formattedErrors[field] = responseData.errors[field][0]
+                        } else {
+                            formattedErrors[field] = responseData.errors[field]
+                        }
+                    })
+                    setEditErrors(formattedErrors)
+                }
             } else {
-                const errorData = await response.json()
-                console.error('Failed to update system unit:', errorData)
-                alert('Failed to update system unit. Please try again.');
+                console.error('Failed to update system unit:', responseData)
+                alert(responseData.message || 'Failed to update system unit. Please check the form and try again.');
             }
         } catch (err) {
             console.error('Error updating system unit:', err)
             alert('Error updating system unit: ' + err.message)
+        } finally {
+            setIsEditValidating(false)
         }
     }
 
@@ -214,6 +306,99 @@ export default function SystemUnitTableSection() {
         setSelectedUnit(unit)
         setAssignmentData({ assigned_to: unit.assigned_to || '', notes: unit.notes || '' })
         setAssignModalOpen(true)
+    }
+
+    // Helper function to handle edit form input changes with validation
+    const handleEditInputChange = (field, value) => {
+        console.log(`Edit System Unit Validation - Field changed: ${field}, Value: ${value}`);
+        
+        setEditForm(prev => ({
+            ...prev,
+            [field]: value
+        }))
+
+        // Clear backend error for this field
+        if (editBackendErrors[field]) {
+            setEditBackendErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors[field]
+                return newErrors
+            })
+        }
+
+        // Real-time validation with debounce for serial number
+        if (field === 'serial_number') {
+            // Clear existing duplicate check
+            setEditDuplicateSerialCheck(prev => ({
+                ...prev,
+                isDuplicate: false,
+                lastChecked: ''
+            }))
+
+            // Validate field format first
+            const validation = validateField(field, value)
+            setEditErrors(prev => ({
+                ...prev,
+                [field]: validation.isValid ? '' : validation.message
+            }))
+
+            // Check for duplicates if field is valid and not empty and different from original
+            if (validation.isValid && value && value.trim().length >= 3 && 
+                selectedUnit && value.trim() !== selectedUnit.serial_number) {
+                const timeoutId = setTimeout(async () => {
+                    setEditDuplicateSerialCheck(prev => ({ ...prev, isChecking: true }))
+                    
+                    try {
+                        const isDuplicate = await checkDuplicateSerial(value.trim(), selectedUnit.id)
+                        setEditDuplicateSerialCheck({
+                            isChecking: false,
+                            isDuplicate,
+                            lastChecked: value.trim()
+                        })
+
+                        if (isDuplicate) {
+                            setEditErrors(prev => ({
+                                ...prev,
+                                [field]: 'This serial number is already in use'
+                            }))
+                        } else {
+                            // Clear error if no duplicate and field is valid
+                            setEditErrors(prev => ({
+                                ...prev,
+                                [field]: ''
+                            }))
+                        }
+                    } catch (error) {
+                        console.error('Error checking duplicate serial:', error)
+                        setEditDuplicateSerialCheck(prev => ({ ...prev, isChecking: false }))
+                    }
+                }, 500) // 500ms debounce
+
+                return () => clearTimeout(timeoutId)
+            }
+        } else {
+            // Regular field validation
+            const validation = validateField(field, value)
+            setEditErrors(prev => ({
+                ...prev,
+                [field]: validation.isValid ? '' : validation.message
+            }))
+        }
+    }
+
+    // Helper function to get error message for edit form fields
+    const getEditFieldError = (fieldName) => {
+        return editBackendErrors[fieldName] || editErrors[fieldName] || ''
+    }
+
+    // Helper function to check if edit form can be submitted
+    const canSubmitEditForm = () => {
+        const hasClientErrors = hasFormErrors(editErrors)
+        const hasBackendErrors = hasFormErrors(editBackendErrors)
+        const isCheckingSerial = editDuplicateSerialCheck.isChecking
+        const hasRequiredFields = editForm.system_name && editForm.status && editForm.location
+        
+        return !hasClientErrors && !hasBackendErrors && !isCheckingSerial && hasRequiredFields && !isEditValidating
     }
 
     const closeAssignModal = () => {
