@@ -5,19 +5,32 @@ import Modal from '@/app/pages/components/modal'
 import InputLabelComponent from '@/app/pages/components/input-label-component'
 import SelectComponent from '@/app/pages/components/input-select'
 import InputTextComponent from '@/app/pages/components/input-text-component'
+import InputError from '@/app/pages/components/InputError'
+import {
+    validatePeripheralForm,
+    validateField,
+    getRealTimeValidation,
+    sanitizePeripheralFormData,
+    hasFormErrors
+} from '@/app/utils/peripheralValidation'
 
 export default function CreatePeripheralsSection() {
     const { auth } = usePage().props
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
+    
+    // Validation states
+    const [errors, setErrors] = useState({})
+    const [backendErrors, setBackendErrors] = useState({})
+    const [isValidating, setIsValidating] = useState(false)
+    
     const [formData, setFormData] = useState({
         type: '',
         brand: '',
         model: '',
-        serial_number: '',
-        status: '',
-        location: '',
         description: '',
+        status: 'active',
+        location: '',
         notes: '',
         purchase_order: '',
         invoice_number: '',
@@ -27,17 +40,23 @@ export default function CreatePeripheralsSection() {
         uses_serial_numbers: false
     })
 
-    const openModal = () => setIsModalOpen(true)
+    const openModal = () => {
+        setIsModalOpen(true)
+        setErrors({})
+        setBackendErrors({})
+    }
+    
     const closeModal = () => {
         setIsModalOpen(false)
+        setErrors({})
+        setBackendErrors({})
         setFormData({
             type: '',
             brand: '',
             model: '',
-            serial_number: '',
-            status: '',
-            location: '',
             description: '',
+            status: 'active',
+            location: '',
             notes: '',
             purchase_order: '',
             invoice_number: '',
@@ -51,17 +70,57 @@ export default function CreatePeripheralsSection() {
 
 
     const handleInputChange = (field, value) => {
+        console.log(`Peripheral Validation - Field changed: ${field}, Value: ${value}`);
+        
         setFormData(prev => ({
             ...prev,
             [field]: value
+        }))
+
+        // Clear backend error for this field
+        if (backendErrors[field]) {
+            setBackendErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors[field]
+                return newErrors
+            })
+        }
+
+        // Real-time validation
+        const validation = validateField(field, value)
+        setErrors(prev => ({
+            ...prev,
+            [field]: validation.isValid ? '' : validation.message
         }))
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        
+        console.log('Peripheral Validation - Form submission started');
+        console.log('Form data:', formData);
+        
         setLoading(true)
+        setIsValidating(true)
+        setBackendErrors({})
 
         try {
+            // Client-side validation
+            const validationErrors = validatePeripheralForm(formData)
+            console.log('Validation errors:', validationErrors);
+            
+            if (hasFormErrors(validationErrors)) {
+                setErrors(validationErrors)
+                setLoading(false)
+                setIsValidating(false)
+                console.log('Form validation failed, not submitting');
+                return
+            }
+
+            // Sanitize form data
+            const sanitizedData = sanitizePeripheralFormData(formData)
+            console.log('Sanitized data for submission:', sanitizedData);
+
             // Get CSRF token safely
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
             
@@ -75,12 +134,11 @@ export default function CreatePeripheralsSection() {
                 headers['X-CSRF-TOKEN'] = csrfToken;
             }
 
-            console.log('Submitting peripheral data:', formData);
-            console.log('Using headers:', headers);
+            console.log('Submitting peripheral data:', sanitizedData);
 
             // Add default initial_stock since we removed it from the form
             const submitData = {
-                ...formData,
+                ...sanitizedData,
                 initial_stock: 0, // Default to 0 since stock will be managed separately
                 unit_price: 0.00, // Default unit price since it will be set when adding stock
                 supplier: '' // Default empty supplier since it will be set when adding stock
@@ -92,46 +150,56 @@ export default function CreatePeripheralsSection() {
                 body: JSON.stringify(submitData)
             })
 
+            const responseData = await response.json()
+            console.log('API Response:', response.status, responseData);
+
             if (response.ok) {
+                console.log('Peripheral created successfully');
                 closeModal()
-                // Refresh the page or update the peripheral list
                 window.location.reload()
-            } else {
-                const errorData = await response.json()
-                console.error('Failed to create peripheral:', errorData)
-                console.error('Response status:', response.status)
-                console.error('Response statusText:', response.statusText)
+            } else if (response.status === 422) {
+                // Handle validation errors from backend
+                console.log('Backend validation errors:', responseData.errors);
                 
-                // More specific error messages
-                if (response.status === 422) {
-                    // Show validation errors
-                    const errorMessages = [];
-                    if (errorData.errors) {
-                        Object.keys(errorData.errors).forEach(field => {
-                            const fieldErrors = errorData.errors[field];
-                            if (Array.isArray(fieldErrors)) {
-                                errorMessages.push(...fieldErrors);
-                            }
-                        });
-                    }
-                    const errorMessage = errorMessages.length > 0 
-                        ? `Validation errors:\n${errorMessages.join('\n')}` 
-                        : errorData.message || 'Validation error: Please check all required fields and their formats.';
-                    alert(errorMessage);
-                } else if (response.status === 401) {
-                    alert('Authentication required. Please log in again.')
-                } else if (response.status === 403) {
-                    alert('Permission denied. You may not have access to create peripherals.')
-                } else {
-                    alert(`Failed to create peripheral. Server responded with status ${response.status}`)
+                if (responseData.errors) {
+                    setBackendErrors(responseData.errors)
+                    
+                    // Also set client-side errors for immediate display
+                    const formattedErrors = {}
+                    Object.keys(responseData.errors).forEach(field => {
+                        if (Array.isArray(responseData.errors[field])) {
+                            formattedErrors[field] = responseData.errors[field][0]
+                        } else {
+                            formattedErrors[field] = responseData.errors[field]
+                        }
+                    })
+                    setErrors(formattedErrors)
                 }
+            } else {
+                console.error('Failed to create peripheral:', responseData)
+                alert(responseData.message || 'Failed to create peripheral. Please check the form and try again.')
             }
         } catch (error) {
             console.error('Error creating peripheral:', error)
             alert('An error occurred while creating the peripheral.')
         } finally {
             setLoading(false)
+            setIsValidating(false)
         }
+    }
+
+    // Helper function to get error message for a field
+    const getFieldError = (fieldName) => {
+        return backendErrors[fieldName] || errors[fieldName] || ''
+    }
+
+    // Helper function to check if form can be submitted
+    const canSubmitForm = () => {
+        const hasClientErrors = hasFormErrors(errors)
+        const hasBackendErrors = hasFormErrors(backendErrors)
+        const hasRequiredFields = formData.type && formData.brand && formData.model && formData.location && formData.delivery_date && formData.received_by
+        
+        return !hasClientErrors && !hasBackendErrors && hasRequiredFields && !loading
     }
 
     // Options for select dropdowns
@@ -149,34 +217,15 @@ export default function CreatePeripheralsSection() {
         { label: 'Other', value: 'other' }
     ]
 
-    const brands = [
-        { label: 'Logitech', value: 'Logitech' },
-        { label: 'Microsoft', value: 'Microsoft' },
-        { label: 'A4 Tech', value: 'A4 Tech' },
-        { label: 'Razer', value: 'Razer' },
-        { label: 'Apple', value: 'Apple' },
-        { label: 'Samsung', value: 'Samsung' },
-        { label: 'Asus', value: 'Asus' },
-        { label: 'Lenovo', value: 'Lenovo' },
-        { label: 'Havit', value: 'Havit' },
-        { label: 'HP', value: 'HP' },
-        { label: 'AWP', value: 'AWP' },
-        { label: 'Secure', value: 'Secure' },
-        { label: 'HikVision', value: 'HikVision' },
-        { label: 'Nvision', value: 'Nvision' },
-        { label: 'Jabra', value: 'Jabra' },
-        { label: 'Ablerex', value: 'Ablerex' },
-        { label: 'Mplus', value: 'Mplus' },
-        { label: 'Rapoo', value: 'Rapoo' }
-    ]
-
     const locations = [
         { label: 'Select Location', value: '' },
-        { label: 'Storage', value: 'storage' },
-        { label: 'Office A', value: 'office_a' },
-        { label: 'Office B', value: 'office_b' },
+        { label: 'Storage Room', value: 'storage' },
+        { label: 'IT Department', value: 'it_department' },
+        { label: 'Reception', value: 'reception' },
+        { label: 'Office Floor 1', value: 'office_floor_1' },
+        { label: 'Office Floor 2', value: 'office_floor_2' },
         { label: 'Conference Room', value: 'conference_room' },
-        { label: 'IT Department', value: 'it_department' }
+        { label: 'Training Room', value: 'training_room' }
     ]
 
     return (
@@ -207,38 +256,41 @@ export default function CreatePeripheralsSection() {
                         <form id="create-peripheral-form" className="space-y-6" onSubmit={handleSubmit}>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="peripheral_type" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Peripheral Type *
-                                            </label>
+                                            <InputLabelComponent htmlFor="peripheral_type" value="Peripheral Type *" />
                                             <SelectComponent
                                                 id="peripheral_type"
                                                 name="peripheral_type"
                                                 options={peripheralTypes}
                                                 value={formData.type}
                                                 onChange={(e) => handleInputChange('type', e.target.value)}
+                                                onBlur={(e) => handleInputChange('type', e.target.value)}
                                                 required
                                             />
+                                            {getFieldError('type') && (
+                                                <InputError message={getFieldError('type')} />
+                                            )}
                                         </div>
                                         <div>
-                                            <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Brand *
-                                            </label>
-                                            <SelectComponent
+                                            <InputLabelComponent htmlFor="brand" value="Brand *" />
+                                            <InputTextComponent
                                                 id="brand"
                                                 name="brand"
-                                                options={brands}
+                                                type="text"
+                                                placeholder="e.g. Logitech, Microsoft"
                                                 value={formData.brand}
                                                 onChange={(e) => handleInputChange('brand', e.target.value)}
+                                                onBlur={(e) => handleInputChange('brand', e.target.value)}
                                                 required
                                             />
+                                            {getFieldError('brand') && (
+                                                <InputError message={getFieldError('brand')} />
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Model *
-                                            </label>
+                                            <InputLabelComponent htmlFor="model" value="Model *" />
                                             <InputTextComponent
                                                 id="model"
                                                 name="model"
@@ -246,29 +298,33 @@ export default function CreatePeripheralsSection() {
                                                 placeholder="e.g. MX Keys, Surface Mouse"
                                                 value={formData.model}
                                                 onChange={(e) => handleInputChange('model', e.target.value)}
+                                                onBlur={(e) => handleInputChange('model', e.target.value)}
                                                 required
                                             />
+                                            {getFieldError('model') && (
+                                                <InputError message={getFieldError('model')} />
+                                            )}
                                         </div>
                                         <div>
-                                            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Location *
-                                            </label>
+                                            <InputLabelComponent htmlFor="location" value="Location *" />
                                             <SelectComponent
                                                 id="location"
                                                 name="location"
                                                 options={locations}
                                                 value={formData.location}
                                                 onChange={(e) => handleInputChange('location', e.target.value)}
+                                                onBlur={(e) => handleInputChange('location', e.target.value)}
                                                 required
                                             />
+                                            {getFieldError('location') && (
+                                                <InputError message={getFieldError('location')} />
+                                            )}
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="purchase_order" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Purchase Order
-                                            </label>
+                                            <InputLabelComponent htmlFor="purchase_order" value="Purchase Order" />
                                             <InputTextComponent
                                                 id="purchase_order"
                                                 name="purchase_order"
@@ -276,12 +332,14 @@ export default function CreatePeripheralsSection() {
                                                 placeholder="e.g. PO-2024-001"
                                                 value={formData.purchase_order}
                                                 onChange={(e) => handleInputChange('purchase_order', e.target.value)}
+                                                onBlur={(e) => handleInputChange('purchase_order', e.target.value)}
                                             />
+                                            {getFieldError('purchase_order') && (
+                                                <InputError message={getFieldError('purchase_order')} />
+                                            )}
                                         </div>
                                         <div>
-                                            <label htmlFor="invoice_number" className="block text-sm font-medium text-gray-700 mb-1">
-                                                Invoice Number
-                                            </label>
+                                            <InputLabelComponent htmlFor="invoice_number" value="Invoice Number" />
                                             <InputTextComponent
                                                 id="invoice_number"
                                                 name="invoice_number"
@@ -289,28 +347,50 @@ export default function CreatePeripheralsSection() {
                                                 placeholder="e.g. INV-2024-001"
                                                 value={formData.invoice_number}
                                                 onChange={(e) => handleInputChange('invoice_number', e.target.value)}
+                                                onBlur={(e) => handleInputChange('invoice_number', e.target.value)}
                                             />
+                                            {getFieldError('invoice_number') && (
+                                                <InputError message={getFieldError('invoice_number')} />
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <InputLabelComponent htmlFor="delivery_date" value="Delivery Date *" />
+                                            <InputTextComponent
+                                                id="delivery_date"
+                                                name="delivery_date"
+                                                type="date"
+                                                value={formData.delivery_date}
+                                                onChange={(e) => handleInputChange('delivery_date', e.target.value)}
+                                                onBlur={(e) => handleInputChange('delivery_date', e.target.value)}
+                                                required
+                                            />
+                                            {getFieldError('delivery_date') && (
+                                                <InputError message={getFieldError('delivery_date')} />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <InputLabelComponent htmlFor="received_by" value="Received By *" />
+                                            <InputTextComponent
+                                                id="received_by"
+                                                name="received_by"
+                                                type="text"
+                                                placeholder="Staff member name"
+                                                value={formData.received_by}
+                                                onChange={(e) => handleInputChange('received_by', e.target.value)}
+                                                onBlur={(e) => handleInputChange('received_by', e.target.value)}
+                                                required
+                                            />
+                                            {getFieldError('received_by') && (
+                                                <InputError message={getFieldError('received_by')} />
+                                            )}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label htmlFor="delivery_date" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Delivery Date *
-                                        </label>
-                                        <InputTextComponent
-                                            id="delivery_date"
-                                            name="delivery_date"
-                                            type="date"
-                                            value={formData.delivery_date}
-                                            onChange={(e) => handleInputChange('delivery_date', e.target.value)}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Description (Optional)
-                                        </label>
+                                        <InputLabelComponent htmlFor="description" value="Description (Optional)" />
                                         <textarea
                                             id="description"
                                             name="description"
@@ -319,7 +399,28 @@ export default function CreatePeripheralsSection() {
                                             placeholder="Description of the peripheral..."
                                             value={formData.description}
                                             onChange={(e) => handleInputChange('description', e.target.value)}
+                                            onBlur={(e) => handleInputChange('description', e.target.value)}
                                         />
+                                        {getFieldError('description') && (
+                                            <InputError message={getFieldError('description')} />
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <InputLabelComponent htmlFor="delivery_notes" value="Delivery Notes (Optional)" />
+                                        <textarea
+                                            id="delivery_notes"
+                                            name="delivery_notes"
+                                            rows={2}
+                                            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                            placeholder="Optional delivery notes..."
+                                            value={formData.delivery_notes}
+                                            onChange={(e) => handleInputChange('delivery_notes', e.target.value)}
+                                            onBlur={(e) => handleInputChange('delivery_notes', e.target.value)}
+                                        />
+                                        {getFieldError('delivery_notes') && (
+                                            <InputError message={getFieldError('delivery_notes')} />
+                                        )}
                                     </div>
 
                                     {/* Serial Number Configuration */}
@@ -342,9 +443,7 @@ export default function CreatePeripheralsSection() {
                                     </div>
 
                                     <div>
-                                        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                                            Notes (Optional)
-                                        </label>
+                                        <InputLabelComponent htmlFor="notes" value="Notes (Optional)" />
                                         <textarea
                                             id="notes"
                                             name="notes"
@@ -353,18 +452,14 @@ export default function CreatePeripheralsSection() {
                                             placeholder="Additional notes about the peripheral..."
                                             value={formData.notes}
                                             onChange={(e) => handleInputChange('notes', e.target.value)}
+                                            onBlur={(e) => handleInputChange('notes', e.target.value)}
                                         />
+                                        {getFieldError('notes') && (
+                                            <InputError message={getFieldError('notes')} />
+                                        )}
                                     </div>
 
 
-                                    {/* Hidden field for received_by (controlled) */}
-                                    <InputTextComponent
-                                        id="received_by"
-                                        name="received_by"
-                                        type="hidden"
-                                        value={formData.received_by}
-                                        onChange={e => setFormData(prev => ({ ...prev, received_by: e.target.value }))}
-                                    />
                                 </form>
                             </div>
                     
@@ -385,9 +480,9 @@ export default function CreatePeripheralsSection() {
                                 variant='primary'
                                 size='md'
                                 form="create-peripheral-form"
-                                disabled={loading}
+                                disabled={!canSubmitForm()}
                             >
-                                {loading ? 'Saving...' : 'Save Peripheral'}
+                                {loading ? 'Creating...' : isValidating ? 'Validating...' : 'Create Peripheral'}
                             </Button>
                         </div>
                     </div>

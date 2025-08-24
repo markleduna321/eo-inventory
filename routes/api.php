@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('peripherals/{peripheral}/return-stock', [PeripheralController::class, 'returnStock']);
     Route::post('peripherals/{peripheral}/mark-damaged', [PeripheralController::class, 'markDamaged']);
     Route::get('peripherals/{peripheral}/delivery-history', [PeripheralController::class, 'deliveryHistory']);
+    Route::get('peripherals/{peripheral}/check-duplicate-serial', [PeripheralController::class, 'checkDuplicateSerial']);
     Route::apiResource('peripherals', PeripheralController::class);
     
     // Peripheral Serial management routes

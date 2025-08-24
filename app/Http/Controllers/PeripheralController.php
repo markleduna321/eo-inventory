@@ -262,4 +262,28 @@ class PeripheralController extends Controller
 
         return response()->json($deliveries);
     }
+
+    /**
+     * Check if a serial number is already in use for this peripheral
+     */
+    public function checkDuplicateSerial(Request $request, Peripheral $peripheral)
+    {
+        $serialNumber = $request->query('serial');
+        $excludeId = $request->query('exclude');
+
+        if (!$serialNumber) {
+            return response()->json(['isDuplicate' => false]);
+        }
+
+        $query = PeripheralSerial::where('peripheral_id', $peripheral->id)
+            ->where('serial_number', $serialNumber);
+        
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $isDuplicate = $query->exists();
+
+        return response()->json(['isDuplicate' => $isDuplicate]);
+    }
 }

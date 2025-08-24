@@ -6,10 +6,17 @@ import Modal from '@/app/pages/components/modal'
 import Alert from '@/app/pages/components/alert'
 import TableFilter from '@/app/pages/components/table-filter'
 import InputTextComponent from '@/app/pages/components/input-text-component'
+import InputError from '@/app/pages/components/InputError'
 import { ArrowDownCircleIcon, PrinterIcon, PencilIcon, TrashIcon, PlusIcon, CubeIcon, ArrowUturnLeftIcon, EyeIcon } from '@heroicons/react/24/outline'
 import { fetchPeripherals, updatePeripheral, deletePeripheral, addStock, returnStock, fetchStations, fetchDeliveryHistory, clearError, clearSuccessMessage } from '@/app/redux/peripheral/peripheralSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 import { usePage } from '@inertiajs/react'
+import {
+    checkDuplicatePeripheralSerial,
+    sanitizeSerial,
+    validatePeripheralStockForm,
+    hasFormErrors
+} from '@/app/utils/peripheralValidation'
 
 export default function PeripheralTableSection() {
     // ...existing code...
@@ -40,28 +47,79 @@ export default function PeripheralTableSection() {
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
     const [serialValidation, setSerialValidation] = useState({ duplicates: [], errors: [] })
     
+    // Validation states for forms
+    const [stockFormErrors, setStockFormErrors] = useState({})
+    const [isValidatingStock, setIsValidatingStock] = useState(false)
+    
     // Serial search state
     const [serialSearchTerm, setSerialSearchTerm] = useState('')
 
-    // Validation functions
-    const validateSerialNumbers = (serialNumbers) => {
+    // Enhanced validation functions using our validation utility
+    const validateSerialNumbers = async (serialNumbers, peripheralId) => {
+        console.log('🔍 Peripheral Table - Validating serial numbers:', serialNumbers);
+        
         const errors = []
         const duplicates = []
         
-        // Check for duplicates within the form
-        const seen = new Set()
-        const cleanedSerials = serialNumbers.map(s => s.trim()).filter(s => s !== '')
-        
-        cleanedSerials.forEach((serial, index) => {
-            if (seen.has(serial)) {
-                duplicates.push({ index, serial })
-            } else {
-                seen.add(serial)
+        try {
+            // Check for duplicates within the form first
+            const seen = new Set()
+            const cleanedSerials = serialNumbers.map((s, index) => ({ 
+                original: s, 
+                cleaned: sanitizeSerial(s), 
+                index 
+            })).filter(item => item.cleaned !== '')
+            
+            console.log('🧹 Cleaned serials for validation:', cleanedSerials);
+            
+            cleanedSerials.forEach((item) => {
+                if (item.cleaned && item.cleaned.length >= 3) { // Only check non-empty serials with minimum length
+                    if (seen.has(item.cleaned)) {
+                        duplicates.push({ 
+                            index: item.index, 
+                            serial: item.cleaned, 
+                            message: 'Duplicate serial number in form' 
+                        })
+                        console.log('❌ Found form duplicate:', item.cleaned);
+                    } else {
+                        seen.add(item.cleaned)
+                        console.log('✅ Added unique serial:', item.cleaned);
+                    }
+                }
+            })
+            
+            // Check for backend duplicates for each unique serial
+            for (const serial of [...seen]) {
+                try {
+                    console.log('🔍 Checking backend duplicate for:', serial);
+                    const isDuplicate = await checkDuplicatePeripheralSerial(serial, peripheralId)
+                    console.log('Backend duplicate check result for', serial, ':', isDuplicate);
+                    
+                    if (isDuplicate) {
+                        duplicates.push({ 
+                            serial, 
+                            message: 'This serial number already exists in the system' 
+                        })
+                        console.log('❌ Found backend duplicate:', serial);
+                    }
+                } catch (error) {
+                    console.error('Error checking duplicate serial:', error)
+                }
             }
-        })
-        
-        setSerialValidation({ duplicates, errors })
-        return duplicates.length === 0 && errors.length === 0
+            
+            console.log('🎯 Final validation result - duplicates:', duplicates, 'errors:', errors);
+            setSerialValidation({ duplicates, errors })
+            return duplicates.length === 0 && errors.length === 0
+        } catch (error) {
+            console.error('Serial validation error:', error)
+            setSerialValidation({ duplicates: [], errors: ['Failed to validate serial numbers'] })
+            return false
+        }
+    }
+    
+    // Helper function to get error message for a field
+    const getStockFieldError = (fieldName) => {
+        return stockFormErrors[fieldName] || ''
     }
 
     // Filter configuration
@@ -296,20 +354,54 @@ export default function PeripheralTableSection() {
 
     const handleStockSubmit = async (e) => {
         e.preventDefault()
+        console.log('Peripheral Table - Stock form submission started');
         console.log('Submitting stock form with data:', stockForm)
         console.log('Selected peripheral:', selectedPeripheral)
         
-        // Prepare the data to send
-        const dataToSend = { ...stockForm }
+        setIsValidatingStock(true)
+        setStockFormErrors({})
         
-        // If using serial numbers, don't send quantity (it will be calculated from serial numbers)
-        if (stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) {
-            delete dataToSend.quantity
+        try {
+            // Validate the stock form using our validation utility
+            const stockFormValidation = validatePeripheralStockForm(stockForm)
+            console.log('Stock form validation result:', stockFormValidation);
+            
+            if (hasFormErrors(stockFormValidation)) {
+                setStockFormErrors(stockFormValidation)
+                setIsValidatingStock(false)
+                console.log('Stock form validation failed');
+                return
+            }
+            
+            // If using serial numbers, validate them
+            if (stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) {
+                if (stockForm.serial_numbers && stockForm.serial_numbers.length > 0) {
+                    const isValidSerials = await validateSerialNumbers(stockForm.serial_numbers, selectedPeripheral.id)
+                    if (!isValidSerials) {
+                        setIsValidatingStock(false)
+                        console.log('Serial number validation failed');
+                        return
+                    }
+                }
+            }
+            
+            // Prepare the data to send
+            const dataToSend = { ...stockForm }
+            
+            // If using serial numbers, don't send quantity (it will be calculated from serial numbers)
+            if (stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) {
+                delete dataToSend.quantity
+            }
+            
+            console.log('Data being sent after processing:', dataToSend)
+            dispatch(addStock({ id: selectedPeripheral.id, stockData: dataToSend }))
+            setIsStockModalOpen(false)
+        } catch (error) {
+            console.error('Stock submission error:', error)
+            setStockFormErrors({ general: 'An error occurred while processing the stock form' })
+        } finally {
+            setIsValidatingStock(false)
         }
-        
-        console.log('Data being sent after processing:', dataToSend)
-        dispatch(addStock({ id: selectedPeripheral.id, stockData: dataToSend }))
-        setIsStockModalOpen(false)
     }
 
     const handleReturnSubmit = async (e) => {
@@ -332,6 +424,8 @@ export default function PeripheralTableSection() {
         setSelectedPeripheral(null)
         setStockForm({})
         setSerialValidation({ duplicates: [], errors: [] })
+        setStockFormErrors({})
+        setIsValidatingStock(false)
     }
 
     const closeReturnModal = () => {
@@ -1199,7 +1293,7 @@ export default function PeripheralTableSection() {
                                             Serial Numbers *
                                         </label>
                                         <div className="space-y-2">
-                                            {(stockForm.serial_numbers || []).map((serial, index) => (
+                                            {(stockForm.serial_numbers || ['']).map((serial, index) => (
                                                 <div key={index} className="flex gap-2">
                                                     <div className="flex-1">
                                                         <InputTextComponent
@@ -1213,11 +1307,25 @@ export default function PeripheralTableSection() {
                                                                     serial_numbers: newSerials,
                                                                     quantity: newSerials.filter(s => s.trim()).length
                                                                 })
-                                                                // Validate serial numbers after change
-                                                                validateSerialNumbers(newSerials)
+                                                                // Validate serial numbers after change (non-blocking)
+                                                                setTimeout(() => {
+                                                                    validateSerialNumbers(newSerials, selectedPeripheral?.id).catch(console.error)
+                                                                }, 300)
                                                             }}
+                                                            className={`${
+                                                                serialValidation.duplicates.some(dup => 
+                                                                    dup.serial === sanitizeSerial(serial) && serial.trim() !== ''
+                                                                ) ? 'border-red-300 bg-red-50' : ''
+                                                            }`}
                                                             required
                                                         />
+                                                        {serialValidation.duplicates.some(dup => 
+                                                            dup.serial === sanitizeSerial(serial) && serial.trim() !== ''
+                                                        ) && (
+                                                            <div className="text-xs text-red-600 mt-1">
+                                                                This serial number is a duplicate
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <button
                                                         type="button"
@@ -1228,7 +1336,7 @@ export default function PeripheralTableSection() {
                                                                 serial_numbers: newSerials,
                                                                 quantity: newSerials.filter(s => s.trim()).length
                                                             })
-                                                            validateSerialNumbers(newSerials)
+                                                            validateSerialNumbers(newSerials, selectedPeripheral?.id).catch(console.error)
                                                         }}
                                                         className="px-3 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors"
                                                         disabled={(stockForm.serial_numbers || []).length <= 1}
@@ -1254,7 +1362,7 @@ export default function PeripheralTableSection() {
                                         <div className="mt-2 text-sm text-gray-600">
                                             Total Quantity: {(stockForm.serial_numbers || []).filter(s => s.trim()).length} items
                                         </div>
-                                        {serialValidation.duplicates.length > 0 && (
+                                        {(serialValidation.duplicates.length > 0 || serialValidation.errors.length > 0) && (
                                             <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
                                                 <div className="flex">
                                                     <div className="flex-shrink-0">
@@ -1264,45 +1372,79 @@ export default function PeripheralTableSection() {
                                                     </div>
                                                     <div className="ml-3">
                                                         <h3 className="text-sm font-medium text-red-800">
-                                                            Duplicate Serial Numbers
+                                                            Serial Number Issues
                                                         </h3>
-                                                        <div className="mt-2 text-sm text-red-700">
-                                                            Please ensure all serial numbers are unique. Each serial number must be globally unique across the entire system.
-                                                        </div>
+                                                        {serialValidation.duplicates.length > 0 && (
+                                                            <div className="mt-2 text-sm text-red-700">
+                                                                <div className="font-medium">Duplicate Serial Numbers Found:</div>
+                                                                <ul className="mt-1 list-disc list-inside">
+                                                                    {serialValidation.duplicates.map((dup, index) => (
+                                                                        <li key={index}>
+                                                                            <strong>{dup.serial}</strong> - {dup.message}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                                <div className="mt-2 text-xs">
+                                                                    Each serial number must be unique across the entire system.
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {serialValidation.errors.length > 0 && (
+                                                            <div className="mt-2 text-sm text-red-700">
+                                                                {serialValidation.errors.map((error, index) => (
+                                                                    <div key={index}>{error}</div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
                                     </div>
                                 ) : (
-                                    <InputTextComponent
-                                        label="Quantity *"
-                                        id="quantity"
-                                        name="quantity"
-                                        type="number"
-                                        min="1"
-                                        value={stockForm.quantity || ''}
-                                        onChange={(e) => setStockForm({...stockForm, quantity: e.target.value})}
-                                        required
-                                    />
+                                    <div>
+                                        <InputTextComponent
+                                            label="Quantity *"
+                                            id="quantity"
+                                            name="quantity"
+                                            type="number"
+                                            min="1"
+                                            value={stockForm.quantity || ''}
+                                            onChange={(e) => setStockForm({...stockForm, quantity: e.target.value})}
+                                            required
+                                        />
+                                        {getStockFieldError('quantity') && (
+                                            <InputError message={getStockFieldError('quantity')} />
+                                        )}
+                                    </div>
                                 )}
                                 
-                                <InputTextComponent
-                                    label="Unit Price"
-                                    id="unit_price"
-                                    name="unit_price"
-                                    type="number"
-                                    step="0.01"
-                                    value={stockForm.unit_price || ''}
-                                    onChange={(e) => setStockForm({...stockForm, unit_price: e.target.value})}
-                                />
-                                <InputTextComponent
-                                    label="Supplier"
-                                    id="supplier"
-                                    name="supplier"
-                                    value={stockForm.supplier || ''}
-                                    onChange={(e) => setStockForm({...stockForm, supplier: e.target.value})}
-                                />
+                                <div>
+                                    <InputTextComponent
+                                        label="Unit Price"
+                                        id="unit_price"
+                                        name="unit_price"
+                                        type="number"
+                                        step="0.01"
+                                        value={stockForm.unit_price || ''}
+                                        onChange={(e) => setStockForm({...stockForm, unit_price: e.target.value})}
+                                    />
+                                    {getStockFieldError('unit_price') && (
+                                        <InputError message={getStockFieldError('unit_price')} />
+                                    )}
+                                </div>
+                                <div>
+                                    <InputTextComponent
+                                        label="Supplier"
+                                        id="supplier"
+                                        name="supplier"
+                                        value={stockForm.supplier || ''}
+                                        onChange={(e) => setStockForm({...stockForm, supplier: e.target.value})}
+                                    />
+                                    {getStockFieldError('supplier') && (
+                                        <InputError message={getStockFieldError('supplier')} />
+                                    )}
+                                </div>
                                 <InputTextComponent
                                     label="Purchase Order"
                                     id="purchase_order"
@@ -1317,15 +1459,20 @@ export default function PeripheralTableSection() {
                                     value={stockForm.invoice_number || ''}
                                     onChange={(e) => setStockForm({...stockForm, invoice_number: e.target.value})}
                                 />
-                                <InputTextComponent
-                                    label="Delivery Date *"
-                                    id="delivery_date"
-                                    name="delivery_date"
-                                    type="date"
-                                    value={stockForm.delivery_date || ''}
-                                    onChange={(e) => setStockForm({...stockForm, delivery_date: e.target.value})}
-                                    required
-                                />
+                                <div>
+                                    <InputTextComponent
+                                        label="Delivery Date *"
+                                        id="delivery_date"
+                                        name="delivery_date"
+                                        type="date"
+                                        value={stockForm.delivery_date || ''}
+                                        onChange={(e) => setStockForm({...stockForm, delivery_date: e.target.value})}
+                                        required
+                                    />
+                                    {getStockFieldError('delivery_date') && (
+                                        <InputError message={getStockFieldError('delivery_date')} />
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
@@ -1340,6 +1487,22 @@ export default function PeripheralTableSection() {
                             <div className="text-sm text-gray-500">
                                 <strong>Received by:</strong> {auth.user?.name || 'Current User'}
                             </div>
+                            
+                            {/* Display general form errors */}
+                            {stockFormErrors.general && (
+                                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                                    <div className="flex">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-red-700">{stockFormErrors.general}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </form>
                     </div>
                     
@@ -1353,9 +1516,14 @@ export default function PeripheralTableSection() {
                                 type="submit" 
                                 variant="success" 
                                 form="add-stock-form"
-                                disabled={(stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) && serialValidation.duplicates.length > 0}
+                                disabled={
+                                    isValidatingStock || 
+                                    ((stockForm.has_serial_numbers || selectedPeripheral?.uses_serial_numbers) && 
+                                     (serialValidation.duplicates.length > 0 || serialValidation.errors.length > 0)) ||
+                                    hasFormErrors(stockFormErrors)
+                                }
                             >
-                                Add Stock
+                                {isValidatingStock ? 'Validating...' : 'Add Stock'}
                             </Button>
                         </div>
                     </div>
