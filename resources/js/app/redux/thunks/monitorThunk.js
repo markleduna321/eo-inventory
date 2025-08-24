@@ -26,9 +26,18 @@ export const createMonitor = createAsyncThunk(
             const response = await axios.post(API_BASE_URL, monitorData);
             return response.data.data;
         } catch (error) {
-            return rejectWithValue(
-                error.response?.data?.message || 'Failed to create monitor'
-            );
+            // Handle validation errors (422 status)
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                return rejectWithValue({
+                    message: error.response.data.message || 'Validation failed',
+                    errors: error.response.data.errors
+                });
+            }
+            
+            return rejectWithValue({
+                message: error.response?.data?.message || 'Failed to create monitor',
+                errors: null
+            });
         }
     }
 );
@@ -41,9 +50,18 @@ export const updateMonitor = createAsyncThunk(
             const response = await axios.put(`${API_BASE_URL}/${id}`, monitorData);
             return response.data.data;
         } catch (error) {
-            return rejectWithValue(
-                error.response?.data?.message || 'Failed to update monitor'
-            );
+            // Handle validation errors (422 status)
+            if (error.response?.status === 422 && error.response?.data?.errors) {
+                return rejectWithValue({
+                    message: error.response.data.message || 'Validation failed',
+                    errors: error.response.data.errors
+                });
+            }
+            
+            return rejectWithValue({
+                message: error.response?.data?.message || 'Failed to update monitor',
+                errors: null
+            });
         }
     }
 );

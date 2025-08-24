@@ -13,6 +13,13 @@ import { fetchMonitors, updateMonitor, deleteMonitor } from '@/app/redux/thunks/
 import { setCurrentMonitor, clearCurrentMonitor } from '@/app/redux/slices/monitorSlice'
 import { useTableFilters } from '@/app/hooks/useTableFilters'
 import { usePage } from '@inertiajs/react'
+import { 
+    validateField, 
+    validateForm, 
+    isFormValid, 
+    getRealTimeValidation, 
+    sanitizeFormData 
+} from '@/app/utils/monitorValidation'
 
 export default function MonitorTableSection() {
     const dispatch = useDispatch()
@@ -23,7 +30,9 @@ export default function MonitorTableSection() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
     const [editFormData, setEditFormData] = useState({})
     const [editErrors, setEditErrors] = useState({})
+    const [editRealTimeErrors, setEditRealTimeErrors] = useState({})
     const [editLoading, setEditLoading] = useState(false)
+    const [editHasAttemptedSubmit, setEditHasAttemptedSubmit] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
     const [qrModalOpen, setQrModalOpen] = useState(false)
@@ -208,18 +217,78 @@ export default function MonitorTableSection() {
     const handleEditInputChange = (e) => {
         const { name, value } = e.target
         setEditFormData(prev => ({ ...prev, [name]: value }))
+        
+        // Clear existing errors for this field
         if (editErrors[name]) {
             setEditErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        if (editRealTimeErrors[name]) {
+            setEditRealTimeErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        
+        // Show real-time validation after user has attempted submit or while typing
+        if (editHasAttemptedSubmit || value.length > 0) {
+            const realTimeError = getRealTimeValidation(name, value)
+            if (realTimeError) {
+                setEditRealTimeErrors(prev => ({ ...prev, [name]: realTimeError }))
+            }
+        }
+    }
+
+    const handleEditBlur = (e) => {
+        const { name, value } = e.target
+        
+        // Perform full validation on blur
+        const error = validateField(name, value, editFormData)
+        if (error) {
+            setEditErrors(prev => ({ ...prev, [name]: error }))
+        } else {
+            setEditErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        
+        // Clear real-time error if full validation passes
+        if (!error && editRealTimeErrors[name]) {
+            setEditRealTimeErrors(prev => ({ ...prev, [name]: '' }))
         }
     }
 
     const handleEditSubmit = async (e) => {
         e.preventDefault()
+        setEditHasAttemptedSubmit(true)
         setEditLoading(true)
         setEditErrors({})
+        setEditRealTimeErrors({})
 
         try {
-            const { id, ...updateData } = editFormData
+            // Sanitize form data
+            const sanitizedData = sanitizeFormData(editFormData)
+            
+            // Validate form
+            const validationErrors = validateForm(sanitizedData)
+            
+            if (Object.keys(validationErrors).length > 0) {
+                setEditErrors(validationErrors)
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Please fix the validation errors before submitting.'
+                })
+                setEditLoading(false)
+                return
+            }
+
+            // Check if form is valid
+            if (!isFormValid(sanitizedData)) {
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Please fill in all required fields correctly.'
+                })
+                setEditLoading(false)
+                return
+            }
+
+            const { id, ...updateData } = sanitizedData
             
             // Get current monitor data to compare and only send changed fields
             let currentMonitor = {}
@@ -258,11 +327,28 @@ export default function MonitorTableSection() {
             }, 1500)
         } catch (error) {
             console.error('Error updating monitor:', error)
-            setAlert({
-                show: true,
-                type: 'error',
-                message: error?.message || (typeof error === 'string' ? error : 'Failed to update monitor')
+            console.log('Error details:', {
+                message: error?.message,
+                errors: error?.errors,
+                fullError: error
             })
+            
+            // Handle backend validation errors
+            if (error?.errors) {
+                console.log('Setting validation errors:', error.errors)
+                setEditErrors(error.errors)
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Please fix the validation errors.'
+                })
+            } else {
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: error?.message || (typeof error === 'string' ? error : 'Failed to update monitor')
+                })
+            }
         } finally {
             setEditLoading(false)
         }
@@ -272,6 +358,8 @@ export default function MonitorTableSection() {
         setIsEditModalOpen(false)
         setEditFormData({})
         setEditErrors({})
+        setEditRealTimeErrors({})
+        setEditHasAttemptedSubmit(false)
         setAlert({ show: false, type: '', message: '' })
         dispatch(clearCurrentMonitor())
     }
@@ -689,10 +777,14 @@ export default function MonitorTableSection() {
                                                 options={brands}
                                                 value={editFormData.brand}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
                                                 allowCustomValue={true}
                                                 required
+                                                className={editErrors.brand || editRealTimeErrors.brand ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.brand && <InputError message={editErrors.brand} />}
+                                            {(editErrors.brand || editRealTimeErrors.brand) && (
+                                                <InputError message={editErrors.brand || editRealTimeErrors.brand} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="edit_model" className="block text-sm font-medium text-gray-700 mb-1">
@@ -705,9 +797,14 @@ export default function MonitorTableSection() {
                                                 placeholder="e.g. U2419H, 24GL600F"
                                                 value={editFormData.model}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
                                                 required
+                                                maxLength={255}
+                                                className={editErrors.model || editRealTimeErrors.model ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.model && <InputError message={editErrors.model} />}
+                                            {(editErrors.model || editRealTimeErrors.model) && (
+                                                <InputError message={editErrors.model || editRealTimeErrors.model} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -723,9 +820,15 @@ export default function MonitorTableSection() {
                                                 placeholder="e.g. MNT123456789"
                                                 value={editFormData.serial_number}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
                                                 required
+                                                maxLength={255}
+                                                minLength={3}
+                                                className={editErrors.serial_number || editRealTimeErrors.serial_number ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.serial_number && <InputError message={editErrors.serial_number} />}
+                                            {(editErrors.serial_number || editRealTimeErrors.serial_number) && (
+                                                <InputError message={editErrors.serial_number || editRealTimeErrors.serial_number} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="edit_size" className="block text-sm font-medium text-gray-700 mb-1">
@@ -737,9 +840,13 @@ export default function MonitorTableSection() {
                                                 options={sizes}
                                                 value={editFormData.size}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
                                                 required
+                                                className={editErrors.size || editRealTimeErrors.size ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.size && <InputError message={editErrors.size} />}
+                                            {(editErrors.size || editRealTimeErrors.size) && (
+                                                <InputError message={editErrors.size || editRealTimeErrors.size} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -754,9 +861,13 @@ export default function MonitorTableSection() {
                                                 options={resolutions}
                                                 value={editFormData.resolution}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
                                                 required
+                                                className={editErrors.resolution || editRealTimeErrors.resolution ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.resolution && <InputError message={editErrors.resolution} />}
+                                            {(editErrors.resolution || editRealTimeErrors.resolution) && (
+                                                <InputError message={editErrors.resolution || editRealTimeErrors.resolution} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="edit_refresh_rate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -769,8 +880,14 @@ export default function MonitorTableSection() {
                                                 placeholder="60"
                                                 value={editFormData.refresh_rate}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
+                                                min={30}
+                                                max={500}
+                                                className={editErrors.refresh_rate || editRealTimeErrors.refresh_rate ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.refresh_rate && <InputError message={editErrors.refresh_rate} />}
+                                            {(editErrors.refresh_rate || editRealTimeErrors.refresh_rate) && (
+                                                <InputError message={editErrors.refresh_rate || editRealTimeErrors.refresh_rate} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -785,9 +902,13 @@ export default function MonitorTableSection() {
                                                 options={status}
                                                 value={editFormData.status}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
                                                 required
+                                                className={editErrors.status || editRealTimeErrors.status ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.status && <InputError message={editErrors.status} />}
+                                            {(editErrors.status || editRealTimeErrors.status) && (
+                                                <InputError message={editErrors.status || editRealTimeErrors.status} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="edit_location" className="block text-sm font-medium text-gray-700 mb-1">
@@ -799,8 +920,12 @@ export default function MonitorTableSection() {
                                                 options={locations}
                                                 value={editFormData.location || ''}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
+                                                className={editErrors.location || editRealTimeErrors.location ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.location && <InputError message={editErrors.location} />}
+                                            {(editErrors.location || editRealTimeErrors.location) && (
+                                                <InputError message={editErrors.location || editRealTimeErrors.location} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -817,8 +942,14 @@ export default function MonitorTableSection() {
                                                 placeholder="0.00"
                                                 value={editFormData.price}
                                                 onChange={handleEditInputChange}
+                                                onBlur={handleEditBlur}
+                                                min={0}
+                                                max={999999.99}
+                                                className={editErrors.price || editRealTimeErrors.price ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {editErrors.price && <InputError message={editErrors.price} />}
+                                            {(editErrors.price || editRealTimeErrors.price) && (
+                                                <InputError message={editErrors.price || editRealTimeErrors.price} />
+                                            )}
                                         </div>
                                         <div></div>
                                     </div>
@@ -831,12 +962,18 @@ export default function MonitorTableSection() {
                                             id="edit_notes"
                                             name="notes"
                                             rows={3}
-                                            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                            className={`block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 ${
+                                                editErrors.notes || editRealTimeErrors.notes ? 'border-red-500 focus:ring-red-500' : ''
+                                            }`}
                                             placeholder="Additional notes about the monitor..."
                                             value={editFormData.notes}
                                             onChange={handleEditInputChange}
+                                            onBlur={handleEditBlur}
+                                            maxLength={1000}
                                         />
-                                        {editErrors.notes && <InputError message={editErrors.notes} />}
+                                        {(editErrors.notes || editRealTimeErrors.notes) && (
+                                            <InputError message={editErrors.notes || editRealTimeErrors.notes} />
+                                        )}
                                     </div>
 
                                     {/* Buttons */}

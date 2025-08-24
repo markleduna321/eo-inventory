@@ -9,6 +9,13 @@ import InputError from '@/app/pages/components/InputError'
 import Alert from '@/app/pages/components/alert'
 import { createMonitor } from '@/app/redux/thunks/monitorThunk'
 import { usePage } from '@inertiajs/react'
+import { 
+    validateField, 
+    validateForm, 
+    isFormValid, 
+    getRealTimeValidation, 
+    sanitizeFormData 
+} from '@/app/utils/monitorValidation'
 
 export default function CreateMonitorsSection() {
     const dispatch = useDispatch()
@@ -28,8 +35,10 @@ export default function CreateMonitorsSection() {
         price: ''
     })
     const [errors, setErrors] = useState({})
+    const [realTimeErrors, setRealTimeErrors] = useState({})
     const [loading, setLoading] = useState(false)
     const [alert, setAlert] = useState({ show: false, type: '', message: '' })
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
     const openModal = () => setIsModalOpen(true)
     const closeModal = () => {
@@ -48,25 +57,86 @@ export default function CreateMonitorsSection() {
             price: ''
         })
         setErrors({})
+        setRealTimeErrors({})
         setAlert({ show: false, type: '', message: '' })
+        setHasAttemptedSubmit(false)
     }
 
     const handleInputChange = (e) => {
         const { name, value } = e.target
         setFormData(prev => ({ ...prev, [name]: value }))
-        // Clear error for this field
+        
+        // Clear existing errors for this field
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        if (realTimeErrors[name]) {
+            setRealTimeErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        
+        // Show real-time validation after user has attempted submit or while typing
+        if (hasAttemptedSubmit || value.length > 0) {
+            const realTimeError = getRealTimeValidation(name, value)
+            if (realTimeError) {
+                setRealTimeErrors(prev => ({ ...prev, [name]: realTimeError }))
+            }
+        }
+    }
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target
+        
+        // Perform full validation on blur
+        const error = validateField(name, value, formData)
+        if (error) {
+            setErrors(prev => ({ ...prev, [name]: error }))
+        } else {
+            setErrors(prev => ({ ...prev, [name]: '' }))
+        }
+        
+        // Clear real-time error if full validation passes
+        if (!error && realTimeErrors[name]) {
+            setRealTimeErrors(prev => ({ ...prev, [name]: '' }))
         }
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+        setHasAttemptedSubmit(true)
         setLoading(true)
         setErrors({})
+        setRealTimeErrors({})
 
         try {
-            const result = await dispatch(createMonitor(formData)).unwrap()
+            // Sanitize form data
+            const sanitizedData = sanitizeFormData(formData)
+            
+            // Validate form
+            const validationErrors = validateForm(sanitizedData)
+            
+            if (Object.keys(validationErrors).length > 0) {
+                setErrors(validationErrors)
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Please fix the validation errors before submitting.'
+                })
+                setLoading(false)
+                return
+            }
+
+            // Check if form is valid
+            if (!isFormValid(sanitizedData)) {
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Please fill in all required fields correctly.'
+                })
+                setLoading(false)
+                return
+            }
+
+            const result = await dispatch(createMonitor(sanitizedData)).unwrap()
             setAlert({ 
                 show: true, 
                 type: 'success', 
@@ -77,11 +147,28 @@ export default function CreateMonitorsSection() {
             }, 1500)
         } catch (error) {
             console.error('Error creating monitor:', error)
-            setAlert({ 
-                show: true, 
-                type: 'error', 
-                message: error?.message || (typeof error === 'string' ? error : 'Failed to create monitor')
+            console.log('Error details:', {
+                message: error?.message,
+                errors: error?.errors,
+                fullError: error
             })
+            
+            // Handle backend validation errors
+            if (error?.errors) {
+                console.log('Setting validation errors:', error.errors)
+                setErrors(error.errors)
+                setAlert({
+                    show: true,
+                    type: 'error',
+                    message: 'Please fix the validation errors.'
+                })
+            } else {
+                setAlert({ 
+                    show: true, 
+                    type: 'error', 
+                    message: error?.message || (typeof error === 'string' ? error : 'Failed to create monitor')
+                })
+            }
         } finally {
             setLoading(false)
         }
@@ -187,9 +274,13 @@ export default function CreateMonitorsSection() {
                                                 options={brands}
                                                 value={formData.brand}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                className={errors.brand || realTimeErrors.brand ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.brand && <InputError message={errors.brand} />}
+                                            {(errors.brand || realTimeErrors.brand) && (
+                                                <InputError message={errors.brand || realTimeErrors.brand} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-1">
@@ -202,9 +293,14 @@ export default function CreateMonitorsSection() {
                                                 placeholder="e.g. U2419H, 24GL600F"
                                                 value={formData.model}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                maxLength={255}
+                                                className={errors.model || realTimeErrors.model ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.model && <InputError message={errors.model} />}
+                                            {(errors.model || realTimeErrors.model) && (
+                                                <InputError message={errors.model || realTimeErrors.model} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -220,9 +316,15 @@ export default function CreateMonitorsSection() {
                                                 placeholder="e.g. MNT123456789"
                                                 value={formData.serial_number}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                maxLength={255}
+                                                minLength={3}
+                                                className={errors.serial_number || realTimeErrors.serial_number ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.serial_number && <InputError message={errors.serial_number} />}
+                                            {(errors.serial_number || realTimeErrors.serial_number) && (
+                                                <InputError message={errors.serial_number || realTimeErrors.serial_number} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="size" className="block text-sm font-medium text-gray-700 mb-1">
@@ -234,9 +336,13 @@ export default function CreateMonitorsSection() {
                                                 options={sizes}
                                                 value={formData.size}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                className={errors.size || realTimeErrors.size ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.size && <InputError message={errors.size} />}
+                                            {(errors.size || realTimeErrors.size) && (
+                                                <InputError message={errors.size || realTimeErrors.size} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -251,9 +357,13 @@ export default function CreateMonitorsSection() {
                                                 options={resolutions}
                                                 value={formData.resolution}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                className={errors.resolution || realTimeErrors.resolution ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.resolution && <InputError message={errors.resolution} />}
+                                            {(errors.resolution || realTimeErrors.resolution) && (
+                                                <InputError message={errors.resolution || realTimeErrors.resolution} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="refresh_rate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -266,8 +376,14 @@ export default function CreateMonitorsSection() {
                                                 placeholder="60"
                                                 value={formData.refresh_rate}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
+                                                min={30}
+                                                max={500}
+                                                className={errors.refresh_rate || realTimeErrors.refresh_rate ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.refresh_rate && <InputError message={errors.refresh_rate} />}
+                                            {(errors.refresh_rate || realTimeErrors.refresh_rate) && (
+                                                <InputError message={errors.refresh_rate || realTimeErrors.refresh_rate} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -282,9 +398,13 @@ export default function CreateMonitorsSection() {
                                                 options={status}
                                                 value={formData.status}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                className={errors.status || realTimeErrors.status ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.status && <InputError message={errors.status} />}
+                                            {(errors.status || realTimeErrors.status) && (
+                                                <InputError message={errors.status || realTimeErrors.status} />
+                                            )}
                                         </div>
                                         <div>
                                             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
@@ -296,9 +416,13 @@ export default function CreateMonitorsSection() {
                                                 options={locations}
                                                 value={formData.location}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
                                                 required
+                                                className={errors.location || realTimeErrors.location ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.location && <InputError message={errors.location} />}
+                                            {(errors.location || realTimeErrors.location) && (
+                                                <InputError message={errors.location || realTimeErrors.location} />
+                                            )}
                                         </div>
                                     </div>
 
@@ -315,8 +439,14 @@ export default function CreateMonitorsSection() {
                                                 placeholder="0.00"
                                                 value={formData.price}
                                                 onChange={handleInputChange}
+                                                onBlur={handleBlur}
+                                                min={0}
+                                                max={999999.99}
+                                                className={errors.price || realTimeErrors.price ? 'border-red-500 focus:ring-red-500' : ''}
                                             />
-                                            {errors.price && <InputError message={errors.price} />}
+                                            {(errors.price || realTimeErrors.price) && (
+                                                <InputError message={errors.price || realTimeErrors.price} />
+                                            )}
                                         </div>
                                         <div></div>
                                     </div>
@@ -329,12 +459,18 @@ export default function CreateMonitorsSection() {
                                             id="notes"
                                             name="notes"
                                             rows={3}
-                                            className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                            className={`block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 ${
+                                                errors.notes || realTimeErrors.notes ? 'border-red-500 focus:ring-red-500' : ''
+                                            }`}
                                             placeholder="Additional notes about the monitor..."
                                             value={formData.notes}
                                             onChange={handleInputChange}
+                                            onBlur={handleBlur}
+                                            maxLength={1000}
                                         />
-                                        {errors.notes && <InputError message={errors.notes} />}
+                                        {(errors.notes || realTimeErrors.notes) && (
+                                            <InputError message={errors.notes || realTimeErrors.notes} />
+                                        )}
                                     </div>
 
                                     {/* Buttons */}
