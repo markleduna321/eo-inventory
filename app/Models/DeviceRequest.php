@@ -53,7 +53,26 @@ class DeviceRequest extends Model
 
     public function assignee(): BelongsTo
     {
+        // Note: assignee_id is now a text field, not a foreign key
+        // This relationship will only work if assignee_id contains a valid user ID
         return $this->belongsTo(User::class, 'assignee_id');
+    }
+    
+    /**
+     * Get the assignee name (either from User model or as plain text)
+     */
+    public function getAssigneeNameAttribute(): string
+    {
+        // Try to find a user first (in case assignee_id is a numeric user ID)
+        if (is_numeric($this->assignee_id)) {
+            $user = User::find($this->assignee_id);
+            if ($user) {
+                return $user->name;
+            }
+        }
+        
+        // Return the assignee_id as plain text if no user found
+        return $this->assignee_id ?? 'Unassigned';
     }
 
     public function approver(): BelongsTo
@@ -140,7 +159,7 @@ class DeviceRequest extends Model
         // Update device assignment
         if ($this->request_type === 'assignment' && $this->assignee_id) {
             $this->device->update([
-                'issued_to' => $this->assignee->name ?? 'Unknown User',
+                'issued_to' => $this->assignee_name,
             ]);
         }
 

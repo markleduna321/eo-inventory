@@ -187,7 +187,9 @@ export default function ShowDeviceRequest({ deviceRequest, errors, success }) {
                             </div>
                             <div>
                                 <span className="text-sm font-medium text-gray-500">Assignee:</span>
-                                <span className="ml-2 text-sm text-gray-900">{deviceRequest.assignee?.name}</span>
+                                <span className="ml-2 text-sm text-gray-900">
+                                    {deviceRequest.assignee?.name || deviceRequest.assignee_id || 'Not assigned'}
+                                </span>
                             </div>
                             <div>
                                 <span className="text-sm font-medium text-gray-500">Request Type:</span>
@@ -258,7 +260,7 @@ export default function ShowDeviceRequest({ deviceRequest, errors, success }) {
                                     The assignee needs to complete a liability form before device assignment can be finalized.
                                 </p>
                                 <div className="mt-3">
-                                    <Link href={`/admin/liability-forms/${deviceRequest.id}/create`}>
+                                    <Link href={`/admin/liability-forms/create-public?device_request_id=${deviceRequest.id}`}>
                                         <Button
                                             type="button"
                                             variant="primary"

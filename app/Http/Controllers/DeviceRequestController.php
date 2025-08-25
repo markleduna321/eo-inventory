@@ -31,9 +31,18 @@ class DeviceRequestController extends Controller
 
         $requests = $query->paginate(15);
 
+        // Get available devices for the modal
+        $availableDevices = Device::where('status', 'Working')
+            ->where(function ($query) {
+                $query->whereNull('issued_to')
+                    ->orWhere('issued_to', '');
+            })
+            ->get();
+
         return Inertia::render('admin/device-requests/page', [
             'requests' => $requests,
             'filters' => $request->only(['status']),
+            'availableDevices' => $availableDevices,
         ]);
     }
 
@@ -58,7 +67,7 @@ class DeviceRequestController extends Controller
     {
         $validated = $request->validate([
             'device_id' => 'required|exists:devices,id',
-            'assignee_id' => 'required|exists:users,id',
+            'assignee_id' => 'required|string|max:100',
             'request_type' => 'required|in:assignment,transfer,return',
             'justification' => 'required|string|min:10',
             'purpose' => 'nullable|string',

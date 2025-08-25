@@ -120,9 +120,19 @@ class Device extends Model
         return $this->hasMany(LiabilityForm::class);
     }
 
+    public function returns()
+    {
+        return $this->hasMany(DeviceReturn::class);
+    }
+
     public function currentRequest()
     {
         return $this->hasOne(DeviceRequest::class)->where('status', 'approved')->latest();
+    }
+
+    public function latestReturn()
+    {
+        return $this->hasOne(DeviceReturn::class)->latest('returned_at');
     }
 
     // Helper methods

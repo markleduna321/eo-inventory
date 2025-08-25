@@ -14,6 +14,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
     const [signatureEmpty, setSignatureEmpty] = useState(true)
     
     const { data, setData, post, processing, errors } = useForm({
+        employee_id: liabilityForm?.required_employee_id || '',
         employee_name: '',
         contact_number: '',
         email: '',
@@ -53,80 +54,109 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
         }
     }
 
-    return (
-        <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-8">
-                    <DocumentTextIcon className="mx-auto h-16 w-16 text-indigo-600" />
-                    <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">
-                        Device Liability Agreement
-                    </h1>
-                    <p className="mt-2 text-lg text-gray-600">
-                        Please complete your information and digitally sign this agreement
-                    </p>
-                </div>
+    const currentDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    })
 
-                <form onSubmit={handleSubmit} className="space-y-8">
-                    {/* Device Information */}
-                    <div className="bg-white shadow sm:rounded-lg">
-                        <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                                <ComputerDesktopIcon className="h-5 w-5 text-gray-400 mr-2" />
-                                Device Assignment Details
-                            </h3>
+    return (
+        <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-4xl mx-auto">
+                {/* Document Container */}
+                <div className="bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden">
+                    
+                    {/* Company Header */}
+                    <div className="bg-white px-8 py-6 border-b border-gray-200">
+                        <div className="flex items-center justify-center mb-4">
+                            {/* EmpireOne Logo */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-lg shadow-lg">
+                                <div className="text-2xl font-bold tracking-wide">
+                                    Empire<span className="text-blue-200">One</span>
+                                </div>
+                            </div>
+                        </div>
+                        <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">
+                            Device Liability Agreement
+                        </h1>
+                        <p className="text-center text-gray-600 text-lg">
+                            This Device Liability Agreement is made effective as of <strong>{currentDate}</strong> between EmpireOne 
+                            and the Employee listed below.
+                        </p>
+                    </div>
+
+                    {/* Form Content */}
+                    <form onSubmit={handleSubmit} className="px-8 py-6 space-y-8">
+                        
+                        {/* Section 1: Device Issuance */}
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                                1. Issuance of Company Device:
+                            </h2>
+                            <p className="text-gray-700 mb-4">
+                                The Company agrees to issue the following device to the Employee:
+                            </p>
                             
                             {deviceInfo && (
-                                <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-blue-600 font-medium">Device:</span>
-                                            <p className="text-blue-900">{deviceInfo.brand} {deviceInfo.model}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-blue-600 font-medium">Asset Tag:</span>
-                                            <p className="text-blue-900">{deviceInfo.asset_tag}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-blue-600 font-medium">Serial Number:</span>
-                                            <p className="text-blue-900">{deviceInfo.serial_number}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    {prefilledData && (
-                                        <div className="mt-4 pt-4 border-t border-blue-200">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                                {prefilledData.device_condition && (
-                                                    <div>
-                                                        <span className="text-blue-600 font-medium">Condition:</span>
-                                                        <p className="text-blue-900">{prefilledData.device_condition}</p>
-                                                    </div>
-                                                )}
-                                                {prefilledData.accessories && (
-                                                    <div>
-                                                        <span className="text-blue-600 font-medium">Accessories:</span>
-                                                        <p className="text-blue-900">{prefilledData.accessories}</p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="overflow-hidden">
+                                    <table className="min-w-full border border-gray-300">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
+                                                    Device Type
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
+                                                    Description
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
+                                                    Serial Number
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
+                                                    Asset Tag
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
+                                                    Condition
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white">
+                                            <tr>
+                                                <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
+                                                    {deviceInfo.type || 'Computer Device'}
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
+                                                    {deviceInfo.brand} {deviceInfo.model}
+                                                    {prefilledData?.accessories && (
+                                                        <div className="text-xs text-gray-600 mt-1">
+                                                            Accessories: {prefilledData.accessories}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
+                                                    {deviceInfo.serial_number}
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
+                                                    {deviceInfo.asset_tag}
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
+                                                    {prefilledData?.device_condition || 'Good'}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             )}
                         </div>
-                    </div>
 
-                    {/* Employee Information */}
-                    <div className="bg-white shadow sm:rounded-lg">
-                        <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                                <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                                Your Information
-                            </h3>
+                        {/* Section 2: Employee Information */}
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                                2. Employee Information:
+                            </h2>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg">
                                 <div>
-                                    <label htmlFor="employee_name" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="employee_name" className="block text-sm font-medium text-gray-700 mb-1">
                                         Full Name <span className="text-red-500">*</span>
                                     </label>
                                     <input
@@ -135,7 +165,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                         required
                                         value={data.employee_name}
                                         onChange={(e) => setData('employee_name', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Enter your full name"
                                     />
                                     {errors.employee_name && (
@@ -144,7 +174,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                 </div>
 
                                 <div>
-                                    <label htmlFor="contact_number" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="contact_number" className="block text-sm font-medium text-gray-700 mb-1">
                                         Contact Number
                                     </label>
                                     <input
@@ -152,7 +182,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                         id="contact_number"
                                         value={data.contact_number}
                                         onChange={(e) => setData('contact_number', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Your phone number"
                                     />
                                     {errors.contact_number && (
@@ -161,7 +191,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                 </div>
 
                                 <div>
-                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                                         Email Address
                                     </label>
                                     <input
@@ -169,7 +199,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                         id="email"
                                         value={data.email}
                                         onChange={(e) => setData('email', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="your.email@company.com"
                                     />
                                     {errors.email && (
@@ -178,7 +208,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                 </div>
 
                                 <div>
-                                    <label htmlFor="department" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
                                         Department
                                     </label>
                                     <input
@@ -186,7 +216,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                         id="department"
                                         value={data.department}
                                         onChange={(e) => setData('department', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Your department"
                                     />
                                     {errors.department && (
@@ -195,7 +225,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label htmlFor="position" className="block text-sm font-medium text-gray-700">
+                                    <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
                                         Position/Job Title
                                     </label>
                                     <input
@@ -203,7 +233,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                         id="position"
                                         value={data.position}
                                         onChange={(e) => setData('position', e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                                         placeholder="Your job title"
                                     />
                                     {errors.position && (
@@ -212,100 +242,197 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Terms and Signature */}
-                    <div className="bg-white shadow sm:rounded-lg">
-                        <div className="px-4 py-5 sm:p-6">
-                            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                                <PencilIcon className="h-5 w-5 text-gray-400 mr-2" />
-                                Agreement and Signature
-                            </h3>
-                            
-                            {/* Terms */}
-                            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-                                <h4 className="text-md font-medium text-gray-900 mb-4">Terms of Device Use</h4>
-                                <div className="text-sm text-gray-700 space-y-3">
-                                    <p>By signing this agreement, I acknowledge that:</p>
-                                    <ul className="list-disc pl-5 space-y-2">
-                                        <li>I have received the device listed above in good working condition</li>
-                                        <li>I am responsible for the proper care and security of this device</li>
-                                        <li>I will report any damage, loss, or theft immediately to IT support</li>
-                                        <li>I will return the device in the same condition when requested</li>
-                                        <li>I understand that misuse may result in disciplinary action</li>
-                                        <li>I will not install unauthorized software or modify the device</li>
-                                        <li>I will comply with all company IT policies and procedures</li>
-                                    </ul>
+                        {/* Section 3: Responsibility of Employee */}
+                        <div>
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                                3. Responsibility of the Employee:
+                            </h2>
+                            <p className="text-gray-700 mb-3">
+                                The Employee acknowledges receipt of the above-mentioned device and agrees to:
+                            </p>
+                            <div className="space-y-2 text-sm text-gray-700 ml-4">
+                                <div className="flex">
+                                    <span className="font-medium mr-2">a.</span>
+                                    <span>Use the device solely for work-related purposes.</span>
+                                </div>
+                                <div className="flex">
+                                    <span className="font-medium mr-2">b.</span>
+                                    <span>Take reasonable care to prevent damage or loss, theft, or damage to the device.</span>
+                                </div>
+                                <div className="flex">
+                                    <span className="font-medium mr-2">c.</span>
+                                    <span>Notify the Company immediately in case of loss, theft, or damage to the device.</span>
+                                </div>
+                                <div className="flex">
+                                    <span className="font-medium mr-2">d.</span>
+                                    <span>Return the device promptly upon termination of employment or upon request by the Company.</span>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Section 4: Additional Terms */}
+                        <div className="space-y-6">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                                    4. Deductions from Pay:
+                                </h2>
+                                <p className="text-sm text-gray-700">
+                                    The Employee agrees that in the event of loss, theft, or damage to the issued device, the cost 
+                                    of repair or replacement shall be deducted from their salary or any other compensation owed to 
+                                    them by the Company. The deductions shall be made in accordance with the Company's policies and applicable laws.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                                    5. Reporting:
+                                </h2>
+                                <p className="text-sm text-gray-700">
+                                    The Employee agrees to report any issues with the device to the Company's IT department or 
+                                    designated personnel promptly.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                                    6. Ownership and Return:
+                                </h2>
+                                <p className="text-sm text-gray-700">
+                                    The device issued to the Employee remain the property of the Company. Upon termination of 
+                                    employment or upon request by the Company, the Employee agrees to return all issued devices 
+                                    in good condition, normal wear and tear excepted.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                                    7. Compliance with Policies:
+                                </h2>
+                                <p className="text-sm text-gray-700">
+                                    The Employee agrees to comply with all the applicable Company policies, including but not 
+                                    limited to IT security policies, while using the issued device.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                                    8. Confidentiality:
+                                </h2>
+                                <p className="text-sm text-gray-700">
+                                    The Employee agrees not to disclose any confidential information stored or accessed through 
+                                    the issued device to unauthorized individuals.
+                                </p>
+                            </div>
+
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                                    9. Entire Agreement:
+                                </h2>
+                                <p className="text-sm text-gray-700">
+                                    This Agreement constitutes the entire agreement between the parties concerning the issuance 
+                                    and use of company devices and supersedes all prior agreements and understandings, 
+                                    whether written or oral.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Agreement and Signature Section */}
+                        <div className="border-t border-gray-200 pt-6">
+                            <p className="text-sm font-medium text-gray-900 mb-4">
+                                IN WITNESS WHEREOF, the parties hereto have executed this Agreement as of the date first above written.
+                            </p>
 
                             {/* Agreement Checkbox */}
-                            <div className="mb-6">
+                            <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                 <div className="flex items-start">
                                     <input
                                         id="agrees_to_terms"
                                         type="checkbox"
                                         checked={data.agrees_to_terms}
                                         onChange={(e) => setData('agrees_to_terms', e.target.checked)}
-                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
                                     />
-                                    <label htmlFor="agrees_to_terms" className="ml-3 text-sm text-gray-700">
-                                        I have read, understood, and agree to the terms and conditions stated above.{' '}
+                                    <label htmlFor="agrees_to_terms" className="ml-3 text-sm text-gray-900">
+                                        <strong>Confirmation and Acceptance:</strong> I have read, understood, and agree to all the terms and 
+                                        conditions stated in this Device Liability Agreement. I acknowledge that I am fully responsible 
+                                        for the assigned device and will comply with all company policies.{' '}
                                         <span className="text-red-500">*</span>
                                     </label>
                                 </div>
                                 {errors.agrees_to_terms && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.agrees_to_terms}</p>
+                                    <p className="mt-2 text-sm text-red-600">{errors.agrees_to_terms}</p>
                                 )}
                             </div>
 
-                            {/* Digital Signature */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Digital Signature <span className="text-red-500">*</span>
-                                </label>
-                                <div className="border-2 border-gray-300 rounded-lg p-4">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm text-gray-600">
-                                            Please sign in the box below using your mouse or touch screen
-                                        </span>
-                                        <button
-                                            type="button"
-                                            onClick={clearSignature}
-                                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                                        >
-                                            <TrashIcon className="h-3 w-3 mr-1" />
-                                            Clear
-                                        </button>
+                            {/* Signature Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Employee Signature */}
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-900 mb-3">Employee:</h3>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Digital Signature <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="border-2 border-gray-300 rounded-lg p-3 bg-white">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs text-gray-600">
+                                                    Sign using your mouse or touch screen
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={clearSignature}
+                                                    className="inline-flex items-center px-2 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                                                >
+                                                    <TrashIcon className="h-3 w-3 mr-1" />
+                                                    Clear
+                                                </button>
+                                            </div>
+                                            <div className="border border-gray-200 rounded bg-white">
+                                                <SignatureCanvas
+                                                    ref={signatureRef}
+                                                    canvasProps={{
+                                                        width: 300,
+                                                        height: 120,
+                                                        className: 'signature-canvas w-full'
+                                                    }}
+                                                    onEnd={handleSignatureEnd}
+                                                    backgroundColor="rgb(255, 255, 255)"
+                                                />
+                                            </div>
+                                        </div>
+                                        {errors.signature_data && (
+                                            <p className="mt-1 text-sm text-red-600">{errors.signature_data}</p>
+                                        )}
                                     </div>
-                                    <div className="border border-gray-200 rounded bg-white">
-                                        <SignatureCanvas
-                                            ref={signatureRef}
-                                            canvasProps={{
-                                                width: 600,
-                                                height: 150,
-                                                className: 'signature-canvas w-full'
-                                            }}
-                                            onEnd={handleSignatureEnd}
-                                            backgroundColor="rgb(255, 255, 255)"
-                                        />
+                                    <div className="mt-3 text-sm text-gray-600">
+                                        <div>Name: ________________________________</div>
+                                        <div className="mt-2">Date: {currentDate}</div>
                                     </div>
                                 </div>
-                                {errors.signature_data && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.signature_data}</p>
-                                )}
+
+                                {/* Company Representative */}
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-900 mb-3">Company Representative:</h3>
+                                    <div className="mt-16 text-sm text-gray-600">
+                                        <div>Name: ________________________________</div>
+                                        <div className="mt-2">Title: IT Manager</div>
+                                        <div className="mt-2">Date: {currentDate}</div>
+                                        <div className="mt-4 text-xs font-medium text-gray-700">
+                                            EmpireOne
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Submit Button */}
-                    <div className="bg-white shadow sm:rounded-lg">
-                        <div className="px-4 py-5 sm:p-6">
-                            <div className="flex justify-end">
+                        {/* Submit Button */}
+                        <div className="border-t border-gray-200 pt-6">
+                            <div className="flex justify-center">
                                 <button
                                     type="submit"
                                     disabled={processing || !data.agrees_to_terms || signatureEmpty}
-                                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {processing ? (
                                         <div className="flex items-center">
@@ -321,8 +448,17 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </form>
+
+                        {/* Disclaimer */}
+                        <div className="border-t border-gray-200 pt-4">
+                            <div className="text-xs text-gray-500 italic">
+                                <strong>Disclaimer:</strong> This document and its contents are the property of EmpireOne 
+                                and are intended for internal use only. Unauthorized reproduction, disclosure, or distribution of this material, 
+                                in whole or in part, without prior written permission from the company is strictly prohibited.
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     )

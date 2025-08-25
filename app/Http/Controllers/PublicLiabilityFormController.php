@@ -75,6 +75,7 @@ class PublicLiabilityFormController extends Controller
         }
 
         $validated = $request->validate([
+            'employee_id' => 'required|string|max:50',
             'employee_name' => 'required|string|max:255',
             'contact_number' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255',
@@ -85,6 +86,11 @@ class PublicLiabilityFormController extends Controller
             'signature_format' => 'nullable|string|in:png,svg,jpg,jpeg',
         ]);
 
+        // Verify employee ID still matches (security check)
+        if ($liabilityForm->required_employee_id !== $validated['employee_id']) {
+            return response()->json(['message' => 'Employee ID does not match our records.'], 422);
+        }
+
         // Remove data URL prefix if present
         $signatureData = $validated['signature_data'];
         if (str_contains($signatureData, 'data:image/')) {
@@ -93,6 +99,7 @@ class PublicLiabilityFormController extends Controller
 
         // Update the liability form
         $liabilityForm->update([
+            'employee_id' => $validated['employee_id'],
             'employee_name' => $validated['employee_name'],
             'contact_number' => $validated['contact_number'],
             'email' => $validated['email'],

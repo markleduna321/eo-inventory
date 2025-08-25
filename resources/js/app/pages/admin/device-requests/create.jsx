@@ -7,7 +7,7 @@ import InputLabelComponent from '@/app/pages/components/input-label-component'
 import InputTextComponent from '@/app/pages/components/input-text-component'
 import SelectComponent from '@/app/pages/components/input-select'
 
-export default function CreateDeviceRequest({ availableDevices = [], users = [] }) {
+export default function CreateDeviceRequest({ availableDevices = [] }) {
     const [formData, setFormData] = useState({
         device_id: '',
         assignee_id: '',
@@ -28,13 +28,6 @@ export default function CreateDeviceRequest({ availableDevices = [], users = [] 
         value: device.id.toString(),
         label: `${device.asset_tag} - ${device.brand} ${device.model} (${device.device_type})`,
         ...device
-    }))
-
-    const userOptions = users.map(user => ({
-        id: user.id,
-        value: user.id.toString(),
-        label: `${user.name} (${user.email})`,
-        ...user
     }))
 
     const handleInputChange = (e) => {
@@ -60,7 +53,9 @@ export default function CreateDeviceRequest({ availableDevices = [], users = [] 
         // Basic validation
         const newErrors = {}
         if (!formData.device_id) newErrors.device_id = ['Please select a device']
-        if (!formData.assignee_id) newErrors.assignee_id = ['Please select an assignee']
+        if (!formData.assignee_id || formData.assignee_id.trim().length < 2) {
+            newErrors.assignee_id = ['Please enter a valid assignee name or ID (minimum 2 characters)']
+        }
         if (!formData.justification || formData.justification.length < 10) {
             newErrors.justification = ['Justification must be at least 10 characters']
         }
@@ -142,13 +137,13 @@ export default function CreateDeviceRequest({ availableDevices = [], users = [] 
 
                                 <div>
                                     <InputLabelComponent htmlFor="assignee_id" labelText="Assign To" />
-                                    <SelectComponent
+                                    <InputTextComponent
                                         id="assignee_id"
                                         name="assignee_id"
-                                        options={userOptions}
+                                        type="text"
                                         value={formData.assignee_id}
                                         onChange={handleInputChange}
-                                        placeholder="Select a user..."
+                                        placeholder="Enter employee name or ID..."
                                         required
                                         className="w-full"
                                     />

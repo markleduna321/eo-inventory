@@ -11,6 +11,7 @@ import {
 } from '@headlessui/react';
 import {
   ArchiveBoxIcon,
+  ArrowLeftStartOnRectangleIcon,
   Bars3Icon,
   BellAlertIcon,
   BellIcon,
@@ -180,6 +181,11 @@ export default function Layout({ children }) {
           icon: <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
           link: "/admin/other_assets",
           requiredPermissions: [PERMISSIONS.ASSETS_VIEW]
+        }, {
+          label: "Device Returns",
+          icon: <ArrowLeftStartOnRectangleIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
+          link: "/admin/device-returns",
+          requiredPermissions: [PERMISSIONS.DEVICES_MANAGE]
         },
 
       ]

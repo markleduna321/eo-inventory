@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Head } from '@inertiajs/react'
 import { 
     CheckCircleIcon, 
@@ -10,8 +10,8 @@ import {
 import Button from '@/app/pages/components/button'
 
 export default function PublicLiabilityFormThankYou({ 
-    liabilityForm, 
-    deviceInfo 
+    liabilityForm = {}, 
+    deviceInfo = {} 
 }) {
     const handlePrint = () => {
         window.print()
@@ -27,22 +27,36 @@ export default function PublicLiabilityFormThankYou({
         })
     }
 
+    // Auto-scroll to top and add focus for screen readers
+    useEffect(() => {
+        window.scrollTo(0, 0)
+        document.title = "✅ Agreement Completed Successfully"
+    }, [])
+
     return (
         <>
-            <Head title="Form Completed Successfully" />
+            <Head title="✅ Agreement Completed Successfully" />
             
-            <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-3xl mx-auto">
                     {/* Success Header */}
                     <div className="text-center mb-8">
-                        <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-green-100">
-                            <CheckCircleIcon className="h-10 w-10 text-green-600" />
+                        <div className="mx-auto h-20 w-20 flex items-center justify-center rounded-full bg-green-100 mb-4">
+                            <CheckCircleIcon className="h-12 w-12 text-green-600" />
                         </div>
-                        <h1 className="mt-4 text-3xl font-bold tracking-tight text-gray-900">
-                            Form Completed Successfully!
+                        <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-4">
+                            Agreement Successfully Completed!
                         </h1>
-                        <p className="mt-2 text-lg text-gray-600">
-                            Your device liability agreement has been submitted and recorded
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <p className="text-lg font-semibold text-green-800">
+                                ✅ Your device liability agreement has been submitted and recorded
+                            </p>
+                            <p className="text-green-700 mt-2">
+                                You may now safely close this tab. Thank you for completing the agreement process.
+                            </p>
+                        </div>
+                        <p className="text-lg text-gray-600">
+                            A confirmation copy has been saved to our records and sent to the IT department
                         </p>
                     </div>
 
@@ -58,7 +72,7 @@ export default function PublicLiabilityFormThankYou({
                                     <DocumentTextIcon className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-medium text-gray-900">Agreement ID</p>
-                                        <p className="text-sm text-gray-600">#{liabilityForm.id}</p>
+                                        <p className="text-sm text-gray-600">#{liabilityForm?.id || 'N/A'}</p>
                                     </div>
                                 </div>
 
@@ -66,7 +80,9 @@ export default function PublicLiabilityFormThankYou({
                                     <CalendarIcon className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-medium text-gray-900">Completed On</p>
-                                        <p className="text-sm text-gray-600">{formatDate(liabilityForm.updated_at)}</p>
+                                        <p className="text-sm text-gray-600">
+                                            {liabilityForm?.updated_at ? formatDate(liabilityForm.updated_at) : 'N/A'}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -74,8 +90,8 @@ export default function PublicLiabilityFormThankYou({
                                     <UserIcon className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-medium text-gray-900">Employee</p>
-                                        <p className="text-sm text-gray-600">{liabilityForm.employee_name}</p>
-                                        <p className="text-xs text-gray-500">ID: {liabilityForm.employee_id}</p>
+                                        <p className="text-sm text-gray-600">{liabilityForm?.employee_name || 'N/A'}</p>
+                                        <p className="text-xs text-gray-500">ID: {liabilityForm?.employee_id || 'N/A'}</p>
                                     </div>
                                 </div>
 
@@ -83,8 +99,14 @@ export default function PublicLiabilityFormThankYou({
                                     <DevicePhoneMobileIcon className="h-5 w-5 text-gray-400 mt-1 flex-shrink-0" />
                                     <div>
                                         <p className="text-sm font-medium text-gray-900">Assigned Device</p>
-                                        <p className="text-sm text-gray-600">{deviceInfo.brand} {deviceInfo.model}</p>
-                                        <p className="text-xs text-gray-500">Asset: {deviceInfo.asset_tag}</p>
+                                        <p className="text-sm text-gray-600">
+                                            {deviceInfo?.brand && deviceInfo?.model 
+                                                ? `${deviceInfo.brand} ${deviceInfo.model}` 
+                                                : 'Device information not available'}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            Asset: {deviceInfo?.asset_tag || 'N/A'}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -148,25 +170,60 @@ export default function PublicLiabilityFormThankYou({
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={handlePrint}
-                            className="min-w-[180px]"
-                        >
-                            <DocumentTextIcon className="h-5 w-5 mr-2" />
-                            Print Confirmation
-                        </Button>
-                        
-                        <Button
-                            variant="primary"
-                            size="lg"
-                            onClick={() => window.close()}
-                            className="min-w-[180px]"
-                        >
-                            Close Window
-                        </Button>
+                    <div className="bg-white shadow sm:rounded-lg p-6 mb-8">
+                        <div className="text-center">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                                What's Next?
+                            </h3>
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                                <div className="flex items-center justify-center mb-3">
+                                    <CheckCircleIcon className="h-8 w-8 text-blue-600 mr-2" />
+                                    <span className="text-lg font-semibold text-blue-900">All Done!</span>
+                                </div>
+                                <p className="text-blue-800 text-lg mb-2">
+                                    Your liability agreement has been successfully submitted and processed.
+                                </p>
+                                <p className="text-blue-700 font-medium">
+                                    🎉 You may now close this browser tab safely.
+                                </p>
+                            </div>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={handlePrint}
+                                    className="min-w-[180px]"
+                                >
+                                    <DocumentTextIcon className="h-5 w-5 mr-2" />
+                                    Print Confirmation
+                                </Button>
+                                
+                                <Button
+                                    variant="primary"
+                                    size="lg"
+                                    onClick={() => {
+                                        // Try to close the tab, if it fails show an alert
+                                        if (window.history.length > 1) {
+                                            window.close();
+                                        } else {
+                                            alert('You can now safely close this browser tab. Thank you for completing the liability agreement!');
+                                        }
+                                    }}
+                                    className="min-w-[180px] bg-green-600 hover:bg-green-700"
+                                >
+                                    <CheckCircleIcon className="h-5 w-5 mr-2" />
+                                    Close Tab
+                                </Button>
+                            </div>
+
+                            <div className="mt-6 text-sm text-gray-600">
+                                <p>
+                                    <strong>Note:</strong> If the "Close Tab" button doesn't work, simply close this browser tab manually. 
+                                    Your form submission has been successfully completed and saved.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Print-only Summary */}
@@ -174,17 +231,17 @@ export default function PublicLiabilityFormThankYou({
                         <h2 className="text-xl font-bold mb-4">Device Liability Agreement - Summary</h2>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <p><strong>Agreement ID:</strong> #{liabilityForm.id}</p>
-                                <p><strong>Employee:</strong> {liabilityForm.employee_name}</p>
-                                <p><strong>Employee ID:</strong> {liabilityForm.employee_id}</p>
-                                <p><strong>Email:</strong> {liabilityForm.employee_email}</p>
-                                <p><strong>Phone:</strong> {liabilityForm.personal_phone}</p>
+                                <p><strong>Agreement ID:</strong> #{liabilityForm?.id || 'N/A'}</p>
+                                <p><strong>Employee:</strong> {liabilityForm?.employee_name || 'N/A'}</p>
+                                <p><strong>Employee ID:</strong> {liabilityForm?.employee_id || 'N/A'}</p>
+                                <p><strong>Email:</strong> {liabilityForm?.employee_email || 'N/A'}</p>
+                                <p><strong>Phone:</strong> {liabilityForm?.personal_phone || 'N/A'}</p>
                             </div>
                             <div>
-                                <p><strong>Device:</strong> {deviceInfo.brand} {deviceInfo.model}</p>
-                                <p><strong>Asset Tag:</strong> {deviceInfo.asset_tag}</p>
-                                <p><strong>Serial Number:</strong> {deviceInfo.serial_number}</p>
-                                <p><strong>Date Completed:</strong> {formatDate(liabilityForm.updated_at)}</p>
+                                <p><strong>Device:</strong> {deviceInfo?.brand && deviceInfo?.model ? `${deviceInfo.brand} ${deviceInfo.model}` : 'N/A'}</p>
+                                <p><strong>Asset Tag:</strong> {deviceInfo?.asset_tag || 'N/A'}</p>
+                                <p><strong>Serial Number:</strong> {deviceInfo?.serial_number || 'N/A'}</p>
+                                <p><strong>Date Completed:</strong> {liabilityForm?.updated_at ? formatDate(liabilityForm.updated_at) : 'N/A'}</p>
                             </div>
                         </div>
                         <div className="mt-4">

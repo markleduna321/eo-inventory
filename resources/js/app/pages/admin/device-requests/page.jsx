@@ -5,12 +5,127 @@ import { Link } from '@inertiajs/react'
 import { router } from '@inertiajs/react'
 import { ChevronDownIcon, PlusIcon, EyeIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Button from '@/app/pages/components/button'
+import Modal from '@/app/pages/components/modal'
+import InputLabelComponent from '@/app/pages/components/input-label-component'
+import InputTextComponent from '@/app/pages/components/input-text-component'
+import SelectComponent from '@/app/pages/components/input-select'
 
-export default function DeviceRequestsPage({ requests: initialRequests, filters, flash = {} }) {
+export default function DeviceRequestsPage({ requests: initialRequests, filters, flash = {}, availableDevices = [] }) {
     const { success, error } = flash;
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'all')
     const [requests, setRequests] = useState(initialRequests?.data || initialRequests || [])
     const [loading, setLoading] = useState(false)
+    
+    // Modal state
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+    const [formData, setFormData] = useState({
+        device_id: '',
+        assignee_id: '',
+        request_type: 'assignment',
+        justification: '',
+        purpose: '',
+        requested_from: '',
+        requested_until: '',
+        priority: 'medium'
+    })
+    const [formErrors, setFormErrors] = useState({})
+    const [formLoading, setFormLoading] = useState(false)
+
+    // Transform backend data to format expected by SelectComponent
+    const deviceOptions = availableDevices.map(device => ({
+        id: device.id,
+        value: device.id.toString(),
+        label: `${device.asset_tag} - ${device.brand} ${device.model} (${device.device_type})`,
+        ...device
+    }))
+
+    const requestTypes = [
+        { value: 'assignment', label: 'New Assignment' },
+        { value: 'transfer', label: 'Transfer Device' },
+        { value: 'return', label: 'Return Device' }
+    ]
+
+    const priorities = [
+        { value: 'low', label: 'Low Priority' },
+        { value: 'medium', label: 'Medium Priority' },
+        { value: 'high', label: 'High Priority' },
+        { value: 'urgent', label: 'Urgent' }
+    ]
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }))
+
+        // Clear errors when user types
+        if (formErrors[name]) {
+            setFormErrors(prev => ({
+                ...prev,
+                [name]: null
+            }))
+        }
+    }
+
+    const handleCreateRequest = (e) => {
+        e.preventDefault()
+        setFormLoading(true)
+
+        // Basic validation
+        const newErrors = {}
+        if (!formData.device_id) newErrors.device_id = ['Please select a device']
+        if (!formData.assignee_id || formData.assignee_id.trim().length < 2) {
+            newErrors.assignee_id = ['Please enter a valid assignee name or ID (minimum 2 characters)']
+        }
+        if (!formData.justification || formData.justification.length < 10) {
+            newErrors.justification = ['Justification must be at least 10 characters']
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setFormErrors(newErrors)
+            setFormLoading(false)
+            return
+        }
+
+        // Submit the form
+        router.post('/admin/device-requests', formData, {
+            onSuccess: () => {
+                setIsCreateModalOpen(false)
+                setFormData({
+                    device_id: '',
+                    assignee_id: '',
+                    request_type: 'assignment',
+                    justification: '',
+                    purpose: '',
+                    requested_from: '',
+                    requested_until: '',
+                    priority: 'medium'
+                })
+                setFormErrors({})
+            },
+            onError: (errors) => {
+                setFormErrors(errors)
+            },
+            onFinish: () => {
+                setFormLoading(false)
+            }
+        })
+    }
+
+    const resetForm = () => {
+        setFormData({
+            device_id: '',
+            assignee_id: '',
+            request_type: 'assignment',
+            justification: '',
+            purpose: '',
+            requested_from: '',
+            requested_until: '',
+            priority: 'medium'
+        })
+        setFormErrors({})
+    }
 
     useEffect(() => {
         // Filter requests when status filter changes
@@ -110,16 +225,15 @@ export default function DeviceRequestsPage({ requests: initialRequests, filters,
                         </p>
                     </div>
                     <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-                        <Link href="/admin/device-requests/create">
-                            <Button
-                                variant="primary"
-                                size="md"
-                                className="inline-flex items-center"
-                            >
-                                <PlusIcon className="w-4 h-4 mr-2" />
-                                New Request
-                            </Button>
-                        </Link>
+                        <Button
+                            variant="primary"
+                            size="md"
+                            className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200"
+                            onClick={() => setIsCreateModalOpen(true)}
+                        >
+                            <PlusIcon className="w-4 h-4 mr-2" />
+                            New Request
+                        </Button>
                     </div>
                 </div>
 
@@ -284,10 +398,10 @@ export default function DeviceRequestsPage({ requests: initialRequests, filters,
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div>
                                                     <div className="text-sm font-medium text-gray-900">
-                                                        {request.assignee.name}
+                                                        {request.assignee?.name || request.assignee_id || 'Unassigned'}
                                                     </div>
                                                     <div className="text-sm text-gray-500">
-                                                        {request.assignee.email}
+                                                        {request.assignee?.email || ''}
                                                     </div>
                                                 </div>
                                             </td>
@@ -337,6 +451,183 @@ export default function DeviceRequestsPage({ requests: initialRequests, filters,
                         </table>
                     </div>
                 </div>
+
+                {/* Create Request Modal */}
+                <Modal 
+                    isOpen={isCreateModalOpen} 
+                    onClose={() => {
+                        setIsCreateModalOpen(false)
+                        resetForm()
+                    }}
+                    width="w-4/5 max-w-4xl"
+                >
+                    <div className="p-6">
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-gray-900">Create Device Request</h2>
+                            <p className="mt-2 text-sm text-gray-700">
+                                Request a device assignment for yourself or another user
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleCreateRequest} className="space-y-6">
+                            {/* Device Selection */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabelComponent htmlFor="device_id" labelText="Device" />
+                                    <SelectComponent
+                                        id="device_id"
+                                        name="device_id"
+                                        options={deviceOptions}
+                                        value={formData.device_id}
+                                        onChange={handleInputChange}
+                                        placeholder="Select a device..."
+                                        required
+                                        className="w-full"
+                                    />
+                                    {formErrors.device_id && (
+                                        <div className="text-red-500 text-sm mt-1">
+                                            {formErrors.device_id[0]}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <InputLabelComponent htmlFor="assignee_id" labelText="Assign To" />
+                                    <InputTextComponent
+                                        id="assignee_id"
+                                        name="assignee_id"
+                                        type="text"
+                                        value={formData.assignee_id}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter employee name or ID..."
+                                        required
+                                        className="w-full"
+                                    />
+                                    {formErrors.assignee_id && (
+                                        <div className="text-red-500 text-sm mt-1">
+                                            {formErrors.assignee_id[0]}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Request Type and Priority */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabelComponent htmlFor="request_type" labelText="Request Type" />
+                                    <SelectComponent
+                                        id="request_type"
+                                        name="request_type"
+                                        options={requestTypes}
+                                        value={formData.request_type}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div>
+                                    <InputLabelComponent htmlFor="priority" labelText="Priority" />
+                                    <SelectComponent
+                                        id="priority"
+                                        name="priority"
+                                        options={priorities}
+                                        value={formData.priority}
+                                        onChange={handleInputChange}
+                                        required
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Date Range */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <InputLabelComponent htmlFor="requested_from" labelText="From Date (Optional)" />
+                                    <InputTextComponent
+                                        id="requested_from"
+                                        name="requested_from"
+                                        type="date"
+                                        value={formData.requested_from}
+                                        onChange={handleInputChange}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                <div>
+                                    <InputLabelComponent htmlFor="requested_until" labelText="Until Date (Optional)" />
+                                    <InputTextComponent
+                                        id="requested_until"
+                                        name="requested_until"
+                                        type="date"
+                                        value={formData.requested_until}
+                                        onChange={handleInputChange}
+                                        className="w-full"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Justification */}
+                            <div>
+                                <InputLabelComponent htmlFor="justification" labelText="Justification" />
+                                <textarea
+                                    id="justification"
+                                    name="justification"
+                                    rows={4}
+                                    value={formData.justification}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Explain why this device is needed..."
+                                    required
+                                />
+                                {formErrors.justification && (
+                                    <div className="text-red-500 text-sm mt-1">
+                                        {formErrors.justification[0]}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Purpose */}
+                            <div>
+                                <InputLabelComponent htmlFor="purpose" labelText="Purpose (Optional)" />
+                                <textarea
+                                    id="purpose"
+                                    name="purpose"
+                                    rows={3}
+                                    value={formData.purpose}
+                                    onChange={handleInputChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="Additional details about how the device will be used..."
+                                />
+                            </div>
+
+                            {/* Submit Buttons */}
+                            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="md"
+                                    disabled={formLoading}
+                                    onClick={() => {
+                                        setIsCreateModalOpen(false)
+                                        resetForm()
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                
+                                <Button
+                                    type="submit"
+                                    variant="primary"
+                                    size="md"
+                                    disabled={formLoading}
+                                >
+                                    {formLoading ? 'Submitting...' : 'Submit Request'}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </Modal>
             </div>
         </AdminLayout>
     )

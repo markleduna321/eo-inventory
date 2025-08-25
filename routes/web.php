@@ -6,6 +6,7 @@ use App\Http\Controllers\SystemUnitController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\DeviceRequestController;
+use App\Http\Controllers\DeviceReturnController;
 use App\Http\Controllers\LiabilityFormController;
 use App\Http\Controllers\PublicLiabilityFormController;
 use App\Models\User;
@@ -152,6 +153,25 @@ Route::middleware('auth')->prefix('admin')->group(function () {
             ->name('cancel');
     });
 
+    // Device Return Routes
+    Route::prefix('device-returns')->name('device-returns.')->group(function () {
+        Route::get('/', [DeviceReturnController::class, 'index'])
+            ->middleware('permission:requests_view')
+            ->name('index');
+        Route::get('/create', [DeviceReturnController::class, 'create'])
+            ->middleware('permission:requests_create')
+            ->name('create');
+        Route::post('/', [DeviceReturnController::class, 'store'])
+            ->middleware('permission:requests_create')
+            ->name('store');
+        Route::get('/{deviceReturn}', [DeviceReturnController::class, 'show'])
+            ->middleware('permission:requests_view')
+            ->name('show');
+        Route::post('/{deviceReturn}/approve', [DeviceReturnController::class, 'approve'])
+            ->middleware('permission:requests_approve')
+            ->name('approve');
+    });
+
     // Liability Form Routes
     Route::prefix('liability-forms')->name('liability-forms.')->group(function () {
         Route::get('/', [LiabilityFormController::class, 'index'])->name('index');
@@ -165,6 +185,12 @@ Route::middleware('auth')->prefix('admin')->group(function () {
 
     // API endpoint for available devices
     Route::get('/api/devices/available', [DeviceRequestController::class, 'getAvailableDevices'])->name('api.devices.available');
+    
+    // API endpoint for assigned devices (for returns)
+    Route::get('/api/devices/assigned', [DeviceReturnController::class, 'getAssignedDevices'])->name('api.devices.assigned');
+
+    // API endpoint for device return stats
+    Route::get('/api/device-returns/stats', [DeviceReturnController::class, 'getStats'])->name('api.device-returns.stats');
 
     Route::get('purchase_request', function () {
         return Inertia::render('admin/purchase_request/page'); 

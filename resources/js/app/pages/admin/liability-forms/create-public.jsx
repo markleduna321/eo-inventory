@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import AdminLayout from '../layout'
 import { useForm } from '@inertiajs/react'
 import { 
@@ -21,6 +21,19 @@ export default function CreatePublicLiabilityForm({ devices, deviceRequests }) {
         accessories: '',
         admin_notes: ''
     })
+
+    // Handle URL parameters to pre-select device request
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search)
+        const deviceRequestId = urlParams.get('device_request_id')
+        
+        if (deviceRequestId && deviceRequests) {
+            const request = deviceRequests.find(r => r.id == deviceRequestId)
+            if (request) {
+                handleRequestChange(deviceRequestId)
+            }
+        }
+    }, [deviceRequests])
 
     const handleDeviceChange = (deviceId) => {
         setSelectedDevice(deviceId)
