@@ -256,7 +256,7 @@ export default function CreatePeripheralsSection() {
                         <form id="create-peripheral-form" className="space-y-6" onSubmit={handleSubmit}>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <InputLabelComponent htmlFor="peripheral_type" value="Peripheral Type *" />
+                                            <InputLabelComponent htmlFor="peripheral_type" labelText="Peripheral Type *" />
                                             <SelectComponent
                                                 id="peripheral_type"
                                                 name="peripheral_type"
@@ -271,7 +271,7 @@ export default function CreatePeripheralsSection() {
                                             )}
                                         </div>
                                         <div>
-                                            <InputLabelComponent htmlFor="brand" value="Brand *" />
+                                            <InputLabelComponent htmlFor="brand" labelText="Brand *" />
                                             <InputTextComponent
                                                 id="brand"
                                                 name="brand"
@@ -290,7 +290,7 @@ export default function CreatePeripheralsSection() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <InputLabelComponent htmlFor="model" value="Model *" />
+                                            <InputLabelComponent htmlFor="model" labelText="Model *" />
                                             <InputTextComponent
                                                 id="model"
                                                 name="model"
@@ -306,7 +306,7 @@ export default function CreatePeripheralsSection() {
                                             )}
                                         </div>
                                         <div>
-                                            <InputLabelComponent htmlFor="location" value="Location *" />
+                                            <InputLabelComponent htmlFor="location" labelText="Location *" />
                                             <SelectComponent
                                                 id="location"
                                                 name="location"
@@ -324,7 +324,7 @@ export default function CreatePeripheralsSection() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <InputLabelComponent htmlFor="purchase_order" value="Purchase Order" />
+                                            <InputLabelComponent htmlFor="purchase_order" labelText="Purchase Order" />
                                             <InputTextComponent
                                                 id="purchase_order"
                                                 name="purchase_order"
@@ -339,7 +339,7 @@ export default function CreatePeripheralsSection() {
                                             )}
                                         </div>
                                         <div>
-                                            <InputLabelComponent htmlFor="invoice_number" value="Invoice Number" />
+                                            <InputLabelComponent htmlFor="invoice_number" labelText="Invoice Number" />
                                             <InputTextComponent
                                                 id="invoice_number"
                                                 name="invoice_number"
@@ -357,7 +357,7 @@ export default function CreatePeripheralsSection() {
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <InputLabelComponent htmlFor="delivery_date" value="Delivery Date *" />
+                                            <InputLabelComponent htmlFor="delivery_date" labelText="Delivery Date *" />
                                             <InputTextComponent
                                                 id="delivery_date"
                                                 name="delivery_date"
@@ -372,7 +372,7 @@ export default function CreatePeripheralsSection() {
                                             )}
                                         </div>
                                         <div>
-                                            <InputLabelComponent htmlFor="received_by" value="Received By *" />
+                                            <InputLabelComponent htmlFor="received_by" labelText="Received By *" />
                                             <InputTextComponent
                                                 id="received_by"
                                                 name="received_by"
@@ -381,6 +381,8 @@ export default function CreatePeripheralsSection() {
                                                 value={formData.received_by}
                                                 onChange={(e) => handleInputChange('received_by', e.target.value)}
                                                 onBlur={(e) => handleInputChange('received_by', e.target.value)}
+                                                readOnly
+                                                className="bg-gray-50 text-gray-500 cursor-not-allowed"
                                                 required
                                             />
                                             {getFieldError('received_by') && (
@@ -390,7 +392,7 @@ export default function CreatePeripheralsSection() {
                                     </div>
 
                                     <div>
-                                        <InputLabelComponent htmlFor="description" value="Description (Optional)" />
+                                        <InputLabelComponent htmlFor="description" labelText="Description (Optional)" />
                                         <textarea
                                             id="description"
                                             name="description"
@@ -407,7 +409,7 @@ export default function CreatePeripheralsSection() {
                                     </div>
 
                                     <div>
-                                        <InputLabelComponent htmlFor="delivery_notes" value="Delivery Notes (Optional)" />
+                                        <InputLabelComponent htmlFor="delivery_notes" labelText="Delivery Notes (Optional)" />
                                         <textarea
                                             id="delivery_notes"
                                             name="delivery_notes"
@@ -443,7 +445,7 @@ export default function CreatePeripheralsSection() {
                                     </div>
 
                                     <div>
-                                        <InputLabelComponent htmlFor="notes" value="Notes (Optional)" />
+                                        <InputLabelComponent htmlFor="notes" labelText="Notes (Optional)" />
                                         <textarea
                                             id="notes"
                                             name="notes"
