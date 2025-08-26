@@ -112,6 +112,19 @@ export const PERMISSIONS = {
     PERIPHERALS_MANAGE: 'peripherals_manage',
     PARTS_MANAGE: 'parts_manage',
     SYSTEM_UNITS_MANAGE: 'system_units_manage',
+    OTHER_ASSETS_VIEW: 'other_assets_view',
+    OTHER_ASSETS_CREATE: 'other_assets_create',
+    OTHER_ASSETS_EDIT: 'other_assets_edit',
+    OTHER_ASSETS_DELETE: 'other_assets_delete',
+    OTHER_ASSETS_MANAGE: 'other_assets_manage',
+    
+    // Device Returns
+    DEVICE_RETURNS_VIEW: 'device_returns_view',
+    DEVICE_RETURNS_CREATE: 'device_returns_create',
+    DEVICE_RETURNS_EDIT: 'device_returns_edit',
+    DEVICE_RETURNS_DELETE: 'device_returns_delete',
+    DEVICE_RETURNS_MANAGE: 'device_returns_manage',
+    DEVICE_RETURNS_APPROVE: 'device_returns_approve',
     
     // Locations & Stations
     LOCATIONS_VIEW: 'locations_view',

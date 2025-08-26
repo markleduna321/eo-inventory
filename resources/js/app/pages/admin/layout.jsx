@@ -180,12 +180,12 @@ export default function Layout({ children }) {
           label: "Other Assets",
           icon: <ArchiveBoxIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
           link: "/admin/other_assets",
-          requiredPermissions: [PERMISSIONS.ASSETS_VIEW]
+          requiredPermissions: [PERMISSIONS.OTHER_ASSETS_VIEW]
         }, {
           label: "Device Returns",
           icon: <ArrowLeftStartOnRectangleIcon aria-hidden="true" className="h-6 w-6 shrink-0" />,
           link: "/admin/device-returns",
-          requiredPermissions: [PERMISSIONS.DEVICES_MANAGE]
+          requiredPermissions: [PERMISSIONS.DEVICE_RETURNS_VIEW]
         },
 
       ]

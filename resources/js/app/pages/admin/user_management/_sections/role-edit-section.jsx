@@ -101,7 +101,18 @@ export default function RoleEditSection({ role, isOpen, onClose }) {
                 { id: 'monitors_manage', name: 'Manage Monitors', description: 'Full access to monitors management' },
                 { id: 'peripherals_manage', name: 'Manage Peripherals', description: 'Full access to peripherals management' },
                 { id: 'parts_manage', name: 'Manage Parts', description: 'Full access to parts and accessories' },
-                { id: 'system_units_manage', name: 'Manage System Units', description: 'Full access to system units' }
+                { id: 'system_units_manage', name: 'Manage System Units', description: 'Full access to system units' },
+                { id: 'other_assets_view', name: 'View Other Assets', description: 'View other assets inventory' },
+                { id: 'other_assets_create', name: 'Create Other Assets', description: 'Add new other assets' },
+                { id: 'other_assets_edit', name: 'Edit Other Assets', description: 'Modify other assets information' },
+                { id: 'other_assets_delete', name: 'Delete Other Assets', description: 'Remove other assets from inventory' },
+                { id: 'other_assets_manage', name: 'Manage Other Assets', description: 'Full access to other assets management' },
+                { id: 'device_returns_view', name: 'View Device Returns', description: 'View device return requests' },
+                { id: 'device_returns_create', name: 'Create Device Returns', description: 'Submit new device return requests' },
+                { id: 'device_returns_edit', name: 'Edit Device Returns', description: 'Modify device return requests' },
+                { id: 'device_returns_delete', name: 'Delete Device Returns', description: 'Remove device return requests' },
+                { id: 'device_returns_manage', name: 'Manage Device Returns', description: 'Full device returns management' },
+                { id: 'device_returns_approve', name: 'Approve Device Returns', description: 'Approve or reject device return requests' }
             ]
         },
         {
