@@ -530,15 +530,20 @@ export default function OtherAssetsTableSection() {
                 <Modal
                     isOpen={!!viewAsset}
                     onClose={() => setViewAsset(null)}
-                    width="w-full max-w-4xl"
+                    width="w-full max-w-4xl mx-4 sm:mx-6 lg:mx-8"
                 >
-                    <div className="bg-white px-6 py-4">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Asset Details</h2>
+                    <div className="bg-white">
+                        {/* Header */}
+                        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Asset Details</h2>
+                        </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                                <dl className="space-y-3">
+                        {/* Scrollable Content */}
+                        <div className="px-4 sm:px-6 py-6 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <h3 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 mb-4">Basic Information</h3>
+                                    <dl className="space-y-3">
                                     <div>
                                         <dt className="text-sm font-medium text-gray-500">Name</dt>
                                         <dd className="text-sm text-gray-900">{viewAsset.name}</dd>
@@ -597,28 +602,34 @@ export default function OtherAssetsTableSection() {
                             </div>
                         </div>
                         
+                        {/* Additional Information Sections */}
                         {viewAsset.description && (
                             <div className="mt-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
-                                <p className="text-sm text-gray-700">{viewAsset.description}</p>
+                                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Description</h3>
+                                <p className="text-sm sm:text-base text-gray-700">{viewAsset.description}</p>
                             </div>
                         )}
                         
                         {viewAsset.notes && (
                             <div className="mt-6">
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Notes</h3>
-                                <p className="text-sm text-gray-700">{viewAsset.notes}</p>
+                                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Notes</h3>
+                                <p className="text-sm sm:text-base text-gray-700">{viewAsset.notes}</p>
                             </div>
                         )}
+                        </div>
                         
-                        <div className="flex justify-end mt-6 pt-4 border-t">
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={() => setViewAsset(null)}
-                            >
-                                Close
-                            </Button>
+                        {/* Footer */}
+                        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
+                            <div className="flex justify-end">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => setViewAsset(null)}
+                                    className="w-full sm:w-auto"
+                                >
+                                    Close
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </Modal>
@@ -633,178 +644,211 @@ export default function OtherAssetsTableSection() {
                         setEditFormData({});
                         setEditFormErrors({});
                     }}
-                    width="w-full max-w-4xl"
+                    width="w-full max-w-6xl mx-4 sm:mx-6 lg:mx-8"
                 >
-                    <div className="bg-white px-6 py-4">
-                        <h2 className="text-xl font-semibold text-gray-900 mb-6">Edit Asset</h2>
+                    <div className="bg-white">
+                        {/* Header */}
+                        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Edit Asset</h2>
+                        </div>
                         
-                        <form onSubmit={handleEditSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="md:col-span-2">
-                                    <InputTextComponent
-                                        label="Asset Name"
-                                        name="name"
-                                        value={editFormData.name}
-                                        onChange={(e) => setEditFieldValue('name', e.target.value)}
-                                        error={editFormErrors.name}
-                                        required
-                                    />
+                        {/* Scrollable Content */}
+                        <div className="px-4 sm:px-6 py-6 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+                            <form onSubmit={handleEditSubmit} className="space-y-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Basic Information */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Basic Information</h3>
+                                        
+                                        <div className="lg:col-span-2">
+                                            <InputTextComponent
+                                                label="Asset Name"
+                                                name="name"
+                                                value={editFormData.name}
+                                                onChange={(e) => setEditFieldValue('name', e.target.value)}
+                                                error={editFormErrors.name}
+                                                required
+                                            />
+                                        </div>
+
+                                        <InputSelectComponent
+                                            label="Asset Type"
+                                            value={editFormData.asset_type}
+                                            onChange={(value) => setEditFieldValue('asset_type', value)}
+                                            options={[
+                                                { value: '', label: 'Select Asset Type' },
+                                                ...dropdownOptions.asset_types.map(type => ({
+                                                    value: type,
+                                                    label: type
+                                                }))
+                                            ]}
+                                            error={editFormErrors.asset_type}
+                                            required
+                                        />
+
+                                        <InputTextComponent
+                                            label="Brand"
+                                            name="brand"
+                                            value={editFormData.brand}
+                                            onChange={(e) => setEditFieldValue('brand', e.target.value)}
+                                            error={editFormErrors.brand}
+                                        />
+
+                                        <InputTextComponent
+                                            label="Model"
+                                            name="model"
+                                            value={editFormData.model}
+                                            onChange={(e) => setEditFieldValue('model', e.target.value)}
+                                            error={editFormErrors.model}
+                                        />
+
+                                        <InputTextComponent
+                                            label="Serial Number"
+                                            name="serial_number"
+                                            value={editFormData.serial_number}
+                                            onChange={(e) => setEditFieldValue('serial_number', e.target.value)}
+                                            error={editFormErrors.serial_number}
+                                        />
+                                    </div>
+
+                                    {/* Status & Details */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Status & Details</h3>
+                                        
+                                        <InputSelectComponent
+                                            label="Condition Status"
+                                            value={editFormData.condition_status}
+                                            onChange={(value) => setEditFieldValue('condition_status', value)}
+                                            options={[
+                                                { value: '', label: 'Select Condition' },
+                                                { value: 'New', label: 'New' },
+                                                { value: 'Excellent', label: 'Excellent' },
+                                                { value: 'Good', label: 'Good' },
+                                                { value: 'Fair', label: 'Fair' },
+                                                { value: 'Poor', label: 'Poor' },
+                                                { value: 'Damaged', label: 'Damaged' },
+                                                { value: 'Under Repair', label: 'Under Repair' }
+                                            ]}
+                                            error={editFormErrors.condition_status}
+                                        />
+
+                                        <InputSelectComponent
+                                            label="Status"
+                                            value={editFormData.status}
+                                            onChange={(value) => setEditFieldValue('status', value)}
+                                            options={[
+                                                { value: '', label: 'Select Status' },
+                                                { value: 'Active', label: 'Active' },
+                                                { value: 'Inactive', label: 'Inactive' },
+                                                { value: 'Retired', label: 'Retired' },
+                                                { value: 'Lost', label: 'Lost' },
+                                                { value: 'Stolen', label: 'Stolen' },
+                                                { value: 'Under Maintenance', label: 'Under Maintenance' }
+                                            ]}
+                                            error={editFormErrors.status}
+                                            required
+                                        />
+
+                                        <InputSelectComponent
+                                            label="Location"
+                                            value={editFormData.location_id}
+                                            onChange={(value) => setEditFieldValue('location_id', value)}
+                                            options={[
+                                                { value: '', label: 'Select Location' },
+                                                ...dropdownOptions.locations.map(location => ({
+                                                    value: location.id,
+                                                    label: location.name
+                                                }))
+                                            ]}
+                                            error={editFormErrors.location_id}
+                                        />
+
+                                        <InputSelectComponent
+                                            label="Assigned To"
+                                            value={editFormData.assigned_to}
+                                            onChange={(value) => setEditFieldValue('assigned_to', value)}
+                                            options={[
+                                                { value: '', label: 'Unassigned' },
+                                                // Add user options here when available
+                                            ]}
+                                            error={editFormErrors.assigned_to}
+                                        />
+                                    </div>
                                 </div>
 
-                                <InputSelectComponent
-                                    label="Asset Type"
-                                    value={editFormData.asset_type}
-                                    onChange={(value) => setEditFieldValue('asset_type', value)}
-                                    options={[
-                                        { value: '', label: 'Select Asset Type' },
-                                        ...dropdownOptions.asset_types.map(type => ({
-                                            value: type,
-                                            label: type
-                                        }))
-                                    ]}
-                                    error={editFormErrors.asset_type}
-                                    required
-                                />
+                                {/* Purchase Information */}
+                                <div className="space-y-4">
+                                    <h3 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Purchase Information</h3>
+                                    
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <InputTextComponent
+                                            label="Purchase Date"
+                                            name="purchase_date"
+                                            type="date"
+                                            value={editFormData.purchase_date}
+                                            onChange={(e) => setEditFieldValue('purchase_date', e.target.value)}
+                                            error={editFormErrors.purchase_date}
+                                        />
 
-                                <InputTextComponent
-                                    label="Brand"
-                                    name="brand"
-                                    value={editFormData.brand}
-                                    onChange={(e) => setEditFieldValue('brand', e.target.value)}
-                                    error={editFormErrors.brand}
-                                />
+                                        <InputTextComponent
+                                            label="Purchase Price"
+                                            name="purchase_price"
+                                            type="number"
+                                            step="0.01"
+                                            value={editFormData.purchase_price}
+                                            onChange={(e) => setEditFieldValue('purchase_price', e.target.value)}
+                                            error={editFormErrors.purchase_price}
+                                        />
 
-                                <InputTextComponent
-                                    label="Model"
-                                    name="model"
-                                    value={editFormData.model}
-                                    onChange={(e) => setEditFieldValue('model', e.target.value)}
-                                    error={editFormErrors.model}
-                                />
-
-                                <InputTextComponent
-                                    label="Serial Number"
-                                    name="serial_number"
-                                    value={editFormData.serial_number}
-                                    onChange={(e) => setEditFieldValue('serial_number', e.target.value)}
-                                    error={editFormErrors.serial_number}
-                                />
-
-                                <InputSelectComponent
-                                    label="Condition Status"
-                                    value={editFormData.condition_status}
-                                    onChange={(value) => setEditFieldValue('condition_status', value)}
-                                    options={[
-                                        { value: '', label: 'Select Condition' },
-                                        { value: 'New', label: 'New' },
-                                        { value: 'Excellent', label: 'Excellent' },
-                                        { value: 'Good', label: 'Good' },
-                                        { value: 'Fair', label: 'Fair' },
-                                        { value: 'Poor', label: 'Poor' },
-                                        { value: 'Damaged', label: 'Damaged' },
-                                        { value: 'Under Repair', label: 'Under Repair' }
-                                    ]}
-                                    error={editFormErrors.condition_status}
-                                />
-
-                                <InputSelectComponent
-                                    label="Status"
-                                    value={editFormData.status}
-                                    onChange={(value) => setEditFieldValue('status', value)}
-                                    options={[
-                                        { value: '', label: 'Select Status' },
-                                        { value: 'Active', label: 'Active' },
-                                        { value: 'Inactive', label: 'Inactive' },
-                                        { value: 'Retired', label: 'Retired' },
-                                        { value: 'Lost', label: 'Lost' },
-                                        { value: 'Stolen', label: 'Stolen' },
-                                        { value: 'Under Maintenance', label: 'Under Maintenance' }
-                                    ]}
-                                    error={editFormErrors.status}
-                                    required
-                                />
-
-                                <InputSelectComponent
-                                    label="Location"
-                                    value={editFormData.location_id}
-                                    onChange={(value) => setEditFieldValue('location_id', value)}
-                                    options={[
-                                        { value: '', label: 'Select Location' },
-                                        ...dropdownOptions.locations.map(location => ({
-                                            value: location.id,
-                                            label: location.name
-                                        }))
-                                    ]}
-                                    error={editFormErrors.location_id}
-                                />
-
-                                <InputSelectComponent
-                                    label="Assigned To"
-                                    value={editFormData.assigned_to}
-                                    onChange={(value) => setEditFieldValue('assigned_to', value)}
-                                    options={[
-                                        { value: '', label: 'Unassigned' },
-                                        // Add user options here when available
-                                    ]}
-                                    error={editFormErrors.assigned_to}
-                                />
-
-                                <InputTextComponent
-                                    label="Purchase Date"
-                                    name="purchase_date"
-                                    type="date"
-                                    value={editFormData.purchase_date}
-                                    onChange={(e) => setEditFieldValue('purchase_date', e.target.value)}
-                                    error={editFormErrors.purchase_date}
-                                />
-
-                                <InputTextComponent
-                                    label="Purchase Price"
-                                    name="purchase_price"
-                                    type="number"
-                                    step="0.01"
-                                    value={editFormData.purchase_price}
-                                    onChange={(e) => setEditFieldValue('purchase_price', e.target.value)}
-                                    error={editFormErrors.purchase_price}
-                                />
-
-                                <InputTextComponent
-                                    label="Warranty Expiry"
-                                    name="warranty_expiry"
-                                    type="date"
-                                    value={editFormData.warranty_expiry}
-                                    onChange={(e) => setEditFieldValue('warranty_expiry', e.target.value)}
-                                    error={editFormErrors.warranty_expiry}
-                                />
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        value={editFormData.description}
-                                        onChange={(e) => setEditFieldValue('description', e.target.value)}
-                                        className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Asset description or specifications..."
-                                    />
+                                        <div className="sm:col-span-2 lg:col-span-1">
+                                            <InputTextComponent
+                                                label="Warranty Expiry"
+                                                name="warranty_expiry"
+                                                type="date"
+                                                value={editFormData.warranty_expiry}
+                                                onChange={(e) => setEditFieldValue('warranty_expiry', e.target.value)}
+                                                error={editFormErrors.warranty_expiry}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Notes
-                                    </label>
-                                    <textarea
-                                        rows={3}
-                                        value={editFormData.notes}
-                                        onChange={(e) => setEditFieldValue('notes', e.target.value)}
-                                        className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                        placeholder="Additional notes..."
-                                    />
+                                {/* Additional Information */}
+                                <div className="space-y-4">
+                                    <h3 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Additional Information</h3>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Description
+                                        </label>
+                                        <textarea
+                                            rows={3}
+                                            value={editFormData.description}
+                                            onChange={(e) => setEditFieldValue('description', e.target.value)}
+                                            className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Asset description or specifications..."
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Notes
+                                        </label>
+                                        <textarea
+                                            rows={3}
+                                            value={editFormData.notes}
+                                            onChange={(e) => setEditFieldValue('notes', e.target.value)}
+                                            className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                            placeholder="Additional notes..."
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div className="flex justify-end space-x-3 pt-4 border-t">
+                            </form>
+                        </div>
+                        
+                        {/* Fixed Footer */}
+                        <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
+                            <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 space-y-3 space-y-reverse sm:space-y-0">
                                 <Button
                                     type="button"
                                     variant="secondary"
@@ -814,6 +858,7 @@ export default function OtherAssetsTableSection() {
                                         setEditFormErrors({});
                                     }}
                                     disabled={isEditSubmitting}
+                                    className="w-full sm:w-auto"
                                 >
                                     Cancel
                                 </Button>
@@ -821,11 +866,13 @@ export default function OtherAssetsTableSection() {
                                     type="submit"
                                     variant="primary"
                                     disabled={isEditSubmitting}
+                                    onClick={handleEditSubmit}
+                                    className="w-full sm:w-auto"
                                 >
                                     {isEditSubmitting ? 'Updating...' : 'Update Asset'}
                                 </Button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </Modal>
             )}
