@@ -103,9 +103,10 @@ export default function UserCreateSection() {
             </Button>
 
             <Modal isOpen={isModalOpen} onClose={closeModal} width=' w-1/4'>
-                <h2 className="text-xl font-semibold mb-4">Add New User</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
+                <div className="p-6">
+                    <h2 className="text-xl font-semibold mb-6">Add New User</h2>
+                    <form onSubmit={handleSubmit}>
+                        <div className="mb-4">
                         <InputLabelComponent htmlFor="name" labelText="Name" />
                         <InputTextComponent
                             id="name"
@@ -154,29 +155,30 @@ export default function UserCreateSection() {
                         />
                     </div>
 
-                    <div className="flex justify-end gap-4">
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="md"
-                            isLoading={false}
-                            disabled={false}
-                        >
-                            Save
-                        </Button>
+                        <div className="flex justify-end gap-4 pt-4">
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                size="md"
+                                isLoading={false}
+                                disabled={false}
+                            >
+                                Save
+                            </Button>
 
-                        <Button
-                            type="button"
-                            variant="danger"
-                            size="md"
-                            isLoading={false}
-                            disabled={false}
-                            onClick={closeModal}
-                        >
-                            <XMarkIcon className="h-5 w-5" />
-                        </Button>
-                    </div>
-                </form>
+                            <Button
+                                type="button"
+                                variant="danger"
+                                size="md"
+                                isLoading={false}
+                                disabled={false}
+                                onClick={closeModal}
+                            >
+                                <XMarkIcon className="h-5 w-5" />
+                            </Button>
+                        </div>
+                    </form>
+                </div>
             </Modal>
         </div>
     )

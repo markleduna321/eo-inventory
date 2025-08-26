@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { update_user_thunk } from "../_redux/user-management-thunk";
 import AlertComponent from "@/app/pages/components/alert";
+import InputLabelComponent from "@/app/pages/components/input-label-component";
+import InputTextComponent from "@/app/pages/components/input-text-component";
+import SelectComponent from "@/app/pages/components/input-select";
 
 const InputError = ({ message, className = "" }) => {
     if (!message) return null;
@@ -72,17 +75,18 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
     
 
     return (
-        <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+        <div className="p-6">
+            <h2 className="text-xl font-semibold mb-6">Edit User</h2>
+            <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
                 {/* Name Input */}
                 <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                        Name
-                    </label>
-                    <input
-                        type="text"
+                    <InputLabelComponent 
+                        labelText="Name"
+                        required={true}
+                    />
+                    <InputTextComponent 
                         name="name"
-                        id="name"
                         value={userData.name}
                         onChange={(e) => setUserData({ ...userData, name: e.target.value })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -92,13 +96,13 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
 
                 {/* Email Input */}
                 <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                        Email
-                    </label>
-                    <input
+                    <InputLabelComponent 
+                        labelText="Email"
+                        required={true}
+                    />
+                    <InputTextComponent 
                         type="email"
                         name="email"
-                        id="email"
                         value={userData.email}
                         onChange={(e) => setUserData({ ...userData, email: e.target.value })}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
@@ -108,15 +112,16 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
 
                 {/* Password Input */}
                 <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                        Password
-                    </label>
-                    <input
+                    <InputLabelComponent 
+                        labelText="Password"
+                        required={false}
+                    />
+                    <InputTextComponent 
                         type="password"
                         name="password"
-                        id="password"
                         value={userData.password}
                         onChange={(e) => setUserData({ ...userData, password: e.target.value })}
+                        placeholder="Leave blank to keep current password"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
                     />
                     <InputError message={errors?.password} />
@@ -124,48 +129,48 @@ export default function UserEditSection({ selectedUser, onClose, setAlertMessage
 
                 {/* Role Selection */}
                 <div>
-                    <label htmlFor="role_id" className="block text-sm font-medium text-gray-700">
-                        Role
-                    </label>
-                    <select
-                        id="role_id"
+                    <InputLabelComponent 
+                        labelText="Role"
+                        required={true}
+                    />
+                    <SelectComponent 
                         name="role_id"
                         value={userData.role_id}
                         onChange={(e) => setUserData({ ...userData, role_id: e.target.value })}
+                        options={[
+                            { value: "", label: "Select Role" },
+                            ...roles
+                                .filter(role => role.status === 'Active')
+                                .map(role => ({
+                                    value: role.id,
+                                    label: role.name
+                                }))
+                        ]}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                    >
-                        <option value="">Select Role</option>
-                        {roles
-                            .filter(role => role.status === 'Active')
-                            .map(role => (
-                                <option key={role.id} value={role.id}>
-                                    {role.name}
-                                </option>
-                            ))
-                        }
-                    </select>
+                    />
                     <InputError message={errors?.role_id} />
                 </div>
 
                 
 
                 {/* Submit and Cancel Buttons */}
-                <div className="flex justify-end space-x-4">
+                <div className="flex justify-end space-x-4 pt-4">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md"
+                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="bg-indigo-600 text-white px-4 py-2 rounded-md"
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                     >
-                        Save
+                        Save Changes
                     </button>
                 </div>
             </div>  
-        </form>
+            </form>
+        </div>
     );
 }
