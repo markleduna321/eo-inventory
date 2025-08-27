@@ -170,23 +170,31 @@ export default function RoleEditSection({ role, isOpen, onClose }) {
     if (!role) return null
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} width="w-4/5 max-w-4xl">
-            <div className="bg-white px-6 py-4">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Edit Role: {role.name}</h2>
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleClose}
-                    >
-                        Cancel
-                    </Button>
+        <Modal isOpen={isOpen} onClose={handleClose} width="w-full max-w-6xl mx-4 sm:mx-6 lg:mx-8">
+            <div className="bg-white">
+                {/* Header */}
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Edit Role: {role.name}</h2>
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleClose}
+                            className="sm:hidden"
+                        >
+                            Cancel
+                        </Button>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Basic Role Information */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Scrollable Content */}
+                <div className="px-4 sm:px-6 py-6 max-h-[70vh] sm:max-h-[80vh] overflow-y-auto">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Basic Role Information */}
+                        <div>
+                            <h4 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 mb-4">Basic Information</h4>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="role_name" className="block text-sm font-medium text-gray-700 mb-1">
                                 Role Name *
@@ -222,63 +230,64 @@ export default function RoleEditSection({ role, isOpen, onClose }) {
                                 <option value="5">Level 5 - Administrator</option>
                             </select>
                             {errors.level && <p className="text-red-500 text-sm mt-1">{errors.level}</p>}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="role_description" className="block text-sm font-medium text-gray-700 mb-1">
-                                Role Description
-                            </label>
-                            <textarea
-                                id="role_description"
-                                name="role_description"
-                                rows={3}
-                                value={formData.description}
-                                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                                placeholder="Describe the role's responsibilities and purpose..."
-                            />
-                            {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
-                        </div>
-                        <div>
-                            <label htmlFor="role_status" className="block text-sm font-medium text-gray-700 mb-1">
-                                Status
-                            </label>
-                            <select 
-                                id="role_status"
-                                name="role_status"
-                                value={formData.status}
-                                onChange={(e) => setFormData({...formData, status: e.target.value})}
-                                className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                            >
-                                <option value="Active">Active</option>
-                                <option value="Inactive">Inactive</option>
-                            </select>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="role_description" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Role Description
+                                </label>
+                                <textarea
+                                    id="role_description"
+                                    name="role_description"
+                                    rows={3}
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                    placeholder="Describe the role's responsibilities and purpose..."
+                                />
+                                {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+                            </div>
+                            <div>
+                                <label htmlFor="role_status" className="block text-sm font-medium text-gray-700 mb-1">
+                                    Status
+                                </label>
+                                <select 
+                                    id="role_status"
+                                    name="role_status"
+                                    value={formData.status}
+                                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                                >
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     {/* Permissions Section */}
                     <div>
-                        <h4 className="text-lg font-medium text-gray-900 mb-4">Permissions</h4>
-                        <p className="text-sm text-gray-600 mb-4">
-                            Select the permissions this role should have. Users with this role will only be able to access the selected features.
-                        </p>
-                        
-                        <div className="space-y-6 max-h-96 overflow-y-auto border rounded-lg p-4">
+                            <h4 className="text-base sm:text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 mb-4">Permissions</h4>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Select the permissions this role should have. Users with this role will only be able to access the selected features.
+                            </p>
+                            
+                            <div className="space-y-6 max-h-64 sm:max-h-80 lg:max-h-96 overflow-y-auto border rounded-lg p-3 sm:p-4">
                             {permissionModules.map((module, moduleIndex) => (
                                 <div key={moduleIndex} className="border-b border-gray-200 pb-4 last:border-b-0">
                                     <div className="flex items-center justify-between mb-3">
-                                        <h5 className="font-medium text-gray-900">{module.module}</h5>
+                                        <h5 className="font-medium text-gray-900 text-sm sm:text-base">{module.module}</h5>
                                         <button
                                             type="button"
                                             onClick={() => handleModuleSelectAll(module.permissions)}
-                                            className="text-sm text-indigo-600 hover:text-indigo-500"
+                                            className="text-xs sm:text-sm text-indigo-600 hover:text-indigo-500"
                                         >
                                             {module.permissions.every(p => selectedPermissions.includes(p.id)) ? 'Deselect All' : 'Select All'}
                                         </button>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                                         {module.permissions.map((permission) => (
                                             <div key={permission.id} className="flex items-start">
                                                 <input
@@ -309,16 +318,20 @@ export default function RoleEditSection({ role, isOpen, onClose }) {
                         {errors.permissions && <p className="text-red-500 text-sm mt-1">{errors.permissions}</p>}
                     </div>
 
-                    {/* General error display */}
-                    {errors.general && <p className="text-red-500 text-sm">{errors.general}</p>}
+                        {/* General error display */}
+                        {errors.general && <p className="text-red-500 text-sm">{errors.general}</p>}
+                    </form>
+                </div>
 
-                    {/* Submit Button */}
-                    <div className="flex justify-end gap-2 pt-4 border-t">
+                {/* Footer */}
+                <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
                         <Button
                             type="button"
                             variant="secondary"
                             size="md"
                             onClick={handleClose}
+                            className="w-full sm:w-auto"
                         >
                             Cancel
                         </Button>
@@ -327,11 +340,12 @@ export default function RoleEditSection({ role, isOpen, onClose }) {
                             variant="primary"
                             size="md"
                             disabled={selectedPermissions.length === 0 || processing || !formData.name || !formData.level}
+                            className="w-full sm:w-auto"
                         >
                             {processing ? 'Updating...' : 'Update Role'}
                         </Button>
                     </div>
-                </form>
+                </div>
             </div>
         </Modal>
     )
