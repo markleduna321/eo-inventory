@@ -54,6 +54,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all device requests made by this user.
+     */
+    public function deviceRequests()
+    {
+        return $this->hasMany(DeviceRequest::class, 'requester_id');
+    }
+
+    /**
      * Check if user has a specific permission
      */
     public function hasPermission($permission)

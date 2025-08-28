@@ -8,10 +8,14 @@ const AskAISection = () => {
     const [loading, setLoading] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [recentQuestions] = useState([
-        'What is the total value of our inventory?',
-        'Which department has the highest number of monitors?',
-        'How many parts are below the minimum stock level?',
-        'What was our asset utilization rate last month?'
+        'What is the total value of our inventory by category?',
+        'Which location has the highest asset utilization rate?',
+        'How many devices are over 3 years old and due for replacement?',
+        'What are our top 3 most expensive asset categories?',
+        'Which brands do we use most and what are their total values?',
+        'How many parts are below minimum stock levels?',
+        'What is our average cost per user for IT assets?',
+        'Which departments have the most pending device requests?'
     ]);
 
     const handleSubmit = async (e) => {
@@ -41,9 +45,17 @@ const AskAISection = () => {
                 if (res.data.error === 'rate_limit_exceeded') {
                     toast.warning('AI service is experiencing high demand. Try again shortly.');
                 } else if (res.data.is_fallback) {
-                    toast.info('Using fallback response (AI service unavailable)');
+                    if (res.data.enhanced) {
+                        toast.info('Using enhanced fallback analysis');
+                    } else {
+                        toast.info('Using basic fallback response (AI service unavailable)');
+                    }
                 } else {
-                    toast.success('AI response generated');
+                    if (res.data.enhanced) {
+                        toast.success('Enhanced AI analysis complete!');
+                    } else {
+                        toast.success('AI response generated');
+                    }
                 }
             } else {
                 throw new Error('Received an invalid response format');
@@ -172,27 +184,54 @@ const AskAISection = () => {
                         <div className={`rounded-lg border-l-4 p-4 ${
                             response.is_fallback 
                                 ? 'bg-amber-50 border-amber-400' 
+                                : response.enhanced
+                                ? 'bg-green-50 border-green-400'
                                 : 'bg-purple-50 border-purple-400'
                         }`}>
                             <div className="flex justify-between items-start mb-2">
-                                <h3 className="text-sm font-medium text-gray-900">AI Response</h3>
-                                {response.is_fallback && (
-                                    <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2 py-1 rounded">
-                                        Fallback
-                                    </span>
-                                )}
+                                <h3 className="text-sm font-medium text-gray-900">
+                                    {response.enhanced ? 'Enhanced AI Analysis' : 'AI Response'}
+                                </h3>
+                                <div className="flex gap-2">
+                                    {response.enhanced && (
+                                        <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
+                                            Enhanced
+                                        </span>
+                                    )}
+                                    {response.is_fallback && (
+                                        <span className="bg-amber-100 text-amber-800 text-xs font-medium px-2 py-1 rounded">
+                                            Fallback
+                                        </span>
+                                    )}
+                                    {response.model && (
+                                        <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1 rounded">
+                                            {response.model}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                             
-                            <p className="text-sm text-gray-700 mb-3">{response.answer}</p>
+                            <div className="prose prose-sm max-w-none">
+                                <p className="text-sm text-gray-700 mb-3 whitespace-pre-line">{response.answer}</p>
+                            </div>
+                            
+                            {/* Token Usage (for debugging) */}
+                            {response.token_usage && (
+                                <div className="text-xs text-gray-500 mb-3">
+                                    Tokens used: {response.token_usage.total_tokens || 'N/A'}
+                                </div>
+                            )}
                             
                             {/* Key Data Points */}
                             {response.relevantData && Object.keys(response.relevantData).length > 0 && (
                                 <div className="mt-3">
-                                    <h4 className="text-xs font-medium text-gray-500 mb-2">Key Data:</h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <h4 className="text-xs font-medium text-gray-500 mb-2">Key Metrics:</h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                                         {Object.entries(response.relevantData).map(([key, value]) => (
-                                            <div key={key} className="bg-white p-2 rounded text-center">
-                                                <p className="text-xs text-gray-500">{key.replace(/_/g, ' ').toUpperCase()}</p>
+                                            <div key={key} className="bg-white p-2 rounded border text-center">
+                                                <p className="text-xs text-gray-500 capitalize">
+                                                    {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                                </p>
                                                 <p className="text-sm font-bold text-gray-800">{value}</p>
                                             </div>
                                         ))}
@@ -200,19 +239,39 @@ const AskAISection = () => {
                                 </div>
                             )}
                             
-                            {response.is_fallback && (
-                                <button
-                                    onClick={() => handleSubmit({ preventDefault: () => {} })}
-                                    className="mt-3 inline-flex items-center px-3 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
-                                >
-                                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                    </svg>
-                                    Try Again
-                                </button>
-                            )}
-                            
-                            <p className="text-xs text-gray-500 mt-2">Generated: {response.generatedAt}</p>
+                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                                <p className="text-xs text-gray-500">
+                                    Generated: {new Date(response.generatedAt).toLocaleString()}
+                                    {response.enhanced && ' • Using comprehensive data analysis'}
+                                </p>
+                                
+                                <div className="flex gap-2">
+                                    {response.is_fallback && (
+                                        <button
+                                            onClick={() => handleSubmit({ preventDefault: () => {} })}
+                                            className="inline-flex items-center px-3 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
+                                        >
+                                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Retry
+                                        </button>
+                                    )}
+                                    
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(response.answer);
+                                            toast.success('Response copied to clipboard');
+                                        }}
+                                        className="inline-flex items-center px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                                    >
+                                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -324,11 +324,331 @@ class OpenAIService
     }
     
     /**
-     * Get a fallback response based on the question
+     * Generate an intelligent response with comprehensive inventory context
      * 
-     * @param string $question
-     * @return array
+     * @param string $question - The user's question
+     * @param array $options - Additional options
+     * @return array - The response data or error information
      */
+    public function generateIntelligentInventoryResponse($question, $options = [])
+    {
+        try {
+            // Get comprehensive system data
+            $dataContextService = app()->make(\App\Services\InventoryDataContextService::class);
+            $systemData = $dataContextService->getComprehensiveSystemData();
+            
+            // Analyze the question to determine focus areas
+            $focusAreas = $this->analyzeQuestionContext($question);
+            
+            // Create focused context based on the question
+            $focusedContext = $this->createFocusedContext($systemData, $focusAreas);
+            
+            // Build enhanced system prompt
+            $systemPrompt = $this->buildEnhancedSystemPrompt($focusAreas);
+            
+            // Build user prompt with comprehensive context
+            $userPrompt = $this->buildComprehensiveUserPrompt($question, $focusedContext);
+            
+            // Generate response with enhanced context
+            return $this->generateResponse($systemPrompt, $userPrompt, $options);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to generate intelligent inventory response', [
+                'error' => $e->getMessage(),
+                'question' => $question
+            ]);
+            
+            return $this->errorResponse('context_error', 'Unable to analyze inventory data for your question.');
+        }
+    }
+    
+    /**
+     * Analyze question to determine what data to focus on
+     */
+    private function analyzeQuestionContext($question)
+    {
+        $questionLower = strtolower($question);
+        $focusAreas = [];
+        
+        // Asset type keywords
+        if (preg_match('/\b(device|computer|laptop|desktop)\b/', $questionLower)) {
+            $focusAreas[] = 'devices';
+        }
+        if (preg_match('/\b(monitor|screen|display)\b/', $questionLower)) {
+            $focusAreas[] = 'monitors';
+        }
+        if (preg_match('/\b(peripheral|mouse|keyboard|headset)\b/', $questionLower)) {
+            $focusAreas[] = 'peripherals';
+        }
+        if (preg_match('/\b(system unit|cpu|ram|storage)\b/', $questionLower)) {
+            $focusAreas[] = 'system_units';
+        }
+        if (preg_match('/\b(part|component|spare)\b/', $questionLower)) {
+            $focusAreas[] = 'parts';
+        }
+        if (preg_match('/\b(other asset|furniture|equipment)\b/', $questionLower)) {
+            $focusAreas[] = 'other_assets';
+        }
+        
+        // Analysis type keywords
+        if (preg_match('/\b(price|cost|value|financial|budget|expensive|cheap)\b/', $questionLower)) {
+            $focusAreas[] = 'financial';
+        }
+        if (preg_match('/\b(location|where|building|office|department)\b/', $questionLower)) {
+            $focusAreas[] = 'locations';
+        }
+        if (preg_match('/\b(user|person|employee|assign|who)\b/', $questionLower)) {
+            $focusAreas[] = 'users';
+        }
+        if (preg_match('/\b(request|return|pending|approve)\b/', $questionLower)) {
+            $focusAreas[] = 'requests';
+        }
+        if (preg_match('/\b(utilization|usage|efficiency|optimize)\b/', $questionLower)) {
+            $focusAreas[] = 'utilization';
+        }
+        if (preg_match('/\b(stock|inventory|level|low|empty)\b/', $questionLower)) {
+            $focusAreas[] = 'inventory_health';
+        }
+        if (preg_match('/\b(trend|change|increase|decrease|over time)\b/', $questionLower)) {
+            $focusAreas[] = 'trends';
+        }
+        if (preg_match('/\b(brand|model|specification|spec|feature)\b/', $questionLower)) {
+            $focusAreas[] = 'specifications';
+        }
+        if (preg_match('/\b(relationship|connect|link|associate)\b/', $questionLower)) {
+            $focusAreas[] = 'relationships';
+        }
+        
+        // Analytical keywords
+        if (preg_match('/\b(most|highest|best|top|maximum)\b/', $questionLower)) {
+            $focusAreas[] = 'top_analysis';
+        }
+        if (preg_match('/\b(least|lowest|worst|bottom|minimum)\b/', $questionLower)) {
+            $focusAreas[] = 'bottom_analysis';
+        }
+        if (preg_match('/\b(average|mean|typical|normal)\b/', $questionLower)) {
+            $focusAreas[] = 'average_analysis';
+        }
+        if (preg_match('/\b(total|sum|all|overall|entire)\b/', $questionLower)) {
+            $focusAreas[] = 'total_analysis';
+        }
+        if (preg_match('/\b(compare|comparison|versus|vs|difference)\b/', $questionLower)) {
+            $focusAreas[] = 'comparison';
+        }
+        
+        // Default focus if no specific areas identified
+        if (empty($focusAreas)) {
+            $focusAreas = ['summary', 'general'];
+        }
+        
+        return array_unique($focusAreas);
+    }
+    
+    /**
+     * Create focused context based on question analysis
+     */
+    private function createFocusedContext($systemData, $focusAreas)
+    {
+        $context = [];
+        
+        // Always include summary for general context (with safe access)
+        $context['summary'] = $systemData['summary'] ?? ['error' => 'Summary data unavailable'];
+        
+        // Add specific data based on focus areas
+        foreach ($focusAreas as $area) {
+            switch ($area) {
+                case 'devices':
+                    if (isset($systemData['assets']['devices'])) {
+                        $context['devices'] = $systemData['assets']['devices'];
+                    }
+                    break;
+                case 'monitors':
+                    if (isset($systemData['assets']['monitors'])) {
+                        $context['monitors'] = $systemData['assets']['monitors'];
+                    }
+                    break;
+                case 'peripherals':
+                    if (isset($systemData['assets']['peripherals'])) {
+                        $context['peripherals'] = $systemData['assets']['peripherals'];
+                    }
+                    break;
+                case 'system_units':
+                    if (isset($systemData['assets']['system_units'])) {
+                        $context['system_units'] = $systemData['assets']['system_units'];
+                    }
+                    break;
+                case 'parts':
+                    if (isset($systemData['assets']['parts'])) {
+                        $context['parts'] = $systemData['assets']['parts'];
+                    }
+                    break;
+                case 'other_assets':
+                    if (isset($systemData['assets']['other_assets'])) {
+                        $context['other_assets'] = $systemData['assets']['other_assets'];
+                    }
+                    break;
+                case 'financial':
+                    if (isset($systemData['financial'])) {
+                        $context['financial'] = $systemData['financial'];
+                    }
+                    break;
+                case 'locations':
+                    if (isset($systemData['locations'])) {
+                        $context['locations'] = $systemData['locations'];
+                    }
+                    break;
+                case 'users':
+                    if (isset($systemData['users'])) {
+                        $context['users'] = $systemData['users'];
+                    }
+                    break;
+                case 'requests':
+                    if (isset($systemData['requests'])) {
+                        $context['requests'] = $systemData['requests'];
+                    }
+                    break;
+                case 'utilization':
+                case 'inventory_health':
+                    if (isset($systemData['inventory_health'])) {
+                        $context['inventory_health'] = $systemData['inventory_health'];
+                    }
+                    break;
+                case 'trends':
+                    if (isset($systemData['trends'])) {
+                        $context['trends'] = $systemData['trends'];
+                    }
+                    break;
+                case 'relationships':
+                    if (isset($systemData['relationships'])) {
+                        $context['relationships'] = $systemData['relationships'];
+                    }
+                    break;
+                case 'specifications':
+                    // Include spec data from relevant assets
+                    if (isset($systemData['assets']['devices']['specifications'])) {
+                        $context['device_specifications'] = $systemData['assets']['devices']['specifications'];
+                    }
+                    break;
+            }
+        }
+        
+        return $context;
+    }
+    
+    /**
+     * Build enhanced system prompt based on focus areas
+     */
+    private function buildEnhancedSystemPrompt($focusAreas)
+    {
+        $basePrompt = 'You are InventoryGPT, an advanced AI assistant specializing in comprehensive inventory management analysis. ';
+        
+        // Add specific expertise based on focus areas
+        $expertise = [];
+        
+        if (in_array('financial', $focusAreas)) {
+            $expertise[] = 'financial analysis and cost optimization';
+        }
+        if (in_array('utilization', $focusAreas) || in_array('inventory_health', $focusAreas)) {
+            $expertise[] = 'utilization analysis and efficiency optimization';
+        }
+        if (in_array('trends', $focusAreas)) {
+            $expertise[] = 'trend analysis and forecasting';
+        }
+        if (in_array('relationships', $focusAreas)) {
+            $expertise[] = 'data relationship analysis and insights';
+        }
+        if (in_array('specifications', $focusAreas)) {
+            $expertise[] = 'technical specifications and compatibility analysis';
+        }
+        
+        if (!empty($expertise)) {
+            $basePrompt .= 'You specialize in ' . implode(', ', $expertise) . '. ';
+        }
+        
+        $basePrompt .= 'Analyze the provided inventory data and answer questions with:
+        
+        1. **Specific Numbers**: Always provide exact counts, values, and percentages from the data
+        2. **Context**: Explain what the numbers mean in business terms
+        3. **Insights**: Identify patterns, trends, or notable findings
+        4. **Actionable Information**: When relevant, suggest what actions the data indicates
+        5. **Relationships**: Highlight connections between different data points
+        
+        Rules:
+        - Use only data provided in the context
+        - Be precise with numbers and calculations
+        - Explain technical terms for business users
+        - Keep responses under 300 words but comprehensive
+        - If data is insufficient, clearly state what information is missing
+        - Format important numbers and percentages clearly
+        
+        Your goal is to provide business intelligence that helps with decision-making.';
+        
+        return $basePrompt;
+    }
+    
+    /**
+     * Build comprehensive user prompt with focused context
+     */
+    private function buildComprehensiveUserPrompt($question, $focusedContext)
+    {
+        $contextJson = json_encode($focusedContext, JSON_PRETTY_PRINT);
+        
+        // Compress context if too large
+        if (strlen($contextJson) > 12000) {
+            $focusedContext = $this->compressContext($focusedContext);
+            $contextJson = json_encode($focusedContext, JSON_PRETTY_PRINT);
+        }
+        
+        $prompt = "INVENTORY DATA CONTEXT:\n";
+        $prompt .= "=======================\n";
+        $prompt .= $contextJson;
+        $prompt .= "\n\n";
+        $prompt .= "ANALYSIS REQUEST:\n";
+        $prompt .= "=================\n";
+        $prompt .= "Question: {$question}\n\n";
+        $prompt .= "Please analyze the inventory data above and provide a comprehensive answer. ";
+        $prompt .= "Include specific numbers, insights, and business implications where relevant.";
+        
+        return $prompt;
+    }
+    
+    /**
+     * Compress context data when it's too large
+     */
+    private function compressContext($context)
+    {
+        $compressed = [];
+        
+        foreach ($context as $key => $data) {
+            if (is_array($data)) {
+                // Keep summary data, compress detailed breakdowns
+                if (isset($data['total_count'])) {
+                    $compressed[$key]['total_count'] = $data['total_count'];
+                }
+                if (isset($data['total_value'])) {
+                    $compressed[$key]['total_value'] = $data['total_value'];
+                }
+                if (isset($data['by_brand'])) {
+                    // Keep only top 3 brands
+                    $compressed[$key]['top_brands'] = array_slice($data['by_brand'], 0, 3, true);
+                }
+                if (isset($data['by_location'])) {
+                    // Keep only top 3 locations
+                    $compressed[$key]['top_locations'] = array_slice($data['by_location'], 0, 3, true);
+                }
+                // Keep other summary-level data
+                foreach (['average_price', 'status_breakdown', 'utilization_rate'] as $summaryKey) {
+                    if (isset($data[$summaryKey])) {
+                        $compressed[$key][$summaryKey] = $data[$summaryKey];
+                    }
+                }
+            } else {
+                $compressed[$key] = $data;
+            }
+        }
+        
+        return $compressed;
+    }
     private function getFallbackResponse($question)
     {
         $questionLower = strtolower($question);

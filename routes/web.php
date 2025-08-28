@@ -25,6 +25,9 @@ use Inertia\Inertia;
 |
 */
 
+// Include test route
+include_once __DIR__ . '/test-specs.php';
+
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('welcome');

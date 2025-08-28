@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Device;
 use App\Models\Monitor;
+use App\Models\OtherAsset;
 use App\Models\SystemUnit;
 use App\Models\Peripheral;
 use App\Models\Part;
@@ -172,7 +173,7 @@ class ReportController extends Controller
     }
     
     /**
-     * Answer a natural language question about inventory data
+     * Answer a natural language question about inventory data using enhanced AI
      */
     public function askAI(Request $request)
     {
@@ -185,21 +186,55 @@ class ReportController extends Controller
             $question = $validated['question'];
             $reportContext = $validated['reportContext'] ?? null;
             
-            // Get relevant report data based on the question
-            $relevantData = $this->getRelevantDataForQuestion($question, $reportContext);
-            
-            // Generate AI response
-            $response = $this->generateAIResponse($question, $relevantData);
-            
-            return response()->json([
-                'success' => true,
+            Log::info('AI Question Received', [
                 'question' => $question,
-                'answer' => $response['answer'],
-                'relevantData' => $response['data'],
-                'generatedAt' => now()->toDateTimeString(),
-                'model' => $response['model'] ?? null,
-                'is_fallback' => $response['is_fallback'] ?? false
+                'context' => $reportContext,
+                'user_id' => auth()->id(),
+                'timestamp' => now()
             ]);
+            
+            // Use the enhanced OpenAI service with comprehensive data context
+            $openAIService = app()->make(\App\Services\OpenAIService::class);
+            
+            // Generate intelligent response with full system understanding
+            $response = $openAIService->generateIntelligentInventoryResponse($question, [
+                'temperature' => 0.2, // Lower temperature for more consistent business analysis
+                'maxTokens' => 400,    // Slightly more tokens for comprehensive answers
+            ]);
+            
+            if ($response['success']) {
+                Log::info('AI Response Generated Successfully', [
+                    'question' => $question,
+                    'model' => $response['model'] ?? 'unknown',
+                    'token_usage' => $response['token_usage'] ?? 'unknown',
+                    'response_length' => strlen($response['content'])
+                ]);
+                
+                // Extract relevant data points for display
+                $relevantData = $this->extractRelevantDataPoints($question, $response['content']);
+                
+                return response()->json([
+                    'success' => true,
+                    'question' => $question,
+                    'answer' => $response['content'],
+                    'relevantData' => $relevantData,
+                    'generatedAt' => now()->toDateTimeString(),
+                    'model' => $response['model'] ?? null,
+                    'is_fallback' => $response['is_fallback'] ?? false,
+                    'token_usage' => $response['token_usage'] ?? null,
+                    'enhanced' => true // Flag to indicate this uses the enhanced system
+                ]);
+            } else {
+                Log::error('AI Service Error', [
+                    'question' => $question,
+                    'error' => $response['error'] ?? 'Unknown error',
+                    'fallback_attempted' => true
+                ]);
+                
+                // Try fallback to original method
+                return $this->generateFallbackResponse($question);
+            }
+            
         } catch (\Exception $e) {
             Log::error('askAI method failed', [
                 'error' => $e->getMessage(),
@@ -215,6 +250,141 @@ class ReportController extends Controller
                 'generatedAt' => now()->toDateTimeString()
             ], 500);
         }
+    }
+    
+    /**
+     * Generate fallback response when AI service fails
+     */
+    private function generateFallbackResponse($question)
+    {
+        try {
+            // Get basic inventory data for fallback
+            $fallbackData = $this->getBasicInventoryData();
+            $fallbackAnswer = $this->generateBasicAnswer($question, $fallbackData);
+            
+            return response()->json([
+                'success' => true,
+                'question' => $question,
+                'answer' => $fallbackAnswer,
+                'relevantData' => $this->extractBasicDataPoints($fallbackData),
+                'generatedAt' => now()->toDateTimeString(),
+                'is_fallback' => true,
+                'enhanced' => false
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Fallback response generation failed', [
+                'error' => $e->getMessage(),
+                'question' => $question
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'question' => $question,
+                'answer' => 'I apologize, but I\'m having difficulty analyzing your inventory data right now. Please try again later or contact your system administrator.',
+                'relevantData' => [],
+                'generatedAt' => now()->toDateTimeString(),
+                'is_fallback' => true,
+                'error' => 'system_error'
+            ]);
+        }
+    }
+    
+    /**
+     * Extract relevant data points from AI response for highlighting
+     */
+    private function extractRelevantDataPoints($question, $response)
+    {
+        $dataPoints = [];
+        
+        // Extract numbers that appear to be key metrics
+        preg_match_all('/(\$?[\d,]+\.?\d*)\s*(?:percent|%|dollars?|units?|items?|assets?|devices?|monitors?)/i', $response, $matches);
+        
+        if (!empty($matches[1])) {
+            $numbers = array_slice(array_unique($matches[1]), 0, 6); // Limit to 6 key numbers
+            
+            foreach ($numbers as $i => $number) {
+                $dataPoints["metric_" . ($i + 1)] = $number;
+            }
+        }
+        
+        // Try to identify specific categories mentioned
+        $questionLower = strtolower($question);
+        
+        if (strpos($questionLower, 'device') !== false) {
+            $dataPoints['category'] = 'Devices';
+        } elseif (strpos($questionLower, 'monitor') !== false) {
+            $dataPoints['category'] = 'Monitors';
+        } elseif (strpos($questionLower, 'peripheral') !== false) {
+            $dataPoints['category'] = 'Peripherals';
+        } elseif (strpos($questionLower, 'part') !== false) {
+            $dataPoints['category'] = 'Parts';
+        }
+        
+        return $dataPoints;
+    }
+    
+    /**
+     * Get basic inventory data for fallback responses
+     */
+    private function getBasicInventoryData()
+    {
+        return [
+            'total_devices' => Device::count(),
+            'total_monitors' => Monitor::count(),
+            'total_peripherals' => Peripheral::count(),
+            'total_system_units' => SystemUnit::count(),
+            'total_parts' => Part::count(),
+            'total_other_assets' => OtherAsset::count(),
+            'total_value' => Device::sum('price') + Monitor::sum('price') + OtherAsset::sum('purchase_price'),
+            'total_locations' => Location::count(),
+            'total_users' => User::count(),
+            'pending_requests' => DeviceRequest::where('status', 'pending')->count()
+        ];
+    }
+    
+    /**
+     * Generate basic answer using simple logic
+     */
+    private function generateBasicAnswer($question, $data)
+    {
+        $questionLower = strtolower($question);
+        
+        if (strpos($questionLower, 'total') !== false && strpos($questionLower, 'value') !== false) {
+            return "Based on our current inventory data, the total value of our assets is $" . number_format($data['total_value'], 2) . ". This includes devices, monitors, and other assets across all locations.";
+        }
+        
+        if (strpos($questionLower, 'device') !== false) {
+            return "We currently have {$data['total_devices']} devices in our inventory across {$data['total_locations']} locations.";
+        }
+        
+        if (strpos($questionLower, 'monitor') !== false) {
+            return "Our inventory includes {$data['total_monitors']} monitors distributed across various departments and locations.";
+        }
+        
+        if (strpos($questionLower, 'request') !== false) {
+            return "There are currently {$data['pending_requests']} pending device requests in the system.";
+        }
+        
+        if (strpos($questionLower, 'user') !== false) {
+            return "The system has {$data['total_users']} registered users across all departments.";
+        }
+        
+        // Generic response
+        return "Based on our current inventory: {$data['total_devices']} devices, {$data['total_monitors']} monitors, {$data['total_peripherals']} peripherals, {$data['total_system_units']} system units, and {$data['total_parts']} part categories. Total asset value: $" . number_format($data['total_value'], 2) . ".";
+    }
+    
+    /**
+     * Extract basic data points for display
+     */
+    private function extractBasicDataPoints($data)
+    {
+        return [
+            'total_devices' => number_format($data['total_devices']),
+            'total_monitors' => number_format($data['total_monitors']),
+            'total_value' => '$' . number_format($data['total_value'], 2),
+            'total_locations' => number_format($data['total_locations']),
+            'pending_requests' => number_format($data['pending_requests'])
+        ];
     }
 
     /**
