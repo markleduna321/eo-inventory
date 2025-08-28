@@ -112,7 +112,7 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                                     Serial Number
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
-                                                    Asset Tag
+                                                    Device Price
                                                 </th>
                                                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 border-b border-gray-300">
                                                     Condition
@@ -136,7 +136,10 @@ export default function LiabilityFormForm({ liabilityForm, deviceInfo, prefilled
                                                     {deviceInfo.serial_number}
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
-                                                    {deviceInfo.asset_tag}
+                                                    {deviceInfo.price ? 
+                                                        `₱${Number(deviceInfo.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 
+                                                        'Price not available'
+                                                    }
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-gray-900 border-b border-gray-300">
                                                     {prefilledData?.device_condition || 'Good'}
