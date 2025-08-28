@@ -114,17 +114,29 @@ export default function SystemUnitTableSection() {
     }
 
     const handleDeleteConfirm = async () => {
+        console.log('Delete attempt started for ID:', deleteId)
+        
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No')
+            
             const response = await fetch(`/api/system-units/${deleteId}`, {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
                 }
             })
 
+            console.log('Response status:', response.status)
+            console.log('Response ok:', response.ok)
+            
+            const responseText = await response.text()
+            console.log('Response body:', responseText)
+
             if (!response.ok) {
-                throw new Error('Failed to delete system unit')
+                throw new Error(`Failed to delete system unit (${response.status}): ${responseText}`)
             }
 
             // Refresh the list
