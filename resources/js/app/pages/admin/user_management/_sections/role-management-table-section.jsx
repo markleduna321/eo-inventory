@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import Button from '@/app/pages/components/button'
 import RoleViewSection from './role-view-section'
 import RoleEditSection from './role-edit-section'
+import { delete_role_thunk } from '../_redux/roles-thunk'
 
 export default function RoleManagementTableSection() {
     const dispatch = useDispatch()
@@ -21,6 +22,11 @@ export default function RoleManagementTableSection() {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [selectedRole, setSelectedRole] = useState(null)
+    
+    // Delete modal states
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+    const [deleteRoleId, setDeleteRoleId] = useState(null)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     // Calculate actual user counts for each role
     const getRealUserCount = (roleId) => {
@@ -114,6 +120,44 @@ export default function RoleManagementTableSection() {
     const handleEditRole = (role) => {
         setSelectedRole({...role, userCount: getRealUserCount(role.id)})
         setIsEditModalOpen(true)
+    }
+
+    const handleDeleteRole = (role) => {
+        setDeleteRoleId(role.id)
+        setSelectedRole(role)
+        setIsDeleteModalOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteRoleId) return
+        
+        setIsDeleting(true)
+        try {
+            const result = await dispatch(delete_role_thunk(deleteRoleId))
+            
+            if (result.status === 200) {
+                setIsDeleteModalOpen(false)
+                setDeleteRoleId(null)
+                setSelectedRole(null)
+                
+                // Show success message
+                alert('Role deleted successfully')
+            } else {
+                throw new Error(result.data?.message || 'Failed to delete role')
+            }
+            
+        } catch (error) {
+            console.error('Error deleting role:', error)
+            alert('Error deleting role: ' + error.message)
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
+    const closeDeleteModal = () => {
+        setIsDeleteModalOpen(false)
+        setDeleteRoleId(null)
+        setSelectedRole(null)
     }
 
     const closeViewModal = () => {
@@ -275,6 +319,7 @@ export default function RoleManagementTableSection() {
                                                         variant='danger'
                                                         size='sm'
                                                         disabled={role.userCount > 0}
+                                                        onClick={() => handleDeleteRole(role)}
                                                     >
                                                         Delete
                                                     </Button>
@@ -331,6 +376,38 @@ export default function RoleManagementTableSection() {
             isOpen={isEditModalOpen}
             onClose={closeEditModal}
         />
+
+        {/* Delete Confirmation Modal */}
+        {isDeleteModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                        Confirm Delete
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                        Are you sure you want to delete the role "{selectedRole?.name}"? This action cannot be undone.
+                    </p>
+                    <div className="flex justify-end space-x-3">
+                        <button
+                            type="button"
+                            onClick={closeDeleteModal}
+                            disabled={isDeleting}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleDeleteConfirm}
+                            disabled={isDeleting}
+                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         </>
     )
 }
