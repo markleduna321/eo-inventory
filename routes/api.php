@@ -3,6 +3,7 @@
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\OtherAssetController;
+use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\MonitorController;
 use App\Http\Controllers\LocationController;
@@ -40,6 +41,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users', [UserController::class, 'getUsers']);
     Route::resource('usermanagement', UserController::class);
+
+    // Session management routes
+    Route::get('session-status', [SessionController::class, 'status']);
+    Route::post('extend-session', [SessionController::class, 'extend']);
+    Route::post('logout-other-sessions', [SessionController::class, 'logoutOtherSessions']);
+    Route::get('session-info', [SessionController::class, 'info']);
 
     // Role management routes
     Route::apiResource('roles', RoleController::class);

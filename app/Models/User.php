@@ -23,6 +23,8 @@ class User extends Authenticatable
         'password',
         'role_id',
         'is_online',
+        'current_session_id',
+        'last_activity',
     ];
 
     /**
@@ -43,6 +45,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'last_activity' => 'datetime',
     ];
 
     /**

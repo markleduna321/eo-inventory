@@ -43,6 +43,7 @@ import { ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/20/solid'
 import { Link, usePage, router } from '@inertiajs/react';
 import { hasAnyPermission, PERMISSIONS } from '@/app/utils/permissions';
 import ProfileEditSection from './_components/profile-edit-section';
+import SessionManager from '@/app/components/SessionManager';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin/dashboard', icon: HomeIcon },
@@ -281,6 +282,7 @@ export default function Layout({ children }) {
 
   return (
     <>
+      <SessionManager user={user} />
       <div>
         <Dialog open={sidebarOpen} onClose={setSidebarOpen} className="relative z-50 lg:hidden">
           <DialogBackdrop

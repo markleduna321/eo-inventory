@@ -36,7 +36,21 @@ class AuthenticatedSessionController extends Controller
 
         $user = auth()->user();
         if ($user) {
-            $user->update(['is_online' => true, 'updated_at' => now()]);
+            // Check if user is already logged in from another device
+            if ($user->current_session_id && $user->current_session_id !== session()->getId()) {
+                // Logout from previous session
+                \Illuminate\Support\Facades\DB::table('sessions')
+                    ->where('id', $user->current_session_id)
+                    ->delete();
+            }
+            
+            // Update user session info
+            $user->update([
+                'is_online' => true, 
+                'current_session_id' => session()->getId(),
+                'last_activity' => now(),
+                'updated_at' => now()
+            ]);
         }
 
         // All users redirect to admin dashboard
@@ -49,11 +63,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        // Update user's online status before logout
+        // Update user's online status and clear session before logout
         $user = auth()->user();
         if ($user) {
-            $user->is_online = false;
-            $user->save();
+            $user->update([
+                'is_online' => false,
+                'current_session_id' => null,
+                'last_activity' => now()
+            ]);
         }
 
         // Log out the user
